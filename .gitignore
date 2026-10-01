@@ -1,0 +1,4 @@
+*.xlsx
+.clasp.json
+.clasprc.json
+.DS_Store

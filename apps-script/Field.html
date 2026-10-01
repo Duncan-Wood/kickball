@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 12px;
+    font-family: 'Fredoka', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    color: #3b1f2b;
+    background: #fff7ef;
+  }
+  button, select { font-family: inherit; }
+  h1 { display: flex; align-items: center; gap: 6px; margin: 0 0 6px; font-size: 24px; font-weight: 700; color: #d6336c; }
+  h1 svg { width: 34px; height: 34px; }
+  .season-tag { margin-left: 4px; padding: 2px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; color: #8a6d1c; background: #f6e9bf; }
+  .pride-stripe {
+    height: 3px;
+    margin-bottom: 10px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #ff9aa2 0 16.6%, #ffc48c 0 33.3%, #ffe98a 0 50%, #a8e0a0 0 66.6%, #9cc4f0 0 83.3%, #c9a8e8 0);
+  }
+  .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  select {
+    flex: 1 1 200px;
+    font-size: 15px;
+    padding: 8px 10px;
+    border: 1px solid #f0cdbd;
+    border-radius: 8px;
+    background: #fff;
+  }
+  .innings { display: flex; border: 1px solid #f0cdbd; border-radius: 8px; overflow: hidden; }
+  .innings button {
+    font-size: 15px;
+    font-weight: 600;
+    width: 40px;
+    padding: 8px 0;
+    border: 0;
+    border-left: 1px solid #f0cdbd;
+    background: #fff;
+    color: #3b1f2b;
+    cursor: pointer;
+  }
+  .innings button:first-child { border-left: 0; }
+  .innings button.wide { width: auto; padding: 8px 12px; }
+  .innings button.selected { background: #d6336c; color: #fff; }
+  .subtitle { margin: 10px 2px 6px; font-size: 14px; color: #8a6a75; }
+  .game-details { margin: -2px 2px 8px; font-size: 14px; font-weight: 500; }
+  .game-details:empty { display: none; }
+  .subtitle strong { color: #3b1f2b; }
+  svg { display: block; width: 100%; height: auto; }
+  .chip-box { fill: #fff; stroke: #3b1f2b; stroke-width: 1; }
+  .chip-label { font-size: 9px; font-weight: 700; fill: #fff; text-anchor: middle; letter-spacing: 0.5px; }
+  .chip-label-box { fill: #3b1f2b; }
+  .chip-name { font-size: 12px; font-weight: 700; fill: #3b1f2b; text-anchor: middle; }
+  .chip-name.long { font-size: 9.5px; }
+  .chip.problem .chip-box { fill: #fde3e0; stroke: #b3261e; stroke-dasharray: 4 3; }
+  .chip.problem .chip-label-box { fill: #b3261e; }
+  .chip.problem .chip-name { fill: #b3261e; }
+  .bench { margin-top: 8px; font-size: 14px; }
+  .bench h2 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #8a6a75; }
+  .bench ul { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
+  .bench li { padding: 4px 10px; border-radius: 999px; background: #ffe1d6; }
+  .bench li .order { margin-right: 6px; font-weight: 700; color: #d6336c; }
+  .problems { margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: #fde3e0; color: #b3261e; font-size: 13px; }
+  .problems:empty, .bench:empty { display: none; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; background: #fff; border-radius: 8px; overflow: hidden; }
+  th, td { padding: 7px 6px; text-align: center; border-bottom: 1px solid #f6ddd2; }
+  th { font-size: 12px; color: #8a6a75; background: #ffe9df; }
+  th.name, td.name { text-align: left; font-weight: 600; }
+  td.kicking-order { color: #8a6a75; width: 28px; }
+  td.sat { color: #cdb4b9; }
+  td.played { font-weight: 700; }
+  .status { padding: 24px 4px; font-size: 14px; color: #8a6a75; }
+</style>
+</head>
+<body>
+  <h1>
+    <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <g fill="#a6e05a">
+        <path d="M9,3 Q11.6,7 9,8.4 Q6.4,7 9,3 Z"/>
+        <path d="M17,0.5 Q20,5.2 17,6.8 Q14,5.2 17,0.5 Z"/>
+        <path d="M25,4 Q27.4,7.6 25,9 Q22.6,7.6 25,4 Z"/>
+      </g>
+      <g transform="rotate(-12 16 18)">
+        <path d="M3,15 A13,13 0 0 0 29,15 Z" fill="#4c9a2a"/>
+        <path d="M5.5,15 A10.5,10.5 0 0 0 26.5,15 Z" fill="#f3fbd9"/>
+        <path d="M7,15 A9,9 0 0 0 25,15 Z" fill="#c4ec7c"/>
+        <path d="M16,15 L16,24 M16,15 L9.6,21.4 M16,15 L22.4,21.4" stroke="#f3fbd9" stroke-width="1.4" stroke-linecap="round"/>
+      </g>
+    </svg>
+    <?= teamName ?>
+    <span class="season-tag"><?= seasonLabel ?></span>
+  </h1>
+  <div class="pride-stripe"></div>
+  <div class="status" id="status">Loading lineups…</div>
+  <div id="view" hidden>
+    <div class="controls">
+      <select id="game"></select>
+      <div class="innings" id="innings"></div>
+    </div>
+    <div class="subtitle" id="subtitle"></div>
+    <div class="game-details" id="game-details"></div>
+    <svg id="field" viewBox="-24 28 448 372" xmlns="http://www.w3.org/2000/svg">
+      <path d="M200,350 L-12,138 A300,300 0 0 1 412,138 Z" fill="#63b96e"/>
+      <circle cx="200" cy="350" r="24" fill="#f2c391"/>
+      <path d="M200,350 L48,198 A215,215 0 0 1 352,198 Z" fill="#f2c391"/>
+      <polygon points="200,328 268,260 200,192 132,260" fill="#7ccf84"/>
+      <circle cx="200" cy="260" r="14" fill="#f2c391"/>
+      <path d="M200,350 L-12,138 A300,300 0 0 1 412,138 Z" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M290,260 L200,170 L110,260" fill="none" stroke="#fff" stroke-width="2"/>
+      <g fill="#fff" stroke="#8a6a44" stroke-width="0.5">
+        <rect x="283" y="253" width="14" height="14" transform="rotate(45 290 260)"/>
+        <rect x="193" y="163" width="14" height="14" transform="rotate(45 200 170)"/>
+        <rect x="103" y="253" width="14" height="14" transform="rotate(45 110 260)"/>
+        <polygon points="193,336 207,336 207,343 200,350 193,343"/>
+      </g>
+      <g id="chips"></g>
+    </svg>
+    <table id="summary" hidden></table>
+    <div class="problems" id="problems"></div>
+    <div class="bench" id="kicking-order"></div>
+    <div class="bench" id="bench"></div>
+  </div>
+
+<script>
+  const FIELD_SPOTS = {
+    LF: [48, 152], LC: [118, 92], CF: [200, 64], RC: [282, 92], RF: [352, 152],
+    SS: [140, 168], '2B': [260, 168], '3B': [88, 224], '1B': [312, 224],
+    P: [200, 266], C: [200, 382],
+  };
+  const INFIELD_POSITIONS = ['P', 'C', '1B', '2B', '3B', 'SS'];
+  const REFRESH_INTERVAL_MILLISECONDS = 3000;
+  const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
+  const CHIP_WIDTH = 78;
+
+  let lineups = [];
+  let selectedLineup = null;
+  let selectedInningIndex = 0;
+  let mode = 'inning';
+  let refreshInFlight = false;
+  let refreshTimer = null;
+  let refreshFailureShown = false;
+
+  function svgElement(tag, attributes, text) {
+    const element = document.createElementNS(SVG_NAMESPACE, tag);
+    Object.entries(attributes).forEach(([key, value]) => element.setAttribute(key, value));
+    if (text !== undefined) element.textContent = text;
+    return element;
+  }
+
+  function drawChip(position, playerNames) {
+    const [x, y] = FIELD_SPOTS[position];
+    const chip = svgElement('g', { class: playerNames.length === 1 ? 'chip' : 'chip problem' });
+    const name = playerNames.length === 0 ? 'open' : playerNames.join(' + ');
+    chip.appendChild(svgElement('rect', { class: 'chip-box', x: x - CHIP_WIDTH / 2, y: y - 6, width: CHIP_WIDTH, height: 22, rx: 5 }));
+    chip.appendChild(svgElement('rect', { class: 'chip-label-box', x: x - 15, y: y - 18, width: 30, height: 13, rx: 4 }));
+    chip.appendChild(svgElement('text', { class: 'chip-label', x, y: y - 8.5 }, position));
+    chip.appendChild(svgElement('text', { class: name.length > 12 ? 'chip-name long' : 'chip-name', x, y: y + 9.5 }, name));
+    return chip;
+  }
+
+  function summarizeInning(inningIndex) {
+    const playersByPosition = {};
+    const bench = [];
+    const problems = [];
+    selectedLineup.players.forEach((player) => {
+      const position = player.positions[inningIndex];
+      if (position === '') {
+        if (player.attending) bench.push(player.name);
+        return;
+      }
+      if (!player.attending) problems.push(player.name + ' is not attending but is at ' + position);
+      playersByPosition[position] = (playersByPosition[position] || []).concat(player.name);
+    });
+    Object.keys(FIELD_SPOTS).forEach((position) => {
+      const names = playersByPosition[position] || [];
+      if (names.length === 0) problems.push(position + ' is open');
+      if (names.length > 1) problems.push(position + ' has ' + names.join(' and '));
+    });
+    Object.keys(playersByPosition).filter((position) => !FIELD_SPOTS[position]).forEach((position) => {
+      problems.push('"' + position + '" is not a field position (' + playersByPosition[position].join(', ') + ')');
+    });
+    return { playersByPosition, bench, problems };
+  }
+
+  function renderGameDetails() {
+    const finalScore = selectedLineup.score === '' ? '' : 'Final ' + selectedLineup.score;
+    const details = [finalScore, selectedLineup.date, selectedLineup.time, selectedLineup.location].filter((detail) => detail !== '');
+    document.getElementById('game-details').textContent = details.join(' · ');
+  }
+
+  function renderSubtitle(detail) {
+    const subtitle = document.getElementById('subtitle');
+    const opponent = document.createElement('strong');
+    opponent.textContent = selectedLineup.opponent || 'TBD';
+    subtitle.replaceChildren('vs ', opponent, ' · ' + detail);
+  }
+
+  function renderInning() {
+    const inning = summarizeInning(selectedInningIndex);
+    renderSubtitle('inning ' + selectedLineup.innings[selectedInningIndex]);
+    renderGameDetails();
+
+    const chips = document.getElementById('chips');
+    chips.replaceChildren(...Object.keys(FIELD_SPOTS).map((position) => drawChip(position, inning.playersByPosition[position] || [])));
+    document.getElementById('problems').textContent = inning.problems.join(' · ');
+
+    const kickers = selectedLineup.players.filter((player) => player.attending).map((player) => player.name);
+    renderNameList('kicking-order', 'Kicking order', kickers, true);
+    renderNameList('bench', 'Sitting (' + inning.bench.length + ')', inning.bench, false);
+  }
+
+  function renderNameList(elementId, headingText, names, numbered) {
+    const element = document.getElementById(elementId);
+    element.replaceChildren();
+    if (names.length === 0) return;
+    const heading = document.createElement('h2');
+    heading.textContent = headingText;
+    const list = document.createElement('ul');
+    names.forEach((name, index) => {
+      const item = document.createElement('li');
+      if (numbered) {
+        const order = document.createElement('span');
+        order.className = 'order';
+        order.textContent = index + 1;
+        item.appendChild(order);
+      }
+      item.append(name);
+      list.appendChild(item);
+    });
+    element.append(heading, list);
+  }
+
+  function tableCell(tag, text, className) {
+    const cell = document.createElement(tag);
+    cell.textContent = text;
+    if (className) cell.className = className;
+    return cell;
+  }
+
+  function tableRow(cells) {
+    const row = document.createElement('tr');
+    row.append(...cells);
+    return row;
+  }
+
+  function renderWholeGame() {
+    renderSubtitle('whole game, in kicking order');
+    renderGameDetails();
+    const headerRow = tableRow([
+      tableCell('th', '#'),
+      tableCell('th', 'Player', 'name'),
+      ...selectedLineup.innings.map((inning) => tableCell('th', inning)),
+      tableCell('th', 'Played'),
+    ]);
+    const playerRows = selectedLineup.players.filter((player) => player.attending).map((player, kickingIndex) => {
+      const inningsPlayed = player.positions.filter((position) => position !== '').length;
+      return tableRow([
+        tableCell('td', kickingIndex + 1, 'kicking-order'),
+        tableCell('td', player.name, 'name'),
+        ...player.positions.map((position) => (position === '' ? tableCell('td', 'sit', 'sat') : tableCell('td', position))),
+        tableCell('td', inningsPlayed + ' of ' + selectedLineup.innings.length, 'played'),
+      ]);
+    });
+    document.getElementById('summary').replaceChildren(headerRow, ...playerRows);
+
+    const problems = selectedLineup.innings.flatMap((inning, inningIndex) =>
+      summarizeInning(inningIndex).problems.map((problem) => 'Inning ' + inning + ': ' + problem));
+    document.getElementById('problems').textContent = problems.join(' · ');
+    document.getElementById('bench').replaceChildren();
+    document.getElementById('kicking-order').replaceChildren();
+  }
+
+  function seasonTotals(playedLineups) {
+    const totalsByName = new Map();
+    lineups.forEach((lineup) => {
+      lineup.players.forEach((player) => {
+        if (!totalsByName.has(player.name)) {
+          totalsByName.set(player.name, { name: player.name, games: 0, played: 0, sat: 0, infield: 0, outfield: 0 });
+        }
+      });
+    });
+    playedLineups.forEach((lineup) => {
+      lineup.players.filter((player) => player.attending).forEach((player) => {
+        const totals = totalsByName.get(player.name);
+        totals.games += 1;
+        player.positions.forEach((position) => {
+          if (position === '') totals.sat += 1;
+          else totals.played += 1;
+          if (INFIELD_POSITIONS.includes(position)) totals.infield += 1;
+          else if (FIELD_SPOTS[position]) totals.outfield += 1;
+        });
+      });
+    });
+    return [...totalsByName.values()];
+  }
+
+  function renderSeason() {
+    const playedLineups = lineups.filter((lineup) => lineup.played);
+    const playedGameNames = playedLineups.map((lineup) => {
+      const gameName = lineup.tabName.replace(/ Lineup$/, '');
+      return lineup.score === '' ? gameName : gameName + ' ' + lineup.score;
+    });
+    document.getElementById('subtitle').textContent = playedLineups.length === 0
+      ? 'Season totals: no games played yet'
+      : 'Season totals in innings, counting games already played: ' + playedGameNames.join(', ') + '. A game is added the day after it is played.';
+    const headerRow = tableRow([
+      tableCell('th', 'Player', 'name'),
+      ...['Games', 'Played', 'Sat', 'Infield', 'Outfield'].map((heading) => tableCell('th', heading)),
+    ]);
+    const playerRows = seasonTotals(playedLineups).map((totals) => tableRow([
+      tableCell('td', totals.name, 'name'),
+      tableCell('td', totals.games, totals.games === 0 ? 'sat' : ''),
+      tableCell('td', totals.played, totals.games === 0 ? 'sat' : 'played'),
+      tableCell('td', totals.sat, totals.sat === 0 ? 'sat' : ''),
+      tableCell('td', totals.infield),
+      tableCell('td', totals.outfield),
+    ]));
+    document.getElementById('summary').replaceChildren(headerRow, ...playerRows);
+    document.getElementById('problems').textContent = '';
+    document.getElementById('game-details').textContent = '';
+    document.getElementById('bench').replaceChildren();
+    document.getElementById('kicking-order').replaceChildren();
+  }
+
+  function render() {
+    document.getElementById('field').style.display = mode === 'inning' ? '' : 'none';
+    document.getElementById('summary').hidden = mode === 'inning';
+    if (mode === 'inning') renderInning();
+    if (mode === 'game') renderWholeGame();
+    if (mode === 'season') renderSeason();
+    document.querySelectorAll('#innings button').forEach((button) => {
+      const matchesInning = mode !== 'inning' || Number(button.dataset.inningIndex) === selectedInningIndex;
+      button.classList.toggle('selected', button.dataset.mode === mode && matchesInning);
+    });
+  }
+
+  function modeButton(label, buttonMode, inningIndex) {
+    const button = document.createElement('button');
+    button.textContent = label;
+    button.dataset.mode = buttonMode;
+    if (buttonMode === 'inning') button.dataset.inningIndex = inningIndex;
+    else button.className = 'wide';
+    button.addEventListener('click', () => {
+      mode = buttonMode;
+      if (buttonMode === 'inning') selectedInningIndex = inningIndex;
+      render();
+    });
+    return button;
+  }
+
+  function selectLineup(tabName) {
+    selectedLineup = lineups.find((lineup) => lineup.tabName === tabName);
+    selectedInningIndex = Math.min(selectedInningIndex, selectedLineup.innings.length - 1);
+    document.getElementById('innings').replaceChildren(
+      ...selectedLineup.innings.map((inning, index) => modeButton(inning, 'inning', index)),
+      modeButton('All', 'game'),
+      modeButton('Season', 'season'),
+    );
+    render();
+  }
+
+  function start(data) {
+    lineups = data.lineups;
+    if (lineups.length === 0) {
+      document.getElementById('status').textContent = 'No current tabs ending in "Lineup" were found.';
+      return;
+    }
+    const game = document.getElementById('game');
+    lineups.forEach((lineup) => {
+      const option = document.createElement('option');
+      option.value = lineup.tabName;
+      option.textContent = lineup.tabName.replace(/ Lineup$/, '');
+      game.appendChild(option);
+    });
+    const startingLineup = lineups.find((lineup) => lineup.tabName === data.activeTabName)
+      || lineups.find((lineup) => !lineup.played)
+      || lineups[lineups.length - 1];
+    game.value = startingLineup.tabName;
+    game.addEventListener('change', () => selectLineup(game.value));
+    document.getElementById('status').hidden = true;
+    document.getElementById('view').hidden = false;
+    selectLineup(startingLineup.tabName);
+    document.addEventListener('visibilitychange', scheduleRefresh);
+    scheduleRefresh();
+  }
+
+  function scheduleRefresh() {
+    clearTimeout(refreshTimer);
+    if (document.hidden || refreshInFlight) return;
+    refreshTimer = setTimeout(refresh, REFRESH_INTERVAL_MILLISECONDS);
+  }
+
+  function refresh() {
+    refreshInFlight = true;
+    google.script.run
+      .withSuccessHandler(applyRefresh)
+      .withFailureHandler(reportRefreshFailure)
+      .getLineup(selectedLineup.tabName);
+  }
+
+  function applyRefresh(freshLineup) {
+    refreshInFlight = false;
+    const index = lineups.findIndex((lineup) => lineup.tabName === freshLineup.tabName);
+    const changed = JSON.stringify(lineups[index]) !== JSON.stringify(freshLineup);
+    lineups[index] = freshLineup;
+    if ((changed || refreshFailureShown) && selectedLineup.tabName === freshLineup.tabName) selectLineup(freshLineup.tabName);
+    refreshFailureShown = false;
+    scheduleRefresh();
+  }
+
+  function reportRefreshFailure(error) {
+    refreshInFlight = false;
+    refreshFailureShown = true;
+    document.getElementById('problems').textContent = 'Live update failed: ' + error.message;
+    scheduleRefresh();
+  }
+
+  function showError(error) {
+    document.getElementById('status').textContent = 'Could not load lineups: ' + error.message;
+  }
+
+  google.script.run.withSuccessHandler(start).withFailureHandler(showError).getLineups();
+</script>
+</body>
+</html>
