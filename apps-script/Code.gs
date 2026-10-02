@@ -55,15 +55,15 @@ function locateLineupGrid(sheet, rows) {
   const dateRowIndex = firstColumn.indexOf('Date:');
   const timeRowIndex = firstColumn.indexOf('Time:');
   const locationRowIndex = firstColumn.indexOf('Location:');
-  const labelRowIndexes = [headerRowIndex, acceptableRowIndex, opponentRowIndex, dateRowIndex, timeRowIndex, locationRowIndex];
+  const notesRowIndex = firstColumn.indexOf('Notes:');
+  const labelRowIndexes = [headerRowIndex, acceptableRowIndex, opponentRowIndex, dateRowIndex, timeRowIndex, locationRowIndex, notesRowIndex];
   if (labelRowIndexes.includes(-1)) {
-    throw new Error(`Tab "${sheet.getName()}" needs "Date:", "Time:", "Location:", "Opponent:", "Name" and "Acceptable" labels in column A`);
+    throw new Error(`Tab "${sheet.getName()}" needs "Date:", "Time:", "Location:", "Opponent:", "Notes:", "Name" and "Acceptable" labels in column A`);
   }
   const inningColumnIndexes = rows[headerRowIndex]
     .map((cell, columnIndex) => (columnIndex >= 2 && cell.trim() !== '' ? columnIndex : -1))
     .filter((columnIndex) => columnIndex !== -1);
-  const scoreRowIndex = firstColumn.indexOf('Score:');
-  return { headerRowIndex, acceptableRowIndex, opponentRowIndex, dateRowIndex, timeRowIndex, locationRowIndex, scoreRowIndex, inningColumnIndexes };
+  return { headerRowIndex, acceptableRowIndex, opponentRowIndex, dateRowIndex, timeRowIndex, locationRowIndex, notesRowIndex, inningColumnIndexes };
 }
 
 function readLineup(sheet) {
@@ -87,7 +87,7 @@ function readLineup(sheet) {
     date: rows[dateRowIndex][1].trim(),
     time: rows[grid.timeRowIndex][1].trim(),
     location: rows[grid.locationRowIndex][1].trim(),
-    score: grid.scoreRowIndex === -1 ? '' : rows[grid.scoreRowIndex][1].trim(),
+    notes: rows[grid.notesRowIndex][1].trim(),
     innings: inningColumnIndexes.map((columnIndex) => headerRow[columnIndex].trim()),
     players,
   };

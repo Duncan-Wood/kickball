@@ -135,6 +135,7 @@
   const REFRESH_INTERVAL_MILLISECONDS = 3000;
   const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
   const CHIP_WIDTH = 78;
+  const RESULT_WORDS = { W: 'Won', L: 'Lost', T: 'Tied' };
 
   let lineups = [];
   let selectedLineup = null;
@@ -186,9 +187,14 @@
     return { playersByPosition, bench, problems };
   }
 
+  function describeResult(notes) {
+    const result = notes.match(/^([WLT]),?\s*(\d+\s*-\s*\d+)$/i);
+    if (result === null) return notes;
+    return RESULT_WORDS[result[1].toUpperCase()] + ' ' + result[2].replace(/\s/g, '');
+  }
+
   function renderGameDetails() {
-    const finalScore = selectedLineup.score === '' ? '' : 'Final ' + selectedLineup.score;
-    const details = [finalScore, selectedLineup.date, selectedLineup.time, selectedLineup.location].filter((detail) => detail !== '');
+    const details = [describeResult(selectedLineup.notes), selectedLineup.date, selectedLineup.time, selectedLineup.location].filter((detail) => detail !== '');
     document.getElementById('game-details').textContent = details.join(' · ');
   }
 
@@ -267,8 +273,16 @@
     });
     document.getElementById('summary').replaceChildren(headerRow, ...playerRows);
 
-    const problems = selectedLineup.innings.flatMap((inning, inningIndex) =>
-      summarizeInning(inningIndex).problems.map((problem) => 'Inning ' + inning + ': ' + problem));
+    const inningsByProblem = new Map();
+    selectedLineup.innings.forEach((inning, inningIndex) => {
+      summarizeInning(inningIndex).problems.forEach((problem) => {
+        inningsByProblem.set(problem, (inningsByProblem.get(problem) || []).concat(inning));
+      });
+    });
+    const problems = [...inningsByProblem].map(([problem, innings]) => {
+      if (innings.length === selectedLineup.innings.length) return problem + ' every inning';
+      return problem + (innings.length === 1 ? ' in inning ' : ' in innings ') + innings.join(', ');
+    });
     document.getElementById('problems').textContent = problems.join(' · ');
     document.getElementById('bench').replaceChildren();
     document.getElementById('kicking-order').replaceChildren();
@@ -302,7 +316,7 @@
     const playedLineups = lineups.filter((lineup) => lineup.played);
     const playedGameNames = playedLineups.map((lineup) => {
       const gameName = lineup.tabName.replace(/ Lineup$/, '');
-      return lineup.score === '' ? gameName : gameName + ' ' + lineup.score;
+      return lineup.notes === '' ? gameName : gameName + ' ' + describeResult(lineup.notes);
     });
     document.getElementById('subtitle').textContent = playedLineups.length === 0
       ? 'Season totals: no games played yet'

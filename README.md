@@ -75,8 +75,8 @@ The Apps Script API must be turned on at script.google.com/home/usersettings.
 | --- | --- |
 | Tab name ends in "Lineup" | The tab is a game |
 | Tab name starts with "OLD" | The tab is skipped |
-| "Date:", "Time:", "Location:", "Opponent:", "Name" and "Acceptable" labels in column A | Finding the game details and the player grid. If one is missing, the view names the tab instead of guessing |
-| Optional "Score:" label in column A, with the score in column B | Shown as the final score once filled in |
+| "Date:", "Time:", "Location:", "Opponent:", "Notes:", "Name" and "Acceptable" labels in column A | Finding the game details and the player grid. If one is missing, the view names the tab instead of guessing |
+| Notes like "W, 12-0", "L, 3-5" or "T, 5-5" | Shown as "Won 12-0", "Lost 3-5" or "Tied 5-5". Other notes are shown as written |
 | Inning numbers in the "Name" row | One column per inning |
 | Position codes P, C, 1B, 2B, 3B, SS, LF, LC, CF, RC, RF | Placing players on the field. Any other code is flagged |
 | Strikethrough on a player's name | Player is not attending: left out of the kicking order, sitting list and totals |
