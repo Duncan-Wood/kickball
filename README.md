@@ -55,6 +55,20 @@ The script writes to no cell. Deleting the two files from the Apps Script projec
 
 A link-holder sees every current lineup tab, the kicking order and the season totals, and nothing else from the spreadsheet. After changing the code, publish a new version with **Deploy > Manage deployments > edit > New version**, or the link keeps serving the old code.
 
+## Automatic deploys
+
+Pushing a change under `apps-script/` to `main` runs `.github/workflows/deploy.yml`, which uploads the files with [clasp](https://github.com/google/clasp) and moves the web app link to a new version. It overwrites the Apps Script project, so edits made in the online editor are lost on the next deploy.
+
+It needs three repository secrets:
+
+| Secret | Value |
+| --- | --- |
+| `CLASPRC_JSON` | Contents of `~/.clasprc.json` after `clasp login` |
+| `SCRIPT_ID` | **Project Settings > IDs > Script ID** in the Apps Script editor |
+| `DEPLOYMENT_ID` | The web app's ID from **Deploy > Manage deployments** |
+
+The Apps Script API must be turned on at script.google.com/home/usersettings.
+
 ## What the sheet needs
 
 | Convention | Used for |
