@@ -47,6 +47,37 @@ function getLineup(tabName) {
   return readLineup(sheet);
 }
 
+const COMMENTS_TAB_NAME = 'Comments';
+const COMMENT_MAXIMUM_LENGTH = 1000;
+
+function submitComment(tabName, commentText) {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  if (!currentLineupSheets(spreadsheet).some((sheet) => sheet.getName() === tabName)) {
+    throw new Error(`Tab "${tabName}" is no longer a current lineup tab`);
+  }
+  const trimmedComment = String(commentText).trim();
+  if (trimmedComment === '') throw new Error('Comment is empty');
+  if (trimmedComment.length > COMMENT_MAXIMUM_LENGTH) throw new Error(`Comment is longer than ${COMMENT_MAXIMUM_LENGTH} characters`);
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const commentsSheet = spreadsheet.getSheetByName(COMMENTS_TAB_NAME) || createCommentsSheet(spreadsheet);
+    const newRow = commentsSheet.getLastRow() + 1;
+    const newRowRange = commentsSheet.getRange(newRow, 1, 1, 3);
+    newRowRange.setNumberFormat('@');
+    newRowRange.setValues([[new Date().toISOString(), tabName.replace(/ Lineup$/, ''), trimmedComment]]);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function createCommentsSheet(spreadsheet) {
+  const commentsSheet = spreadsheet.insertSheet(COMMENTS_TAB_NAME);
+  commentsSheet.getRange(1, 1, 1, 3).setValues([['Submitted', 'Game', 'Comment']]).setFontWeight('bold');
+  commentsSheet.setFrozenRows(1);
+  return commentsSheet;
+}
+
 function locateLineupGrid(sheet, rows) {
   const firstColumn = rows.map((row) => row[0].trim());
   const headerRowIndex = firstColumn.indexOf('Name');

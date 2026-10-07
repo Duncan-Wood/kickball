@@ -73,6 +73,32 @@
   td.kicking-order { color: #8a6a75; width: 28px; }
   td.sat { color: #cdb4b9; }
   td.played { font-weight: 700; }
+  .comment-form { margin-top: 14px; }
+  .comment-form h2 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #8a6a75; }
+  .comment-form textarea {
+    width: 100%;
+    min-height: 64px;
+    padding: 8px 10px;
+    font-family: inherit;
+    font-size: 15px;
+    color: #3b1f2b;
+    border: 1px solid #f0cdbd;
+    border-radius: 8px;
+    resize: vertical;
+  }
+  .comment-actions { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+  .comment-actions button {
+    font-size: 15px;
+    font-weight: 600;
+    padding: 8px 16px;
+    border: 0;
+    border-radius: 8px;
+    background: #d6336c;
+    color: #fff;
+    cursor: pointer;
+  }
+  .comment-actions button:disabled { opacity: 0.5; cursor: default; }
+  .comment-status { font-size: 13px; color: #8a6a75; }
   .status { padding: 24px 4px; font-size: 14px; color: #8a6a75; }
 </style>
 </head>
@@ -123,6 +149,14 @@
     <div class="problems" id="problems"></div>
     <div class="bench" id="kicking-order"></div>
     <div class="bench" id="bench"></div>
+    <form class="comment-form" id="comment-form">
+      <h2>Anonymous comment on this lineup</h2>
+      <textarea id="comment-text" maxlength="1000" required></textarea>
+      <div class="comment-actions">
+        <button type="submit" id="comment-submit">Send</button>
+        <span class="comment-status" id="comment-status"></span>
+      </div>
+    </form>
   </div>
 
 <script>
@@ -394,7 +428,11 @@
       || lineups.find((lineup) => !lineup.played)
       || lineups[lineups.length - 1];
     game.value = startingLineup.tabName;
-    game.addEventListener('change', () => selectLineup(game.value));
+    game.addEventListener('change', () => {
+      selectLineup(game.value);
+      document.getElementById('comment-status').textContent = '';
+    });
+    document.getElementById('comment-form').addEventListener('submit', submitCommentForm);
     document.getElementById('status').hidden = true;
     document.getElementById('view').hidden = false;
     selectLineup(startingLineup.tabName);
@@ -431,6 +469,26 @@
     refreshFailureShown = true;
     document.getElementById('problems').textContent = 'Live update failed: ' + error.message;
     scheduleRefresh();
+  }
+
+  function submitCommentForm(event) {
+    event.preventDefault();
+    const commentText = document.getElementById('comment-text');
+    const submitButton = document.getElementById('comment-submit');
+    const commentStatus = document.getElementById('comment-status');
+    submitButton.disabled = true;
+    commentStatus.textContent = 'Sending…';
+    google.script.run
+      .withSuccessHandler(() => {
+        submitButton.disabled = false;
+        commentText.value = '';
+        commentStatus.textContent = 'Sent anonymously. Thanks!';
+      })
+      .withFailureHandler((error) => {
+        submitButton.disabled = false;
+        commentStatus.textContent = 'Could not send: ' + error.message;
+      })
+      .submitComment(selectedLineup.tabName, commentText.value);
   }
 
   function showError(error) {
