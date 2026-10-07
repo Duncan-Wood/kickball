@@ -182,6 +182,7 @@
   const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
   const CHIP_WIDTH = 78;
   const COMMENT_TOGGLE_TEXT = 'Anonymous suggestion box';
+  const COMMENT_CONFIRMATION_MILLISECONDS = 4000;
   const RESULT_WORDS = { W: 'Won', L: 'Lost', T: 'Tied' };
 
   let lineups = [];
@@ -190,6 +191,7 @@
   let mode = 'inning';
   let refreshInFlight = false;
   let refreshTimer = null;
+  let commentToggleResetTimer = null;
   let refreshFailureShown = false;
 
   function svgElement(tag, attributes, text) {
@@ -489,10 +491,14 @@
   function setCommentFormOpen(open) {
     document.getElementById('comment-form').hidden = !open;
     document.getElementById('comment-toggle').hidden = open;
-    if (open) document.getElementById('comment-text').focus();
+    if (open) {
+      resetCommentToggle();
+      document.getElementById('comment-text').focus();
+    }
   }
 
   function resetCommentToggle() {
+    clearTimeout(commentToggleResetTimer);
     document.getElementById('comment-toggle').textContent = COMMENT_TOGGLE_TEXT;
     document.getElementById('comment-status').textContent = '';
   }
@@ -511,6 +517,7 @@
         commentStatus.textContent = '';
         setCommentFormOpen(false);
         document.getElementById('comment-toggle').textContent = "Thanks, it's in the box!";
+        commentToggleResetTimer = setTimeout(resetCommentToggle, COMMENT_CONFIRMATION_MILLISECONDS);
       })
       .withFailureHandler((error) => {
         submitButton.disabled = false;
