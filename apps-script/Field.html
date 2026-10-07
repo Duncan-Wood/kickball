@@ -73,11 +73,21 @@
   td.kicking-order { color: #8a6a75; width: 28px; }
   td.sat { color: #cdb4b9; }
   td.played { font-weight: 700; }
-  .comment-form { margin-top: 14px; }
-  .comment-form h2 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #8a6a75; }
+  .comment-toggle {
+    display: block;
+    margin: 14px auto 0;
+    padding: 4px 8px;
+    border: 0;
+    background: none;
+    font-size: 13px;
+    color: #8a6a75;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+  .comment-form { margin-top: 10px; }
   .comment-form textarea {
     width: 100%;
-    min-height: 64px;
+    min-height: 56px;
     padding: 8px 10px;
     font-family: inherit;
     font-size: 15px;
@@ -88,15 +98,16 @@
   }
   .comment-actions { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
   .comment-actions button {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
-    padding: 8px 16px;
+    padding: 6px 14px;
     border: 0;
     border-radius: 8px;
     background: #d6336c;
     color: #fff;
     cursor: pointer;
   }
+  .comment-actions button.cancel { background: none; color: #8a6a75; font-weight: 500; }
   .comment-actions button:disabled { opacity: 0.5; cursor: default; }
   .comment-status { font-size: 13px; color: #8a6a75; }
   .status { padding: 24px 4px; font-size: 14px; color: #8a6a75; }
@@ -149,11 +160,12 @@
     <div class="problems" id="problems"></div>
     <div class="bench" id="kicking-order"></div>
     <div class="bench" id="bench"></div>
-    <form class="comment-form" id="comment-form">
-      <h2>Anonymous comment on this lineup</h2>
-      <textarea id="comment-text" maxlength="1000" required></textarea>
+    <button type="button" class="comment-toggle" id="comment-toggle">Anonymous suggestion box</button>
+    <form class="comment-form" id="comment-form" hidden>
+      <textarea id="comment-text" maxlength="1000" placeholder="Anything on your mind about the team: fielding, kicking order, how everyone is getting along. Good, bad, or in between. Nobody sees who sent this." required></textarea>
       <div class="comment-actions">
         <button type="submit" id="comment-submit">Send</button>
+        <button type="button" class="cancel" id="comment-cancel">Cancel</button>
         <span class="comment-status" id="comment-status"></span>
       </div>
     </form>
@@ -169,6 +181,7 @@
   const REFRESH_INTERVAL_MILLISECONDS = 3000;
   const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
   const CHIP_WIDTH = 78;
+  const COMMENT_TOGGLE_TEXT = 'Anonymous suggestion box';
   const RESULT_WORDS = { W: 'Won', L: 'Lost', T: 'Tied' };
 
   let lineups = [];
@@ -430,8 +443,10 @@
     game.value = startingLineup.tabName;
     game.addEventListener('change', () => {
       selectLineup(game.value);
-      document.getElementById('comment-status').textContent = '';
+      resetCommentToggle();
     });
+    document.getElementById('comment-toggle').addEventListener('click', () => setCommentFormOpen(true));
+    document.getElementById('comment-cancel').addEventListener('click', () => setCommentFormOpen(false));
     document.getElementById('comment-form').addEventListener('submit', submitCommentForm);
     document.getElementById('status').hidden = true;
     document.getElementById('view').hidden = false;
@@ -471,6 +486,17 @@
     scheduleRefresh();
   }
 
+  function setCommentFormOpen(open) {
+    document.getElementById('comment-form').hidden = !open;
+    document.getElementById('comment-toggle').hidden = open;
+    if (open) document.getElementById('comment-text').focus();
+  }
+
+  function resetCommentToggle() {
+    document.getElementById('comment-toggle').textContent = COMMENT_TOGGLE_TEXT;
+    document.getElementById('comment-status').textContent = '';
+  }
+
   function submitCommentForm(event) {
     event.preventDefault();
     const commentText = document.getElementById('comment-text');
@@ -482,7 +508,9 @@
       .withSuccessHandler(() => {
         submitButton.disabled = false;
         commentText.value = '';
-        commentStatus.textContent = 'Sent anonymously. Thanks!';
+        commentStatus.textContent = '';
+        setCommentFormOpen(false);
+        document.getElementById('comment-toggle').textContent = "Thanks, it's in the box!";
       })
       .withFailureHandler((error) => {
         submitButton.disabled = false;
