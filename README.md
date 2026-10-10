@@ -1,6 +1,6 @@
 # Kickball Field View
 
-A Google Apps Script add-on for a kickball lineup spreadsheet. It reads the lineup tabs and draws each inning's fielding on a diamond, with the kicking order, a whole-game table and season totals. It never edits the sheet.
+A Google Apps Script add-on for a kickball lineup spreadsheet. It reads the lineup tabs and draws each inning's fielding on a diamond, with the kicking order, a whole-game table and season totals. It only writes to the `Comments` and `Field View Problems` tabs.
 
 Screenshots use made-up players.
 
@@ -17,6 +17,7 @@ Screenshots use made-up players.
 - Whole-game table with innings played per player
 - Season totals: innings played, sat, infield and outfield, across games already played
 - Refreshes every 3 seconds while open, so edits in the sheet show up on their own
+- Shows load and update errors in a red box at the top, retries a failed first load on its own, and logs every error to a `Field View Problems` tab
 - Works as a pop-up inside the sheet or as a shareable web app link that gives no access to the spreadsheet
 
 ## How it works
@@ -36,7 +37,7 @@ Screenshots use made-up players.
 3. The whole-game and season tables are built from the same data.
 4. Every 3 seconds, while the page is visible, it re-asks for the selected tab and redraws only if something changed.
 
-The script writes to no cell. Deleting the two files from the Apps Script project removes the feature completely.
+The script only writes to the `Comments` tab (suggestion box) and the `Field View Problems` tab (one row per error: time, where, message, details; repeats of the same error within 10 minutes are skipped). Both are created on first use. Deleting the two files from the Apps Script project removes the feature completely.
 
 ## Install
 

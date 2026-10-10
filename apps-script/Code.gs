@@ -34,17 +34,70 @@ function currentLineupSheets(spreadsheet) {
 }
 
 function getLineups() {
-  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  return {
-    activeTabName: spreadsheet.getActiveSheet().getName(),
-    lineups: currentLineupSheets(spreadsheet).map(readLineup),
-  };
+  return logFailures('getLineups', () => {
+    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    return {
+      activeTabName: spreadsheet.getActiveSheet().getName(),
+      lineups: currentLineupSheets(spreadsheet).map(readLineup),
+    };
+  });
 }
 
 function getLineup(tabName) {
-  const sheet = currentLineupSheets(SpreadsheetApp.getActiveSpreadsheet()).find((candidate) => candidate.getName() === tabName);
-  if (sheet === undefined) throw new Error(`Tab "${tabName}" is no longer a current lineup tab`);
-  return readLineup(sheet);
+  return logFailures('getLineup', () => {
+    const sheet = currentLineupSheets(SpreadsheetApp.getActiveSpreadsheet()).find((candidate) => candidate.getName() === tabName);
+    if (sheet === undefined) throw new Error(`Tab "${tabName}" is no longer a current lineup tab`);
+    return readLineup(sheet);
+  });
+}
+
+const ERRORS_TAB_NAME = 'Field View Problems';
+const ERROR_FIELD_MAXIMUM_LENGTH = 2000;
+const ERROR_DUPLICATE_SECONDS = 600;
+
+function logFailures(source, work) {
+  try {
+    return work();
+  } catch (error) {
+    try {
+      recordError(source, error.message, error.stack);
+    } catch (loggingError) {
+      console.error('Could not record error on the Field View Problems tab', loggingError);
+    }
+    throw error;
+  }
+}
+
+function reportClientError(source, message, details) {
+  recordError(`browser: ${source}`, message, details);
+}
+
+function recordError(source, message, details) {
+  const cache = CacheService.getScriptCache();
+  const digest = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, `${source}|${message}`);
+  const duplicateKey = `error:${Utilities.base64Encode(digest)}`;
+  if (cache.get(duplicateKey) !== null) return;
+  cache.put(duplicateKey, '1', ERROR_DUPLICATE_SECONDS);
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const clip = (value) => String(value === undefined || value === null ? '' : value).slice(0, ERROR_FIELD_MAXIMUM_LENGTH);
+  const occurredAt = Utilities.formatDate(new Date(), spreadsheet.getSpreadsheetTimeZone(), 'yyyy-MM-dd HH:mm:ss');
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const errorsSheet = spreadsheet.getSheetByName(ERRORS_TAB_NAME) || createErrorsSheet(spreadsheet);
+    const newRowRange = errorsSheet.getRange(errorsSheet.getLastRow() + 1, 1, 1, 4);
+    newRowRange.setNumberFormat('@');
+    newRowRange.setValues([[occurredAt, clip(source), clip(message), clip(details)]]);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function createErrorsSheet(spreadsheet) {
+  const errorsSheet = spreadsheet.insertSheet(ERRORS_TAB_NAME);
+  errorsSheet.getRange(1, 1, 1, 4).setValues([['Time', 'Where', 'Message', 'Details']]).setFontWeight('bold');
+  errorsSheet.setFrozenRows(1);
+  return errorsSheet;
 }
 
 const COMMENTS_TAB_NAME = 'Comments';

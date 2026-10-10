@@ -110,6 +110,10 @@
   .comment-actions button.cancel { background: none; color: #8a6a75; font-weight: 500; }
   .comment-actions button:disabled { opacity: 0.5; cursor: default; }
   .comment-status { font-size: 13px; color: #8a6a75; }
+  .error-panel { margin: 0 0 10px; padding: 10px 12px; border: 1px solid #b3261e; border-radius: 8px; background: #fde3e0; color: #b3261e; font-size: 14px; }
+  .error-panel[hidden] { display: none; }
+  .error-panel div { margin-top: 4px; overflow-wrap: anywhere; }
+  .error-panel .error-hint { font-size: 12px; color: #8a6a75; }
   .status { padding: 24px 4px; font-size: 14px; color: #8a6a75; }
 </style>
 </head>
@@ -132,6 +136,7 @@
     <span class="season-tag"><?= seasonLabel ?></span>
   </h1>
   <div class="pride-stripe"></div>
+  <div class="error-panel" id="error-panel" hidden></div>
   <div class="status" id="status">Loading lineups…</div>
   <div id="view" hidden>
     <div class="controls">
@@ -192,7 +197,6 @@
   let refreshInFlight = false;
   let refreshTimer = null;
   let commentToggleResetTimer = null;
-  let refreshFailureShown = false;
 
   function svgElement(tag, attributes, text) {
     const element = document.createElementNS(SVG_NAMESPACE, tag);
@@ -450,6 +454,7 @@
     document.getElementById('comment-toggle').addEventListener('click', () => setCommentFormOpen(true));
     document.getElementById('comment-cancel').addEventListener('click', () => setCommentFormOpen(false));
     document.getElementById('comment-form').addEventListener('submit', submitCommentForm);
+    clearFailure();
     document.getElementById('status').hidden = true;
     document.getElementById('view').hidden = false;
     selectLineup(startingLineup.tabName);
@@ -476,15 +481,14 @@
     const index = lineups.findIndex((lineup) => lineup.tabName === freshLineup.tabName);
     const changed = JSON.stringify(lineups[index]) !== JSON.stringify(freshLineup);
     lineups[index] = freshLineup;
-    if ((changed || refreshFailureShown) && selectedLineup.tabName === freshLineup.tabName) selectLineup(freshLineup.tabName);
-    refreshFailureShown = false;
+    clearFailure();
+    if (changed && selectedLineup.tabName === freshLineup.tabName) selectLineup(freshLineup.tabName);
     scheduleRefresh();
   }
 
   function reportRefreshFailure(error) {
     refreshInFlight = false;
-    refreshFailureShown = true;
-    document.getElementById('problems').textContent = 'Live update failed: ' + error.message;
+    showFailure('Live update failed, showing the last good lineup', error.message);
     scheduleRefresh();
   }
 
@@ -526,11 +530,43 @@
       .submitComment(selectedLineup.tabName, commentText.value);
   }
 
-  function showError(error) {
-    document.getElementById('status').textContent = 'Could not load lineups: ' + error.message;
+  function showFailure(title, message) {
+    const panel = document.getElementById('error-panel');
+    const heading = document.createElement('strong');
+    heading.textContent = title;
+    const detail = document.createElement('div');
+    detail.textContent = message;
+    const hint = document.createElement('div');
+    hint.className = 'error-hint';
+    hint.textContent = 'Saved on the "Field View Problems" tab of the spreadsheet.';
+    panel.replaceChildren(heading, detail, hint);
+    panel.hidden = false;
   }
 
-  google.script.run.withSuccessHandler(start).withFailureHandler(showError).getLineups();
+  function clearFailure() {
+    document.getElementById('error-panel').hidden = true;
+  }
+
+  function loadLineups() {
+    google.script.run.withSuccessHandler(start).withFailureHandler(showLoadFailure).getLineups();
+  }
+
+  function showLoadFailure(error) {
+    showFailure('Could not load the lineups', error.message);
+    document.getElementById('status').textContent = 'Trying again every few seconds…';
+    setTimeout(loadLineups, REFRESH_INTERVAL_MILLISECONDS);
+  }
+
+  function reportBrowserError(source, thrown) {
+    const message = thrown instanceof Error ? thrown.message : String(thrown);
+    showFailure('Something broke in this page, reload to try again', message);
+    google.script.run.reportClientError(source, message, thrown instanceof Error ? thrown.stack : '');
+  }
+
+  window.addEventListener('error', (event) => reportBrowserError('error', event.error || event.message));
+  window.addEventListener('unhandledrejection', (event) => reportBrowserError('unhandledrejection', event.reason));
+
+  loadLineups();
 </script>
 </body>
 </html>
