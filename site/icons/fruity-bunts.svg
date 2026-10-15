@@ -1,0 +1,13 @@
+<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <g fill="#a6e05a">
+    <path d="M9,3 Q11.6,7 9,8.4 Q6.4,7 9,3 Z"/>
+    <path d="M17,0.5 Q20,5.2 17,6.8 Q14,5.2 17,0.5 Z"/>
+    <path d="M25,4 Q27.4,7.6 25,9 Q22.6,7.6 25,4 Z"/>
+  </g>
+  <g transform="rotate(-12 16 18)">
+    <path d="M3,15 A13,13 0 0 0 29,15 Z" fill="#4c9a2a"/>
+    <path d="M5.5,15 A10.5,10.5 0 0 0 26.5,15 Z" fill="#f3fbd9"/>
+    <path d="M7,15 A9,9 0 0 0 25,15 Z" fill="#c4ec7c"/>
+    <path d="M16,15 L16,24 M16,15 L9.6,21.4 M16,15 L22.4,21.4" stroke="#f3fbd9" stroke-width="1.4" stroke-linecap="round"/>
+  </g>
+</svg>

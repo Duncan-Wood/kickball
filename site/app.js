@@ -4,26 +4,24 @@ const FIELD_SPOTS = {
   P: [200, 266], C: [200, 382],
 };
 const INFIELD_POSITIONS = ['P', 'C', '1B', '2B', '3B', 'SS'];
-const MINIMUM_API_VERSION = 1;
+const MINIMUM_API_VERSION = 2;
+const REFRESH_SECONDS = 10;
 const SCRIPT_ADDRESS_PREFIX = 'https://script.google.com/macros/s/';
 const TEAM_CODE_PATTERN = /^[A-Za-z0-9_-]{20,}$/;
 const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
-const OPTIONAL_COLOR_VARIABLES = {
-  textColor: '--ink',
-  mutedColor: '--muted',
-  borderColor: '--border',
-  tintColor: '--tint',
-  tagColor: '--tag-bg',
-  tagTextColor: '--tag-text',
-};
 const FONTS = ['Fredoka', 'Nunito', 'Poppins', 'Roboto', 'Lora'];
-const REFRESH_SECONDS = [5, 10, 30];
-const COLOR_VARIABLES = {
-  primaryColor: '--primary',
-  accentColor: '--accent',
-  backgroundColor: '--background',
-  grassColor: '--grass',
-  dirtColor: '--dirt',
+const THEME_VARIABLES = {
+  primary: '--primary',
+  accent: '--accent',
+  background: '--background',
+  ink: '--ink',
+  muted: '--muted',
+  border: '--border',
+  borderSoft: '--border-soft',
+  tint: '--tint',
+  faint: '--faint',
+  tagBackground: '--tag-bg',
+  tagText: '--tag-text',
 };
 const FIRST_LOAD_RETRY_MILLISECONDS = 5000;
 const LONGEST_RETRY_MILLISECONDS = 60000;
@@ -89,18 +87,12 @@ async function apiPost(body) {
 }
 
 function applyConfig(settings) {
-  Object.entries(COLOR_VARIABLES).forEach(([key, variable]) => {
-    if (!HEX_COLOR_PATTERN.test(settings[key])) throw new Error('The sheet sent an invalid color for ' + key);
-    document.documentElement.style.setProperty(variable, settings[key]);
+  Object.entries(THEME_VARIABLES).forEach(([key, variable]) => {
+    if (!HEX_COLOR_PATTERN.test(settings.theme[key])) throw new Error('The sheet sent an invalid color for ' + key);
+    document.documentElement.style.setProperty(variable, settings.theme[key]);
   });
-  Object.entries(OPTIONAL_COLOR_VARIABLES).forEach(([key, variable]) => {
-    if (settings[key] === '') return;
-    if (!HEX_COLOR_PATTERN.test(settings[key])) throw new Error('The sheet sent an invalid color for ' + key);
-    document.documentElement.style.setProperty(variable, settings[key]);
-  });
-  applyStripe(settings.stripeColors);
+  applyStripe(settings.theme.stripe);
   if (!FONTS.includes(settings.font)) throw new Error('The sheet sent an unknown font');
-  if (!REFRESH_SECONDS.includes(settings.refreshSeconds)) throw new Error('The sheet sent an invalid refresh time');
   const fontLink = document.createElement('link');
   fontLink.rel = 'stylesheet';
   fontLink.href = 'https://fonts.googleapis.com/css2?family=' + settings.font + ':wght@400;500;600;700&display=swap';
@@ -115,16 +107,15 @@ function applyConfig(settings) {
   document.getElementById('comment-toggle').hidden = !settings.suggestionBox;
 }
 
-function applyStripe(stripeColors) {
-  const stripe = document.querySelector('.accent-stripe');
-  stripe.hidden = stripeColors === 'none';
-  if (stripeColors === '' || stripeColors === 'none') return;
-  if (!Array.isArray(stripeColors) || !stripeColors.every((color) => HEX_COLOR_PATTERN.test(color))) {
+function applyStripe(stripe) {
+  if (!Array.isArray(stripe.colors) || !stripe.colors.every((color) => HEX_COLOR_PATTERN.test(color))) {
     throw new Error('The sheet sent an invalid list of stripe colors');
   }
-  const segmentPercent = 100 / stripeColors.length;
-  const stops = stripeColors.map((color, index) => color + ' ' + index * segmentPercent + '% ' + (index + 1) * segmentPercent + '%');
-  stripe.style.background = 'linear-gradient(90deg, ' + stops.join(', ') + ')';
+  const segmentPercent = 100 / stripe.colors.length;
+  const stops = stripe.colors.map((color, index) => (
+    stripe.smooth ? color : color + ' ' + index * segmentPercent + '% ' + (index + 1) * segmentPercent + '%'
+  ));
+  document.querySelector('.accent-stripe').style.background = 'linear-gradient(90deg, ' + stops.join(', ') + ')';
 }
 
 function applyIcon(icon) {
@@ -414,7 +405,7 @@ function scheduleRefresh() {
   clearTimeout(refreshTimer);
   if (document.hidden || refreshInFlight) return;
   const backoff = Math.min(2 ** failedRefreshes, LONGEST_REFRESH_BACKOFF_MULTIPLIER);
-  refreshTimer = setTimeout(refresh, config.refreshSeconds * 1000 * backoff);
+  refreshTimer = setTimeout(refresh, REFRESH_SECONDS * 1000 * backoff);
 }
 
 async function refresh() {

@@ -39,7 +39,23 @@ Screenshots use made-up players.
 
 The script only writes to the `Comments` tab (suggestion box) and the `Field View Problems` tab (one row per error: time, where, message, details; repeats of the same error within 10 minutes are skipped). Both are created on first use. Deleting the two files from the Apps Script project removes the feature completely.
 
-## Install
+## Set up a team
+
+This is the setup for new teams. It uses `script/Code.gs`, which serves the sheet's data as JSON, and the shared page published from `site/`. Nothing else is installed in the spreadsheet.
+
+1. In the spreadsheet, open **Extensions > Apps Script**.
+2. Replace the contents of `Code.gs` with [`script/Code.gs`](script/Code.gs) and save.
+3. Reload the spreadsheet. A **Kickball** menu appears.
+4. Choose **Kickball > Set up** and approve the permissions. Google shows an "unverified app" warning because the script is your own: choose **Advanced**, then **Go to (project name)**. Set up adds the `Team Config`, `Comments` and `Field View Problems` tabs and lists any lineup tab it cannot read.
+5. In the Apps Script editor, choose **Deploy > New deployment > Web app**. Set **Execute as** to Me and **Who has access** to Anyone, then **Deploy**. The default, Only myself, makes the link fail for everyone else.
+6. Copy the **Web app URL** (it ends in `/exec`). Back in the spreadsheet, choose **Kickball > Save my share link** and paste it.
+7. The share link is now on the `Team Config` tab. Send it to the team, or open it from **Kickball > Field view**.
+
+The `Team Config` tab has eight settings: team name, season label, icon, main color, second color, stripe (Blend or Rainbow), font and the suggestion box. It is the only place the app reads its look and name from. The `Team Details` tab is the team's own notes and is never read. Everything else (page background, text, borders, highlights, and the header and row colors of the lineup tabs) is worked out from the two colors, so the page and the sheet always match. The color cells take their fill color, not typed text, and white is a valid value. An icon link must point to an image on the web; `site/icons/` holds ones hosted with the page.
+
+## Legacy install (`apps-script/`)
+
+The original single-team version, still in use. It keeps the page inside the Apps Script project instead of using the shared site.
 
 1. In the spreadsheet, open **Extensions > Apps Script**.
 2. Replace the contents of `Code.gs` with [`apps-script/Code.gs`](apps-script/Code.gs).
@@ -47,7 +63,7 @@ The script only writes to the `Comments` tab (suggestion box) and the `Field Vie
 4. In **Project Settings > Script Properties**, add `TEAM_NAME` and `SEASON_LABEL`. They are the heading and the tag beside it.
 5. Save and reload the spreadsheet, then use **Kickball > Field view**.
 
-## Sharing a link
+### Legacy sharing link
 
 1. In the Apps Script editor, choose **Deploy > New deployment > Web app**.
 2. Set **Execute as** to Me.

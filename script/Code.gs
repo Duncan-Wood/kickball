@@ -1,6 +1,6 @@
 /** @OnlyCurrentDoc */
 
-const API_VERSION = 1;
+const API_VERSION = 2;
 const PAGE_ADDRESS = 'https://duncan-wood.github.io/kickball/';
 const CONFIG_TAB_NAME = 'Team Config';
 const COMMENTS_TAB_NAME = 'Comments';
@@ -15,34 +15,22 @@ const COMMENTS_PER_HOUR = 60;
 const COMMENT_MAXIMUM_LENGTH = 1000;
 const TEXT_SETTING_MAXIMUM_LENGTH = 60;
 const ICON_MAXIMUM_LENGTH = 300;
-const STRIPE_COLORS_MAXIMUM = 8;
+const PLAIN_ROW_COLOR = '#ffffff';
+const STRIPE_STYLES = ['Blend', 'Rainbow'];
+const RAINBOW_STRIPE_COLORS = ['#ff9aa2', '#ffc48c', '#ffe98a', '#a8e0a0', '#9cc4f0', '#c9a8e8'];
 const FONTS = ['Fredoka', 'Nunito', 'Poppins', 'Roboto', 'Lora'];
-const REFRESH_SECONDS = ['5', '10', '30'];
 const COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
 const DEPLOYMENT_LINK_PATTERN = /\/macros\/s\/([A-Za-z0-9_-]{20,})\/exec/;
 
 const CONFIG_FIELDS = [
-  { key: 'teamName', label: 'Team name', kind: 'text', defaultValue: 'My Team', startingValue: '', note: 'Leave blank to use the Team Name on the Team Details tab' },
+  { key: 'teamName', label: 'Team name', kind: 'text', defaultValue: 'My Team', note: 'The heading on the page' },
   { key: 'seasonLabel', label: 'Season label', kind: 'text', defaultValue: 'Season', note: 'The tag beside the team name, like "Fall 2026"' },
   { key: 'icon', label: 'Icon', kind: 'icon', defaultValue: '🥎', note: 'One emoji, or a link starting with https:// to a small image' },
-  { key: 'primaryColor', label: 'Primary color', kind: 'color', defaultValue: '#2b6cb0', note: 'Buttons, headings and highlights. Format: #RRGGBB' },
-  { key: 'accentColor', label: 'Accent color', kind: 'color', defaultValue: '#ed8936', note: 'Small touches. Format: #RRGGBB' },
-  { key: 'backgroundColor', label: 'Background color', kind: 'color', defaultValue: '#f7fafc', note: 'Page background. Format: #RRGGBB' },
-  { key: 'grassColor', label: 'Field grass color', kind: 'color', defaultValue: '#5aa65a', note: 'The outfield. Format: #RRGGBB' },
-  { key: 'dirtColor', label: 'Infield dirt color', kind: 'color', defaultValue: '#c9a27a', note: 'The infield. Format: #RRGGBB' },
+  { key: 'mainColor', label: 'Main color', kind: 'color', defaultValue: '#2b6cb0', note: 'Buttons, headings, text and the header of every lineup tab' },
+  { key: 'secondColor', label: 'Second color', kind: 'color', defaultValue: '#ed8936', note: 'Page background, highlights, borders and alternate rows on lineup tabs' },
+  { key: 'stripeStyle', label: 'Stripe', kind: 'stripe', defaultValue: 'Blend', note: 'Blend fades from main to second color, Rainbow shows six pastel bands' },
   { key: 'font', label: 'Font', kind: 'font', defaultValue: 'Fredoka', note: 'Pick from the list' },
-  { key: 'refreshSeconds', label: 'Refresh seconds', kind: 'refresh', defaultValue: '10', note: 'How often an open page checks the sheet for changes' },
   { key: 'suggestionBox', label: 'Suggestion box', kind: 'toggle', defaultValue: 'On', note: 'On shows the anonymous suggestion box, Off hides it' },
-  { key: 'sheetHeaderColor', label: 'Sheet header color', kind: 'color', defaultValue: '#2b6cb0', note: 'Header row of every lineup tab, applied by Kickball > Apply colors to sheet' },
-  { key: 'rowColorA', label: 'Row color A', kind: 'color', defaultValue: '#ffffff', note: 'Every other player row on lineup tabs' },
-  { key: 'rowColorB', label: 'Row color B', kind: 'color', defaultValue: '#e8f0fa', note: 'The other rows on lineup tabs' },
-  { key: 'stripeColors', label: 'Stripe colors', kind: 'colorList', optional: true, note: 'Optional. The stripe under the title: colors separated by commas, like #ff0000, #00ff00, #0000ff. Type none to hide it. Blank blends your primary and accent colors' },
-  { key: 'textColor', label: 'Text color', kind: 'color', optional: true, note: 'Optional. Blank picks a dark shade of your primary color' },
-  { key: 'mutedColor', label: 'Muted text color', kind: 'color', optional: true, note: 'Optional. Small gray-ish text. Blank picks one for you' },
-  { key: 'borderColor', label: 'Border color', kind: 'color', optional: true, note: 'Optional. Outlines on buttons and the game picker. Blank picks one for you' },
-  { key: 'tintColor', label: 'Highlight color', kind: 'color', optional: true, note: 'Optional. Backgrounds of the kicking order pills and table headings. Blank picks one for you' },
-  { key: 'tagColor', label: 'Season tag color', kind: 'color', optional: true, note: 'Optional. Background of the season label next to the team name' },
-  { key: 'tagTextColor', label: 'Season tag text color', kind: 'color', optional: true, note: 'Optional. Text color of the season label' },
 ];
 
 function onOpen() {
@@ -142,108 +130,114 @@ function readConfig(spreadsheet) {
   const config = {};
   CONFIG_FIELDS.forEach((field) => {
     const entered = enteredValues[field.label] || '';
-    config[field.key] = entered === '' ? fallbackSetting(field, spreadsheet) : validatedSetting(field, entered, spreadsheet);
+    config[field.key] = entered === '' ? normalizedSetting(field, field.defaultValue) : validatedSetting(field, entered);
   });
+  config.theme = themeFromColors(config.mainColor, config.secondColor, config.stripeStyle);
+  delete config.mainColor;
+  delete config.secondColor;
+  delete config.stripeStyle;
   return config;
+}
+
+function themeFromColors(mainColor, secondColor, stripeStyle) {
+  const mutedColor = blendedColor([[mainColor, 0.28]], '#6b6b6b');
+  return {
+    primary: mainColor,
+    accent: secondColor,
+    background: blendedColor([[secondColor, 0.12]]),
+    ink: blendedColor([[mainColor, 0.22]], '#111111'),
+    muted: mutedColor,
+    border: blendedColor([[mainColor, 0.15], [secondColor, 0.35]]),
+    borderSoft: blendedColor([[mainColor, 0.05], [secondColor, 0.25]]),
+    tint: blendedColor([[secondColor, 0.35]]),
+    faint: blendedColor([[mutedColor, 0.45]]),
+    tagBackground: blendedColor([[secondColor, 0.3]]),
+    tagText: blendedColor([[secondColor, 0.55]], '#000000'),
+    stripe: stripeStyle === 'Rainbow'
+      ? { colors: RAINBOW_STRIPE_COLORS, smooth: false }
+      : { colors: [mainColor, secondColor], smooth: true },
+  };
+}
+
+function blendedColor(colorShares, baseColor = '#ffffff') {
+  const channel = (color, start) => parseInt(color.slice(start, start + 2), 16);
+  const baseShare = 1 - colorShares.reduce((total, [, share]) => total + share, 0);
+  const channels = [1, 3, 5].map((start) => {
+    const blended = colorShares.reduce((total, [color, share]) => total + channel(color, start) * share, channel(baseColor, start) * baseShare);
+    return Math.round(blended).toString(16).padStart(2, '0');
+  });
+  return `#${channels.join('')}`;
 }
 
 function readEnteredSettings(configSheet) {
   const entered = {};
-  configSheet.getDataRange().getDisplayValues().slice(1).forEach((row) => {
-    entered[row[0].trim()] = row[1].trim();
+  const range = configSheet.getDataRange();
+  const texts = range.getDisplayValues();
+  const fills = range.getBackgrounds();
+  texts.slice(1).forEach((row, index) => {
+    const label = row[0].trim();
+    const field = CONFIG_FIELDS.find((candidate) => candidate.label === label);
+    const fill = fills[index + 1][1];
+    entered[label] = field !== undefined && field.kind === 'color' ? fill : row[1].trim();
   });
   return entered;
 }
 
-function fallbackSetting(field, spreadsheet) {
-  if (field.optional) return '';
-  if (field.key === 'teamName') return teamNameFromTeamDetails(spreadsheet) || normalizedSetting(field, field.defaultValue);
-  return normalizedSetting(field, field.defaultValue);
-}
-
-function teamNameFromTeamDetails(spreadsheet) {
-  const detailsSheet = spreadsheet.getSheetByName('Team Details');
-  if (detailsSheet === null) return '';
-  const row = detailsSheet.getDataRange().getDisplayValues().find((cells) => cells[0].trim() === 'Team Name:');
-  return row === undefined ? '' : row[1].trim().slice(0, TEXT_SETTING_MAXIMUM_LENGTH);
-}
-
-function validatedSetting(field, entered, spreadsheet) {
+function validatedSetting(field, entered) {
   const expectation = settingExpectation(field, entered);
   if (expectation === null) return normalizedSetting(field, entered);
-  const replacement = fallbackSetting(field, spreadsheet);
+  const replacement = normalizedSetting(field, field.defaultValue);
   recordErrorQuietly('config', new Error(`"${field.label}" is "${entered}", which ${expectation}. Using the automatic value instead`));
   return replacement;
 }
 
 function settingExpectation(field, entered) {
   if (field.kind === 'color') return COLOR_PATTERN.test(entered) ? null : 'is not a color like #2b6cb0';
-  if (field.kind === 'colorList') return stripeExpectation(entered);
+  if (field.kind === 'stripe') return STRIPE_STYLES.includes(entered) ? null : `is not one of ${STRIPE_STYLES.join(', ')}`;
   if (field.kind === 'font') return FONTS.includes(entered) ? null : `is not one of ${FONTS.join(', ')}`;
-  if (field.kind === 'refresh') return REFRESH_SECONDS.includes(entered) ? null : `is not one of ${REFRESH_SECONDS.join(', ')}`;
   if (field.kind === 'toggle') return ['on', 'off'].includes(entered.toLowerCase()) ? null : 'is not On or Off';
   if (field.kind === 'icon') return entered.length <= ICON_MAXIMUM_LENGTH && (!/^https?:/i.test(entered) || /^https:\/\//i.test(entered)) ? null : 'is not an emoji or an https:// link';
   return entered.length <= TEXT_SETTING_MAXIMUM_LENGTH ? null : `is longer than ${TEXT_SETTING_MAXIMUM_LENGTH} characters`;
 }
 
-function stripeExpectation(entered) {
-  if (entered.toLowerCase() === 'none') return null;
-  const colors = splitColorList(entered);
-  if (colors.length > STRIPE_COLORS_MAXIMUM) return `has more than ${STRIPE_COLORS_MAXIMUM} colors`;
-  return colors.every((color) => COLOR_PATTERN.test(color)) ? null : 'is not a list of colors like #ff0000, #00ff00, or the word none';
-}
-
-function splitColorList(entered) {
-  return entered.split(',').map((color) => color.trim().toLowerCase());
-}
-
 function normalizedSetting(field, value) {
-  if (field.kind === 'colorList') return value === '' || value.toLowerCase() === 'none' ? value.toLowerCase() : splitColorList(value);
   if (field.kind === 'color') return value.toLowerCase();
-  if (field.kind === 'refresh') return Number(value);
   if (field.kind === 'toggle') return value.toLowerCase() === 'on';
   return value;
 }
 
 function createConfigSheet(spreadsheet) {
   const configSheet = spreadsheet.insertSheet(CONFIG_TAB_NAME, 0);
-  const header = [['Setting', 'Value', 'Notes', 'Preview']];
-  configSheet.getRange(1, 1, 1, 4).setValues(header).setFontWeight('bold');
-  const settingRows = CONFIG_FIELDS.map((field) => [field.label, startingCellValue(field), field.note, '']);
-  configSheet.getRange(2, 1, settingRows.length, 4).setNumberFormat('@').setValues(settingRows);
-  CONFIG_FIELDS.forEach((field, index) => addSettingValidation(configSheet.getRange(index + 2, 2), field, index + 2));
+  const header = [['Setting', 'Value', 'Notes (for colors: click the box, then the paint bucket in the toolbar)']];
+  configSheet.getRange(1, 1, 1, 3).setValues(header).setFontWeight('bold');
+  const settingRows = CONFIG_FIELDS.map((field) => [field.label, startingCellValue(field), field.note]);
+  configSheet.getRange(2, 1, settingRows.length, 3).setNumberFormat('@').setValues(settingRows);
+  CONFIG_FIELDS.forEach((field, index) => {
+    const valueRange = configSheet.getRange(index + 2, 2);
+    addSettingValidation(valueRange, field);
+    if (field.kind === 'color') valueRange.setBackground(field.defaultValue);
+  });
+  configSheet.getRange(2, 2, CONFIG_FIELDS.length, 1).setBorder(true, true, true, true, true, true, '#b7b7b7', SpreadsheetApp.BorderStyle.SOLID);
   const shareRow = CONFIG_FIELDS.length + 3;
   configSheet.getRange(shareRow, 1, 1, 3).setNumberFormat('@').setValues([[SHARE_LINK_LABEL, '', 'Filled in by Kickball > Save my share link']]);
   configSheet.setFrozenRows(1);
   configSheet.setColumnWidth(1, 160);
   configSheet.setColumnWidth(2, 160);
   configSheet.setColumnWidth(3, 460);
-  paintSwatches(configSheet);
   return configSheet;
 }
 
 function startingCellValue(field) {
-  if (field.startingValue !== undefined) return field.startingValue;
-  return field.defaultValue === undefined ? '' : field.defaultValue;
+  return field.kind === 'color' ? '' : field.defaultValue;
 }
 
-function addSettingValidation(valueRange, field, rowNumber) {
+function addSettingValidation(valueRange, field) {
   const builder = SpreadsheetApp.newDataValidation().setAllowInvalid(false);
-  if (field.kind === 'color') builder.requireFormulaSatisfied(`=OR(B${rowNumber}="", REGEXMATCH(B${rowNumber}, "^#[0-9A-Fa-f]{6}$"))`);
-  else if (field.kind === 'font') builder.requireValueInList(FONTS, true);
-  else if (field.kind === 'refresh') builder.requireValueInList(REFRESH_SECONDS, true);
+  if (field.kind === 'font') builder.requireValueInList(FONTS, true);
+  else if (field.kind === 'stripe') builder.requireValueInList(STRIPE_STYLES, true);
   else if (field.kind === 'toggle') builder.requireValueInList(['On', 'Off'], true);
   else return;
   valueRange.setDataValidation(builder.build());
-}
-
-function paintSwatches(configSheet) {
-  configSheet.getDataRange().getDisplayValues().forEach((row, rowIndex) => {
-    const field = CONFIG_FIELDS.find((candidate) => candidate.label === row[0].trim());
-    if (field === undefined || field.kind !== 'color') return;
-    const entered = row[1].trim();
-    configSheet.getRange(rowIndex + 1, 4).setBackground(COLOR_PATTERN.test(entered) ? entered : null);
-  });
 }
 
 function setUp() {
@@ -305,8 +299,6 @@ function applyColorsToSheet() {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   const config = readConfig(spreadsheet);
   currentLineupSheets(spreadsheet).forEach((sheet) => paintLineupSheet(sheet, config));
-  const configSheet = spreadsheet.getSheetByName(CONFIG_TAB_NAME);
-  if (configSheet !== null) paintSwatches(configSheet);
   spreadsheet.toast('Colors applied to the lineup tabs');
 }
 
@@ -315,20 +307,21 @@ function paintLineupSheet(sheet, config) {
   const { headerRowIndex, acceptableRowIndex, notesRowIndex } = locateLineupGrid(sheet, rows);
   const columnCount = rows[headerRowIndex].length;
   const detailsLabels = sheet.getRange(1, 1, notesRowIndex + 1, 1);
-  detailsLabels.setBackground(config.sheetHeaderColor).setFontColor(readableTextColor(config.sheetHeaderColor));
+  const { primary, tint } = config.theme;
+  detailsLabels.setBackground(primary).setFontColor(readableTextColor(primary));
   for (let rowIndex = 0; rowIndex <= notesRowIndex; rowIndex += 1) {
-    sheet.getRange(rowIndex + 1, 2, 1, 3).setBackground(rowIndex % 2 === 0 ? config.rowColorB : config.rowColorA);
+    sheet.getRange(rowIndex + 1, 2, 1, 3).setBackground(rowIndex % 2 === 0 ? tint : PLAIN_ROW_COLOR);
   }
   sheet.getRange(headerRowIndex + 1, 1, 1, columnCount)
-    .setBackground(config.sheetHeaderColor)
-    .setFontColor(readableTextColor(config.sheetHeaderColor));
+    .setBackground(primary)
+    .setFontColor(readableTextColor(primary));
   const playerRowCount = acceptableRowIndex - headerRowIndex - 1;
   if (playerRowCount < 1) return;
   const playerRange = sheet.getRange(headerRowIndex + 2, 1, playerRowCount, columnCount);
   playerRange.setBackground(null);
   const existingBandings = sheet.getBandings();
   const bandings = existingBandings.length > 0 ? existingBandings : [playerRange.applyRowBanding()];
-  bandings.forEach((banding) => banding.setFirstRowColor(config.rowColorA).setSecondRowColor(config.rowColorB));
+  bandings.forEach((banding) => banding.setFirstRowColor(PLAIN_ROW_COLOR).setSecondRowColor(tint));
 }
 
 function readableTextColor(backgroundColor) {

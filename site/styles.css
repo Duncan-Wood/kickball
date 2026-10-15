@@ -1,18 +1,8 @@
 :root {
-  --primary: #2b6cb0;
-  --accent: #ed8936;
-  --background: #f7fafc;
-  --grass: #5aa65a;
-  --dirt: #c9a27a;
   --font: 'Fredoka';
-  --ink: color-mix(in srgb, var(--primary) 22%, #111);
-  --muted: color-mix(in srgb, var(--primary) 28%, #6b6b6b);
-  --border: color-mix(in srgb, var(--primary) 25%, white);
-  --border-soft: color-mix(in srgb, var(--primary) 14%, white);
-  --tint: color-mix(in srgb, var(--primary) 12%, white);
-  --faint: color-mix(in srgb, var(--muted) 45%, white);
-  --tag-bg: color-mix(in srgb, var(--accent) 22%, white);
-  --tag-text: color-mix(in srgb, var(--accent) 55%, black);
+  --grass: #63b96e;
+  --infield-grass: #7ccf84;
+  --dirt: #f2c391;
 }
 * { box-sizing: border-box; }
 body {
@@ -28,7 +18,7 @@ h1 { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; font-size: 2
 .team-icon:empty { display: none; }
 .team-icon img { width: 34px; height: 34px; object-fit: contain; }
 .season-tag { margin-left: 4px; padding: 2px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--tag-text); background: var(--tag-bg); }
-.accent-stripe { height: 3px; margin-bottom: 10px; border-radius: 999px; background: linear-gradient(90deg, var(--primary), var(--accent)); }
+.accent-stripe { height: 3px; margin-bottom: 10px; border-radius: 999px; }
 .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 select {
   flex: 1 1 200px;
@@ -60,7 +50,7 @@ select {
 .subtitle strong { color: var(--ink); }
 svg { display: block; width: 100%; height: auto; }
 .outfield-grass { fill: var(--grass); }
-.infield-grass { fill: color-mix(in srgb, var(--grass) 80%, white); }
+.infield-grass { fill: var(--infield-grass); }
 .dirt { fill: var(--dirt); }
 .chip-box { fill: #fff; stroke: var(--ink); stroke-width: 1; }
 .chip-label { font-size: 9px; font-weight: 700; fill: #fff; text-anchor: middle; letter-spacing: 0.5px; }
