@@ -6,7 +6,7 @@ Screenshots use made-up players.
 
 | Field | Whole game | Season |
 | --- | --- | --- |
-| ![Field view](docs/demo-field.png) | ![Whole-game table](docs/demo-all.png) | ![Season totals](docs/demo-season.png) |
+| ![Field view](docs/screenshots/demo-field.png) | ![Whole-game table](docs/screenshots/demo-all.png) | ![Season totals](docs/screenshots/demo-season.png) |
 
 ## Features
 
