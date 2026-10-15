@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kickball</title>
+<link rel="icon" id="favicon" href="data:,">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main class="page">
+  <h1>
+    <span class="team-icon" id="team-icon"></span>
+    <span id="team-name"></span>
+    <span class="season-tag" id="season-tag" hidden></span>
+  </h1>
+  <div class="accent-stripe"></div>
+  <div class="error-panel" id="error-panel" hidden></div>
+  <div class="status" id="status">Loading lineups…</div>
+  <div id="view" hidden>
+    <div class="controls">
+      <select id="game" aria-label="Game"></select>
+      <div class="innings" id="innings"></div>
+    </div>
+    <div class="subtitle" id="subtitle"></div>
+    <div class="game-details" id="game-details"></div>
+    <svg id="field" viewBox="-24 28 448 372" xmlns="http://www.w3.org/2000/svg">
+      <path class="outfield-grass" d="M200,350 L-12,138 A300,300 0 0 1 412,138 Z"/>
+      <circle class="dirt" cx="200" cy="350" r="24"/>
+      <path class="dirt" d="M200,350 L48,198 A215,215 0 0 1 352,198 Z"/>
+      <polygon class="infield-grass" points="200,328 268,260 200,192 132,260"/>
+      <circle class="dirt" cx="200" cy="260" r="14"/>
+      <path d="M200,350 L-12,138 A300,300 0 0 1 412,138 Z" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M290,260 L200,170 L110,260" fill="none" stroke="#fff" stroke-width="2"/>
+      <g fill="#fff" stroke="#8a6a44" stroke-width="0.5">
+        <rect x="283" y="253" width="14" height="14" transform="rotate(45 290 260)"/>
+        <rect x="193" y="163" width="14" height="14" transform="rotate(45 200 170)"/>
+        <rect x="103" y="253" width="14" height="14" transform="rotate(45 110 260)"/>
+        <polygon points="193,336 207,336 207,343 200,350 193,343"/>
+      </g>
+      <g id="chips"></g>
+    </svg>
+    <table id="summary" hidden></table>
+    <div class="problems" id="problems"></div>
+    <div class="bench" id="kicking-order"></div>
+    <div class="bench" id="bench"></div>
+    <button type="button" class="comment-toggle" id="comment-toggle" hidden>Anonymous suggestion box</button>
+    <form class="comment-form" id="comment-form" hidden>
+      <textarea id="comment-text" maxlength="1000" placeholder="Anything on your mind?" required></textarea>
+      <div class="comment-actions">
+        <button type="submit" id="comment-submit">Send</button>
+        <button type="button" class="cancel" id="comment-cancel">Cancel</button>
+        <span class="comment-status" id="comment-status"></span>
+      </div>
+    </form>
+  </div>
+</main>
+<script src="app.js"></script>
+</body>
+</html>
