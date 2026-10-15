@@ -4,13 +4,9 @@ const API_VERSION = 2;
 const PAGE_ADDRESS = 'https://duncan-wood.github.io/kickball/';
 const CONFIG_TAB_NAME = 'Team Config';
 const COMMENTS_TAB_NAME = 'Comments';
-const ERRORS_TAB_NAME = 'Field View Problems';
 const SHARE_LINK_LABEL = 'Share link';
 const READ_CACHE_SECONDS = 5;
 const CACHE_VALUE_MAXIMUM_LENGTH = 90000;
-const ERROR_FIELD_MAXIMUM_LENGTH = 2000;
-const ERROR_DUPLICATE_SECONDS = 600;
-const BROWSER_ERRORS_PER_HOUR = 30;
 const COMMENTS_PER_HOUR = 60;
 const COMMENT_MAXIMUM_LENGTH = 1000;
 const TEXT_SETTING_MAXIMUM_LENGTH = 60;
@@ -44,11 +40,6 @@ function onOpen() {
     .addToUi();
 }
 
-function onEdit(event) {
-  if (event.range.getSheet().getName() !== CONFIG_TAB_NAME) return;
-  logFailures('onEdit', applyColorsToSheet);
-}
-
 function doGet(event) {
   return respondWithJson('doGet', () => {
     const requestedTab = event.parameter.tab;
@@ -63,7 +54,6 @@ function doPost(event) {
   return respondWithJson('doPost', () => {
     const request = JSON.parse(event.postData.contents);
     if (request.action === 'comment') return saveComment(request.tab, request.text);
-    if (request.action === 'clientError') return saveBrowserError(request.source, request.message, request.details);
     throw new Error(`Unknown action "${request.action}"`);
   });
 }
@@ -73,7 +63,7 @@ function respondWithJson(source, work) {
   try {
     body = Object.assign({ ok: true, apiVersion: API_VERSION }, work());
   } catch (error) {
-    recordErrorQuietly(source, error);
+    console.error(source, error);
     body = { ok: false, apiVersion: API_VERSION, error: error.message };
   }
   return ContentService.createTextOutput(JSON.stringify(body)).setMimeType(ContentService.MimeType.JSON);
@@ -186,9 +176,7 @@ function readEnteredSettings(configSheet) {
 function validatedSetting(field, entered) {
   const expectation = settingExpectation(field, entered);
   if (expectation === null) return normalizedSetting(field, entered);
-  const replacement = normalizedSetting(field, field.defaultValue);
-  recordErrorQuietly('config', new Error(`"${field.label}" is "${entered}", which ${expectation}. Using the automatic value instead`));
-  return replacement;
+  throw new Error(`"${field.label}" is "${entered}", which ${expectation}. Fix it on the ${CONFIG_TAB_NAME} tab`);
 }
 
 function settingExpectation(field, entered) {
@@ -244,7 +232,6 @@ function setUp() {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   if (spreadsheet.getSheetByName(CONFIG_TAB_NAME) === null) createConfigSheet(spreadsheet);
   if (spreadsheet.getSheetByName(COMMENTS_TAB_NAME) === null) createCommentsSheet(spreadsheet);
-  if (spreadsheet.getSheetByName(ERRORS_TAB_NAME) === null) createErrorsSheet(spreadsheet);
   const problems = [];
   currentLineupSheets(spreadsheet).forEach((sheet) => {
     try {
@@ -328,47 +315,6 @@ function readableTextColor(backgroundColor) {
   const channel = (start) => parseInt(backgroundColor.slice(start, start + 2), 16);
   const brightness = (channel(1) * 299 + channel(3) * 587 + channel(5) * 114) / 1000;
   return brightness > 150 ? '#000000' : '#ffffff';
-}
-
-function logFailures(source, work) {
-  try {
-    return work();
-  } catch (error) {
-    recordErrorQuietly(source, error);
-    throw error;
-  }
-}
-
-function recordErrorQuietly(source, error) {
-  try {
-    recordError(source, error.message, error.stack);
-  } catch (loggingError) {
-    console.error('Could not record error on the Field View Problems tab', loggingError);
-  }
-}
-
-function saveBrowserError(source, message, details) {
-  if (!allowAction('browser-errors', BROWSER_ERRORS_PER_HOUR)) throw new Error('Too many browser error reports this hour');
-  recordError(`browser: ${source}`, message, details);
-  return {};
-}
-
-function recordError(source, message, details) {
-  const cache = CacheService.getScriptCache();
-  const duplicateKey = `error:${shortDigest(`${source}|${message}`)}`;
-  if (cache.get(duplicateKey) !== null) return;
-  cache.put(duplicateKey, '1', ERROR_DUPLICATE_SECONDS);
-  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  const clip = (value) => String(value === undefined || value === null ? '' : value).slice(0, ERROR_FIELD_MAXIMUM_LENGTH);
-  const occurredAt = Utilities.formatDate(new Date(), spreadsheet.getSpreadsheetTimeZone(), 'yyyy-MM-dd HH:mm:ss');
-  appendTextRow(spreadsheet, ERRORS_TAB_NAME, createErrorsSheet, [occurredAt, clip(source), clip(message), clip(details)]);
-}
-
-function createErrorsSheet(spreadsheet) {
-  const errorsSheet = spreadsheet.insertSheet(ERRORS_TAB_NAME);
-  errorsSheet.getRange(1, 1, 1, 4).setValues([['Time', 'Where', 'Message', 'Details']]).setFontWeight('bold');
-  errorsSheet.setFrozenRows(1);
-  return errorsSheet;
 }
 
 function saveComment(tabName, commentText) {

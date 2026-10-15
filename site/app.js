@@ -46,8 +46,6 @@ let failedRefreshes = 0;
 let failedLoads = 0;
 let commentToggleResetTimer = null;
 
-class ServerError extends Error {}
-
 function scriptAddress() {
   return SCRIPT_ADDRESS_PREFIX + teamCode + '/exec';
 }
@@ -61,7 +59,7 @@ async function readApiResponse(response) {
   }
   if (typeof data.apiVersion !== 'number') throw new Error('That link did not answer like a lineup script.');
   if (data.apiVersion < MINIMUM_API_VERSION) throw new Error('This sheet\'s script is out of date. Ask your captain to update the script from the template.');
-  if (!data.ok) throw new ServerError(data.error);
+  if (!data.ok) throw new Error(data.error);
   return data;
 }
 
@@ -479,9 +477,7 @@ function showFailure(title, error) {
   detail.textContent = error instanceof Error ? error.message : String(error);
   const hint = document.createElement('div');
   hint.className = 'error-hint';
-  hint.textContent = error instanceof ServerError
-    ? 'Saved on the "Field View Problems" tab of the spreadsheet.'
-    : 'This page keeps trying on its own.';
+  hint.textContent = 'This page keeps trying on its own.';
   panel.replaceChildren(heading, detail, hint);
   panel.hidden = false;
 }
@@ -508,17 +504,8 @@ function showLoadFailure(error) {
   setTimeout(loadLineups, Math.min(FIRST_LOAD_RETRY_MILLISECONDS * 2 ** (failedLoads - 1), LONGEST_RETRY_MILLISECONDS));
 }
 
-function reportBrowserError(source, thrown) {
-  const message = thrown instanceof Error ? thrown.message : String(thrown);
-  showFailure('Something broke in this page, reload to try again', message);
-  if (!TEAM_CODE_PATTERN.test(teamCode || '')) return;
-  apiPost({ action: 'clientError', source, message, details: thrown instanceof Error ? thrown.stack : '' }).catch((reportingError) => {
-    console.error('Could not report the error to the sheet', reportingError);
-  });
-}
-
-window.addEventListener('error', (event) => reportBrowserError('error', event.error || event.message));
-window.addEventListener('unhandledrejection', (event) => reportBrowserError('unhandledrejection', event.reason));
+window.addEventListener('error', (event) => showFailure('Something broke in this page, reload to try again', event.error || event.message));
+window.addEventListener('unhandledrejection', (event) => showFailure('Something broke in this page, reload to try again', event.reason));
 
 if (TEAM_CODE_PATTERN.test(teamCode || '')) {
   loadLineups();

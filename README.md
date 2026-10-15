@@ -46,12 +46,12 @@ This is the setup for new teams. It uses `script/Code.gs`, which serves the shee
 1. In the spreadsheet, open **Extensions > Apps Script**.
 2. Replace the contents of `Code.gs` with [`script/Code.gs`](script/Code.gs) and save.
 3. Reload the spreadsheet. A **Kickball** menu appears.
-4. Choose **Kickball > Set up** and approve the permissions. Google shows an "unverified app" warning because the script is your own: choose **Advanced**, then **Go to (project name)**. Set up adds the `Team Config`, `Comments` and `Field View Problems` tabs and lists any lineup tab it cannot read.
+4. Choose **Kickball > Set up** and approve the permissions. Google shows an "unverified app" warning because the script is your own: choose **Advanced**, then **Go to (project name)**. Set up adds the `Team Config` and `Comments` tabs and lists any lineup tab it cannot read.
 5. In the Apps Script editor, choose **Deploy > New deployment > Web app**. Set **Execute as** to Me and **Who has access** to Anyone, then **Deploy**. The default, Only myself, makes the link fail for everyone else.
 6. Copy the **Web app URL** (it ends in `/exec`). Back in the spreadsheet, choose **Kickball > Save my share link** and paste it.
 7. The share link is now on the `Team Config` tab. Send it to the team, or open it from **Kickball > Field view**.
 
-The `Team Config` tab has eight settings: team name, season label, icon, main color, second color, stripe (Blend or Rainbow), font and the suggestion box. It is the only place the app reads its look and name from. The `Team Details` tab is the team's own notes and is never read. Everything else (page background, text, borders, highlights, and the header and row colors of the lineup tabs) is worked out from the two colors, so the page and the sheet always match. The color cells take their fill color, not typed text, and white is a valid value. An icon link must point to an image on the web; `site/icons/` holds ones hosted with the page.
+The `Team Config` tab has eight settings: team name, season label, icon, main color, second color, stripe (Blend or Rainbow), font and the suggestion box. It is the only place the app reads its look and name from. The `Team Details` tab is the team's own notes and is never read. Everything else (page background, text, borders, highlights) is worked out from the two colors. Lineup tabs keep whatever formatting they have. **Kickball > Apply colors to sheet** repaints them with the same palette, and only runs when chosen from the menu. The color cells take their fill color, not typed text, and white is a valid value. An icon link must point to an image on the web; `site/icons/` holds ones hosted with the page.
 
 ## Legacy install (`apps-script/`)
 
