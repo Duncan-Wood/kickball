@@ -48,6 +48,8 @@ const CONFIG_FIELDS = [
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('Kickball')
+    .addItem('Field view', 'showFieldView')
+    .addSeparator()
     .addItem('Set up', 'setUp')
     .addItem('Save my share link', 'saveShareLink')
     .addItem('Apply colors to sheet', 'applyColorsToSheet')
@@ -280,6 +282,23 @@ function saveShareLink() {
   const shareRow = shareRowIndex === -1 ? configSheet.getLastRow() + 2 : shareRowIndex + 1;
   configSheet.getRange(shareRow, 1, 1, 3).setNumberFormat('@').setValues([[SHARE_LINK_LABEL, shareLink, 'Filled in by Kickball > Save my share link']]);
   ui.alert(`Your share link is saved on the ${CONFIG_TAB_NAME} tab:\n\n${shareLink}`);
+}
+
+function showFieldView() {
+  const ui = SpreadsheetApp.getUi();
+  const configSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG_TAB_NAME);
+  const rows = configSheet === null ? [] : configSheet.getDataRange().getDisplayValues();
+  const shareRow = rows.find((row) => row[0].trim() === SHARE_LINK_LABEL);
+  const shareLink = shareRow === undefined ? '' : shareRow[1].trim();
+  const deploymentId = shareLink.startsWith(`${PAGE_ADDRESS}?t=`) ? shareLink.slice(PAGE_ADDRESS.length + 3) : '';
+  if (!/^[A-Za-z0-9_-]{20,}$/.test(deploymentId)) {
+    ui.alert('Field view needs your share link first. Deploy the web app, then use Kickball > Save my share link.');
+    return;
+  }
+  const page = HtmlService.createHtmlOutput(
+    `<style>html,body{margin:0;height:100%}iframe{border:0;width:100%;height:100%}</style><iframe src="${shareLink}"></iframe>`
+  );
+  ui.showModelessDialog(page.setWidth(480).setHeight(770), 'Field view');
 }
 
 function applyColorsToSheet() {
