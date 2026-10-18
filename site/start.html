@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Set up your team</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🥎%3C/text%3E%3C/svg%3E">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 12px; font-family: 'Fredoka', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1c2a3a; background: #f6f1ea; }
+  main { max-width: 520px; margin: 0 auto; }
+  h1 { margin: 8px 0 4px; font-size: 26px; color: #2b6cb0; }
+  p { line-height: 1.4; }
+  .card { margin: 14px 0; padding: 14px; background: #fff; border: 1px solid #e3d9cc; border-radius: 12px; }
+  label { display: block; margin: 10px 0 4px; font-weight: 600; font-size: 14px; }
+  input { width: 100%; padding: 8px 10px; font: inherit; border: 1px solid #d3c7b8; border-radius: 8px; }
+  button { margin-top: 12px; padding: 10px 16px; font: inherit; font-weight: 600; color: #fff; background: #2b6cb0; border: 0; border-radius: 8px; cursor: pointer; }
+  button.secondary { color: #2b6cb0; background: #fff; border: 1px solid #2b6cb0; }
+  button:disabled { opacity: 0.5; cursor: default; }
+  .error { margin: 12px 0; padding: 10px; color: #7a1d1d; background: #fde8e8; border: 1px solid #f3b4b4; border-radius: 8px; }
+  .link-box { padding: 10px; word-break: break-all; background: #eef4fb; border-radius: 8px; font-size: 14px; }
+  .small { font-size: 13px; color: #5b6b7c; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>🥎 Set up your team</h1>
+  <p>Get a lineup sheet in your own Google Drive and a link your players can open on their phones. Nothing to install.</p>
+  <div class="error" id="error" hidden></div>
+
+  <section class="card" id="step-sign-in">
+    <strong>1. Sign in with Google</strong>
+    <p class="small">The app can only see the one sheet it creates or that you pick. It cannot see anything else in your Drive.</p>
+    <button type="button" id="sign-in">Sign in with Google</button>
+  </section>
+
+  <section class="card" id="step-choose" hidden>
+    <strong>2. Your sheet</strong>
+    <p class="small">Fill in both to continue.</p>
+    <label for="team-name">Team name</label>
+    <input id="team-name" maxlength="60" placeholder="Fruity Bunts" required>
+    <label for="season-label">Season</label>
+    <input id="season-label" maxlength="60" placeholder="Fall 2026" required>
+    <button type="button" id="create-sheet">Create my team sheet</button>
+    <button type="button" class="secondary" id="pick-sheet">Use a sheet I already have</button>
+    <p class="small">Existing sheets must use the same layout as the template (Date, Time, Location, Opponent, Notes, then a Name / Acceptable grid).</p>
+  </section>
+
+  <section class="card" id="step-done" hidden>
+    <strong>You're set</strong>
+    <p>Send this link to your team:</p>
+    <div class="link-box" id="team-link"></div>
+    <p><a id="open-team" href="#">Open the field view</a> · <a id="open-sheet" href="#" target="_blank" rel="noopener">Open your sheet</a></p>
+    <p class="small">Edit lineups in the sheet. The link updates by itself within about 15 seconds.</p>
+  </section>
+</main>
+<script src="settings.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://apis.google.com/js/api.js" async defer></script>
+<script type="module" src="start.js"></script>
+</body>
+</html>

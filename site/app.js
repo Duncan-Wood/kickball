@@ -6,8 +6,7 @@ const FIELD_SPOTS = {
 const INFIELD_POSITIONS = ['P', 'C', '1B', '2B', '3B', 'SS'];
 const MINIMUM_API_VERSION = 2;
 const REFRESH_SECONDS = 10;
-const SCRIPT_ADDRESS_PREFIX = 'https://script.google.com/macros/s/';
-const TEAM_CODE_PATTERN = /^[A-Za-z0-9_-]{20,}$/;
+const TEAM_CODE_PATTERN = /^[a-z0-9]{12}$/;
 const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
 const FONTS = ['Fredoka', 'Nunito', 'Poppins', 'Roboto', 'Lora'];
 const THEME_VARIABLES = {
@@ -33,7 +32,7 @@ const COMMENT_TOGGLE_TEXT = 'Anonymous suggestion box';
 const COMMENT_CONFIRMATION_MILLISECONDS = 4000;
 const RESULT_WORDS = { W: 'Won', L: 'Lost', T: 'Tied' };
 
-const teamCode = new URLSearchParams(location.search).get('t');
+const teamCode = new URLSearchParams(location.search).get('team');
 
 let config = null;
 let lineups = [];
@@ -47,7 +46,7 @@ let failedLoads = 0;
 let commentToggleResetTimer = null;
 
 function scriptAddress() {
-  return SCRIPT_ADDRESS_PREFIX + teamCode + '/exec';
+  return window.KICKBALL.workerAddress + '/api/team/' + teamCode;
 }
 
 async function readApiResponse(response) {
@@ -55,10 +54,10 @@ async function readApiResponse(response) {
   try {
     data = await response.json();
   } catch (parseError) {
-    throw new Error('That link did not answer with lineup data. Check that the share link is complete and the script is deployed for "Anyone".');
+    throw new Error('That link did not answer with lineup data. Check that the share link is complete.');
   }
   if (typeof data.apiVersion !== 'number') throw new Error('That link did not answer like a lineup script.');
-  if (data.apiVersion < MINIMUM_API_VERSION) throw new Error('This sheet\'s script is out of date. Ask your captain to update the script from the template.');
+  if (data.apiVersion < MINIMUM_API_VERSION) throw new Error('This page is out of date. Reload it to try again.');
   if (!data.ok) throw new Error(data.error);
   return data;
 }
@@ -67,7 +66,7 @@ async function fetchFromScript(address, options) {
   try {
     return await fetch(address, options);
   } catch (networkError) {
-    throw new Error('Could not reach the sheet. Check your connection, and that the share link is complete and still works.');
+    throw new Error('Could not reach the lineups. Check your connection, and that the share link is complete and still works.');
   }
 }
 
@@ -510,5 +509,5 @@ window.addEventListener('unhandledrejection', (event) => showFailure('Something 
 if (TEAM_CODE_PATTERN.test(teamCode || '')) {
   loadLineups();
 } else {
-  document.getElementById('status').textContent = 'This link is missing its team code. Ask your captain for the share link.';
+  document.getElementById('status').textContent = 'This link is missing its team code. Ask your captain for the share link, or set up your own team at start.html.';
 }

@@ -1,0 +1,12 @@
+name = "kickball"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+preview_urls = false
+
+[vars]
+ALLOWED_ORIGINS = "https://duncan-wood.github.io,http://localhost:8766"
+GOOGLE_CLIENT_ID = "480238766210-9ejs2dictflpqg70ftt0cthuo9rlb98m.apps.googleusercontent.com"
+
+[[kv_namespaces]]
+binding = "TEAMS"
+id = "805780006a3649be8025f2e18ce5750e"

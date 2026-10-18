@@ -20,7 +20,7 @@ Screenshots use made-up players.
 - Shows load and update errors in a red box at the top, retries a failed first load on its own, and logs every error to a `Field View Problems` tab
 - Works as a pop-up inside the sheet or as a shareable web app link that gives no access to the spreadsheet
 
-## How it works
+## How the legacy app works
 
 `apps-script/Code.gs` runs on Google's side and reads the sheet:
 
@@ -41,17 +41,38 @@ The script only writes to the `Comments` tab (suggestion box) and the `Field Vie
 
 ## Set up a team
 
-This is the setup for new teams. It uses `script/Code.gs`, which serves the sheet's data as JSON, and the shared page published from `site/`. Nothing else is installed in the spreadsheet.
+1. Open the setup page (`start.html` on the site) and choose **Sign in with Google**.
+2. Enter your team name and season, then choose **Create my team sheet**. To keep a sheet you already have, choose **Use a sheet I already have** and pick it. The app adds a `Team Config` tab to it.
+3. Send the team link to your players.
 
-1. In the spreadsheet, open **Extensions > Apps Script**.
-2. Replace the contents of `Code.gs` with [`script/Code.gs`](script/Code.gs) and save.
-3. Reload the spreadsheet. A **Kickball** menu appears.
-4. Choose **Kickball > Set up** and approve the permissions. Google shows an "unverified app" warning because the script is your own: choose **Advanced**, then **Go to (project name)**. Set up adds the `Team Config` and `Comments` tabs and lists any lineup tab it cannot read.
-5. In the Apps Script editor, choose **Deploy > New deployment > Web app**. Set **Execute as** to Me and **Who has access** to Anyone, then **Deploy**. The default, Only myself, makes the link fail for everyone else.
-6. Copy the **Web app URL** (it ends in `/exec`). Back in the spreadsheet, choose **Kickball > Save my share link** and paste it.
-7. The share link is now on the `Team Config` tab. Send it to the team, or open it from **Kickball > Field view**.
+You edit lineups in the sheet. The link refreshes by itself. Nothing is installed in the sheet and there is no script to paste or deploy.
 
-The `Team Config` tab has eight settings: team name, season label, icon, main color, second color, stripe (Blend or Rainbow), font and the suggestion box. It is the only place the app reads its look and name from. The `Team Details` tab is the team's own notes and is never read. Everything else (page background, text, borders, highlights) is worked out from the two colors. Lineup tabs keep whatever formatting they have. **Kickball > Apply colors to sheet** repaints them with the same palette, and only runs when chosen from the menu. The color cells take their fill color, not typed text, and white is a valid value. An icon link must point to an image on the web; `site/icons/` holds ones hosted with the page.
+The app asks Google for one permission, `drive.file`. It lets the app see only the sheet it created or the one you picked, never the rest of your Drive.
+
+The `Team Config` tab has eight settings: team name, season label, icon, main color, second color, stripe (Blend or Rainbow), font and the suggestion box. The color cells take their fill color: click the box, then the paint bucket in the toolbar. White is a valid value. Everything else (page background, text, borders, highlights) is worked out from the two colors. The `Team Details` and `Roster` tabs are the team's own notes and are never sent to players.
+
+## How it works
+
+1. `worker/` is a Cloudflare Worker. It holds an encrypted refresh token for each connected sheet and reads that one sheet through the Google Sheets API.
+2. It returns only the lineup tabs (names ending in "Lineup", not starting with "OLD") and the `Team Config` settings. Roster notes, comments and every other tab stay in the sheet.
+3. Reads are cached for 5 seconds, so many players refreshing do not each hit Google.
+4. Suggestions from the page are appended to a `Comments` tab in the captain's sheet, limited to 60 per hour.
+5. `site/` is the static page on GitHub Pages. `start.html` is the setup flow and `index.html?team=<code>` is the player view.
+6. Team codes are random, so the link is the only thing protecting the lineup view. Anyone with the link can see the lineups, and nothing else.
+
+### Running the Worker
+
+```
+cd worker
+npm install
+npm test
+npx wrangler kv namespace create TEAMS
+npx wrangler secret put GOOGLE_CLIENT_SECRET
+npx wrangler secret put TOKEN_ENCRYPTION_KEY
+npx wrangler deploy
+```
+
+`wrangler.toml` holds the KV namespace id, the Google client id and the allowed site origins. `TOKEN_ENCRYPTION_KEY` is 32 random bytes in base64. The Google project needs the Sheets, Drive and Picker APIs, a Web OAuth client and a Picker API key, all in `site/settings.js`.
 
 ## Legacy install (`apps-script/`)
 
