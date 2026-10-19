@@ -20,6 +20,10 @@
   .error { margin: 12px 0; padding: 10px; color: #7a1d1d; background: #fde8e8; border: 1px solid #f3b4b4; border-radius: 8px; }
   .link-box { padding: 10px; word-break: break-all; background: #eef4fb; border-radius: 8px; font-size: 14px; }
   .small { font-size: 13px; color: #5b6b7c; }
+  ul { margin: 8px 0 0; padding: 0; list-style: none; }
+  li { padding: 10px 0; border-top: 1px solid #e3d9cc; }
+  li:first-child { border-top: 0; }
+  li .links { margin-top: 4px; font-size: 14px; }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -29,8 +33,14 @@
   <p>Get a lineup sheet in your own Google Drive and a link your players can open on their phones. Nothing to install.</p>
   <div class="error" id="error" hidden></div>
 
+  <section class="card" id="step-saved" hidden>
+    <strong>Your teams</strong>
+    <p class="small">Saved in this browser.</p>
+    <ul id="saved-teams"></ul>
+  </section>
+
   <section class="card" id="step-sign-in">
-    <strong>1. Sign in with Google</strong>
+    <strong id="sign-in-heading">1. Sign in with Google</strong>
     <p class="small">The app can only see the one sheet it creates or that you pick. It cannot see anything else in your Drive.</p>
     <button type="button" id="sign-in">Sign in with Google</button>
   </section>
