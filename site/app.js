@@ -58,7 +58,11 @@ async function readApiResponse(response) {
   }
   if (typeof data.apiVersion !== 'number') throw new Error('That link did not answer like a lineup script.');
   if (data.apiVersion < MINIMUM_API_VERSION) throw new Error('This page is out of date. Reload it to try again.');
-  if (!data.ok) throw new Error(data.error);
+  if (!data.ok) {
+    const failure = new Error(data.error);
+    failure.reconnect = data.reconnect === true;
+    throw failure;
+  }
   return data;
 }
 
@@ -427,6 +431,7 @@ function applyRefresh(freshLineup) {
   const changed = JSON.stringify(lineups[index]) !== JSON.stringify(freshLineup);
   lineups[index] = freshLineup;
   clearFailure();
+  if (changed) saveLineups();
   if (changed && selectedLineup.tabName === freshLineup.tabName) selectLineup(freshLineup.tabName);
   scheduleRefresh();
 }
@@ -478,6 +483,12 @@ function showFailure(title, error) {
   hint.className = 'error-hint';
   hint.textContent = 'This page keeps trying on its own.';
   panel.replaceChildren(heading, detail, hint);
+  if (error instanceof Error && error.reconnect === true) {
+    const reconnectLink = document.createElement('a');
+    reconnectLink.href = new URL('start.html?reconnect=' + teamCode, location.href).href;
+    reconnectLink.textContent = 'Captain: reconnect here';
+    hint.append(' ', reconnectLink);
+  }
   panel.hidden = false;
 }
 
@@ -485,15 +496,51 @@ function clearFailure() {
   document.getElementById('error-panel').hidden = true;
 }
 
+function savedLineupsKey() {
+  return 'lineups:' + teamCode;
+}
+
+function saveLineups() {
+  try {
+    localStorage.setItem(savedLineupsKey(), JSON.stringify({ savedAt: Date.now(), config, lineups }));
+  } catch (storageUnavailable) {
+    return;
+  }
+}
+
+function savedLineups() {
+  try {
+    return JSON.parse(localStorage.getItem(savedLineupsKey()));
+  } catch (storageUnavailable) {
+    return null;
+  }
+}
+
+function describeAge(savedAt) {
+  const minutes = Math.round((Date.now() - savedAt) / 60000);
+  if (minutes < 1) return 'less than a minute ago';
+  if (minutes < 60) return minutes + (minutes === 1 ? ' minute ago' : ' minutes ago');
+  const hours = Math.round(minutes / 60);
+  if (hours < 48) return hours + (hours === 1 ? ' hour ago' : ' hours ago');
+  return Math.round(hours / 24) + ' days ago';
+}
+
 async function loadLineups() {
   let data;
   try {
     data = await apiGet();
   } catch (error) {
-    showLoadFailure(error);
+    const saved = savedLineups();
+    if (saved === null) {
+      showLoadFailure(error);
+      return;
+    }
+    start(saved);
+    showFailure('Showing the lineup saved ' + describeAge(saved.savedAt), error);
     return;
   }
   start(data);
+  saveLineups();
 }
 
 function showLoadFailure(error) {
@@ -511,3 +558,5 @@ if (TEAM_CODE_PATTERN.test(teamCode || '')) {
 } else {
   document.getElementById('status').textContent = 'This link is missing its team code. Ask your captain for the share link, or set up your own team at start.html.';
 }
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');

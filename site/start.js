@@ -4,6 +4,7 @@ const { workerAddress, googleClientId, googleApiKey, googleProjectNumber } = win
 const DRIVE_FILE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 const SHEET_ADDRESS_PREFIX = 'https://docs.google.com/spreadsheets/d/';
 
+const reconnectSlug = new URLSearchParams(location.search).get('reconnect');
 let pendingId = null;
 let accessToken = null;
 
@@ -72,8 +73,12 @@ function teamAddress(slug) {
 
 async function finish(spreadsheetId) {
   const { slug } = await postToWorker('/api/connect', { pendingId, spreadsheetId });
+  await saveShareLink(accessToken, spreadsheetId, teamAddress(slug));
+  showTeamLink(slug, spreadsheetId);
+}
+
+function showTeamLink(slug, spreadsheetId) {
   const shareLink = teamAddress(slug);
-  await saveShareLink(accessToken, spreadsheetId, shareLink);
   element('team-link').textContent = shareLink;
   element('open-team').href = shareLink;
   element('open-sheet').href = SHEET_ADDRESS_PREFIX + spreadsheetId;
@@ -109,7 +114,12 @@ element('sign-in').addEventListener('click', (event) => runStep(event.target, as
   pendingId = signInResult.pendingId;
   accessToken = signInResult.accessToken;
   element('step-sign-in').hidden = true;
-  element('step-choose').hidden = false;
+  if (reconnectSlug === null) {
+    element('step-choose').hidden = false;
+    return;
+  }
+  const { slug, spreadsheetId } = await postToWorker('/api/reconnect', { pendingId, slug: reconnectSlug });
+  showTeamLink(slug, spreadsheetId);
 }));
 
 element('create-sheet').addEventListener('click', (event) => runStep(event.target, async () => {
