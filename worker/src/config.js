@@ -11,7 +11,7 @@ const COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
 export const CONFIG_FIELDS = [
   { key: 'teamName', label: 'Team name', kind: 'text', defaultValue: 'My Team', note: 'The heading on the page' },
   { key: 'seasonLabel', label: 'Season label', kind: 'text', defaultValue: 'Season', note: 'The tag beside the team name, like "Fall 2026"' },
-  { key: 'icon', label: 'Icon', kind: 'icon', defaultValue: '🥎', note: 'One emoji, or a link starting with https:// to a small image' },
+  { key: 'icon', label: 'Icon', kind: 'icon', defaultValue: 'https://duncan-wood.github.io/kickball/icons/kickball.svg', note: 'One emoji, or a link starting with https:// to a small image' },
   { key: 'mainColor', label: 'Main color', kind: 'color', defaultValue: '#2b6cb0', note: 'Buttons, headings and text' },
   { key: 'secondColor', label: 'Second color', kind: 'color', defaultValue: '#ed8936', note: 'Page background, highlights and borders' },
   { key: 'stripeStyle', label: 'Stripe', kind: 'stripe', defaultValue: 'Blend', note: 'Blend fades from main to second color, Rainbow shows six pastel bands' },
