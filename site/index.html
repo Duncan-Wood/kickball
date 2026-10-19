@@ -3,12 +3,36 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Kickball</title>
-<link rel="icon" id="favicon" href="data:,">
+<title>Kickball Field View</title>
+<meta name="description" content="A lineup page for kickball teams. Players open one link on their phone to see who plays where and the kicking order.">
+<link rel="icon" id="favicon" href="icons/kickball.svg" type="image/svg+xml">
 <link rel="stylesheet" href="styles.css">
+<script>
+  if (new URLSearchParams(location.search).has('team')) document.documentElement.classList.add('has-team');
+</script>
 </head>
 <body>
-<main class="page">
+<main class="landing" id="landing">
+  <h1><img src="icons/kickball.svg" alt="" width="40" height="40"> Kickball Field View</h1>
+  <p class="landing-lead">A lineup page for kickball teams. The captain keeps the lineup in a Google Sheet. Players open one link on their phone to see who plays where in every inning, and the kicking order. It updates within seconds of the captain's edits.</p>
+
+  <section class="landing-card">
+    <h2>Players</h2>
+    <p>Open the team link your captain sent you. There is nothing to install and no account to make.</p>
+  </section>
+
+  <section class="landing-card">
+    <h2>Captains</h2>
+    <p>Sign in with Google, then either create a ready-made team sheet or connect the one you already have. Edit lineups in Google Sheets as usual and send your players the team link.</p>
+    <a class="landing-button" href="start.html">Set up your team</a>
+  </section>
+
+  <section class="landing-card">
+    <h2>Your data</h2>
+    <p>The app can only see the one sheet it creates or that you pick, nothing else in your Google Drive. Players only ever see the lineup. Roster notes and anonymous suggestions stay private. Read the <a href="privacy.html">privacy policy</a>.</p>
+  </section>
+</main>
+<main class="page" id="team-page">
   <h1>
     <span class="team-icon" id="team-icon"></span>
     <span id="team-name"></span>
