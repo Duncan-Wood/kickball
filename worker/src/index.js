@@ -1,4 +1,4 @@
-import { accessTokenFromRefreshToken, exchangeAuthorizationCode } from './google.js';
+import { accessTokenFromRefreshToken, ConnectionExpiredError, exchangeAuthorizationCode } from './google.js';
 import { appendComment, COMMENTS_PER_HOUR, validatedComment } from './comments.js';
 import { readTeamSheet } from './sheetsReader.js';
 import { decryptToken, encryptToken, newTeamSlug } from './tokens.js';
@@ -76,6 +76,20 @@ async function connect(request, environment) {
   return { slug };
 }
 
+async function reconnect(request, environment) {
+  const { pendingId, slug } = await request.json();
+  if (!/^[a-z0-9]{12}$/.test(String(pendingId)) || !/^[a-z0-9]{12}$/.test(String(slug))) throw new Error('Missing sign-in or team');
+  const stored = await environment.TEAMS.get(`team:${slug}`, 'json');
+  if (stored === null) throw new Error('This team link is not recognized');
+  const refreshToken = await environment.TEAMS.get(`pending:${pendingId}`);
+  if (refreshToken === null) throw new Error('That sign-in expired. Sign in again');
+  const accessToken = await accessTokenFromRefreshToken(await decryptToken(refreshToken, environment.TOKEN_ENCRYPTION_KEY), environment);
+  await readTeamSheet(accessToken, stored.spreadsheetId);
+  await environment.TEAMS.put(`team:${slug}`, JSON.stringify({ ...stored, refreshToken, connectedAt: new Date().toISOString() }));
+  await environment.TEAMS.delete(`pending:${pendingId}`);
+  return { slug, spreadsheetId: stored.spreadsheetId };
+}
+
 async function handleTeam(request, slug, isComment, environment, context) {
   if (!isComment) {
     const payload = await teamPayload(slug, environment, context);
@@ -105,6 +119,7 @@ export default {
     try {
       if (request.method === 'POST' && pathname === '/api/signin') return jsonResponse({ ok: true, ...(await signIn(request, environment)) }, 200, request, environment);
       if (request.method === 'POST' && pathname === '/api/connect') return jsonResponse({ ok: true, ...(await connect(request, environment)) }, 200, request, environment);
+      if (request.method === 'POST' && pathname === '/api/reconnect') return jsonResponse({ ok: true, ...(await reconnect(request, environment)) }, 200, request, environment);
       const teamMatch = TEAM_ROUTE.exec(pathname);
       if (teamMatch !== null) {
         const body = await handleTeam(request, teamMatch[1], teamMatch[2] !== undefined, environment, context);
@@ -113,7 +128,7 @@ export default {
       return jsonResponse({ ok: false, error: 'Not found' }, 404, request, environment);
     } catch (error) {
       console.error(pathname, error);
-      return jsonResponse({ ok: false, error: error.message }, 200, request, environment);
+      return jsonResponse({ ok: false, error: error.message, ...(error instanceof ConnectionExpiredError && { reconnect: true }) }, 200, request, environment);
     }
   },
 };

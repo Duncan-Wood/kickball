@@ -4,6 +4,8 @@ const { workerAddress, googleClientId, googleApiKey, googleProjectNumber } = win
 const DRIVE_FILE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 const SHEET_ADDRESS_PREFIX = 'https://docs.google.com/spreadsheets/d/';
 
+const reconnectSlug = new URLSearchParams(location.search).get('reconnect');
+const SAVED_TEAMS_KEY = 'kickball-teams';
 let pendingId = null;
 let accessToken = null;
 
@@ -64,6 +66,60 @@ async function pickSpreadsheet() {
   });
 }
 
+function savedTeams() {
+  try {
+    return JSON.parse(localStorage.getItem(SAVED_TEAMS_KEY) ?? '[]');
+  } catch (storageUnavailable) {
+    return [];
+  }
+}
+
+function rememberTeam(team) {
+  try {
+    const others = savedTeams().filter((saved) => saved.slug !== team.slug);
+    localStorage.setItem(SAVED_TEAMS_KEY, JSON.stringify([team, ...others]));
+  } catch (storageUnavailable) {
+    return;
+  }
+}
+
+function linkElement(text, address, opensNewTab) {
+  const link = document.createElement('a');
+  link.textContent = text;
+  link.href = address;
+  if (opensNewTab) {
+    link.target = '_blank';
+    link.rel = 'noopener';
+  }
+  return link;
+}
+
+function showSavedTeams() {
+  const teams = savedTeams();
+  if (teams.length === 0 || reconnectSlug !== null) return;
+  const list = element('saved-teams');
+  teams.forEach((team) => {
+    const item = document.createElement('li');
+    const heading = document.createElement('strong');
+    heading.textContent = `${team.teamName} · ${team.seasonLabel}`;
+    const links = document.createElement('div');
+    links.className = 'links';
+    const reconnectAddress = new URL('start.html', location.href);
+    reconnectAddress.searchParams.set('reconnect', team.slug);
+    links.append(
+      linkElement('Team link', teamAddress(team.slug)),
+      ' · ',
+      linkElement('Open sheet', SHEET_ADDRESS_PREFIX + team.spreadsheetId, true),
+      ' · ',
+      linkElement('Reconnect', reconnectAddress.href),
+    );
+    item.append(heading, links);
+    list.append(item);
+  });
+  element('step-saved').hidden = false;
+  element('sign-in-heading').textContent = 'Add another team: sign in with Google';
+}
+
 function teamAddress(slug) {
   const address = new URL('./', location.href);
   address.searchParams.set('team', slug);
@@ -72,12 +128,18 @@ function teamAddress(slug) {
 
 async function finish(spreadsheetId) {
   const { slug } = await postToWorker('/api/connect', { pendingId, spreadsheetId });
+  await saveShareLink(accessToken, spreadsheetId, teamAddress(slug));
+  rememberTeam({ slug, spreadsheetId, teamName: element('team-name').value.trim(), seasonLabel: element('season-label').value.trim() });
+  showTeamLink(slug, spreadsheetId);
+}
+
+function showTeamLink(slug, spreadsheetId) {
   const shareLink = teamAddress(slug);
-  await saveShareLink(accessToken, spreadsheetId, shareLink);
   element('team-link').textContent = shareLink;
   element('open-team').href = shareLink;
   element('open-sheet').href = SHEET_ADDRESS_PREFIX + spreadsheetId;
   element('step-choose').hidden = true;
+  element('step-saved').hidden = true;
   element('step-done').hidden = false;
 }
 
@@ -109,7 +171,12 @@ element('sign-in').addEventListener('click', (event) => runStep(event.target, as
   pendingId = signInResult.pendingId;
   accessToken = signInResult.accessToken;
   element('step-sign-in').hidden = true;
-  element('step-choose').hidden = false;
+  if (reconnectSlug === null) {
+    element('step-choose').hidden = false;
+    return;
+  }
+  const { slug, spreadsheetId } = await postToWorker('/api/reconnect', { pendingId, slug: reconnectSlug });
+  showTeamLink(slug, spreadsheetId);
 }));
 
 element('create-sheet').addEventListener('click', (event) => runStep(event.target, async () => {
@@ -125,3 +192,4 @@ element('pick-sheet').addEventListener('click', (event) => runStep(event.target,
 
 ['team-name', 'season-label'].forEach((id) => element(id).addEventListener('input', updateTeamDetailsButtons));
 updateTeamDetailsButtons();
+showSavedTeams();

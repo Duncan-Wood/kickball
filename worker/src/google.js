@@ -1,9 +1,16 @@
 const TOKEN_ADDRESS = 'https://oauth2.googleapis.com/token';
 
+export class ConnectionExpiredError extends Error {}
+
 async function tokenRequest(fields) {
   const response = await fetch(TOKEN_ADDRESS, { method: 'POST', body: new URLSearchParams(fields) });
   const body = await response.json();
-  if (!response.ok) throw new Error(`Google sign-in failed: ${body.error_description ?? body.error}`);
+  if (!response.ok) {
+    if (fields.grant_type === 'refresh_token' && body.error === 'invalid_grant') {
+      throw new ConnectionExpiredError('The captain\'s Google connection has expired. Ask your captain to reconnect it');
+    }
+    throw new Error(`Google sign-in failed: ${body.error_description ?? body.error}`);
+  }
   return body;
 }
 
