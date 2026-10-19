@@ -84,10 +84,10 @@ async function reconnect(request, environment) {
   const refreshToken = await environment.TEAMS.get(`pending:${pendingId}`);
   if (refreshToken === null) throw new Error('That sign-in expired. Sign in again');
   const accessToken = await accessTokenFromRefreshToken(await decryptToken(refreshToken, environment.TOKEN_ENCRYPTION_KEY), environment);
-  await readTeamSheet(accessToken, stored.spreadsheetId);
+  const { config } = await readTeamSheet(accessToken, stored.spreadsheetId);
   await environment.TEAMS.put(`team:${slug}`, JSON.stringify({ ...stored, refreshToken, connectedAt: new Date().toISOString() }));
   await environment.TEAMS.delete(`pending:${pendingId}`);
-  return { slug, spreadsheetId: stored.spreadsheetId };
+  return { slug, spreadsheetId: stored.spreadsheetId, teamName: config.teamName, seasonLabel: config.seasonLabel };
 }
 
 async function handleTeam(request, slug, isComment, environment, context) {

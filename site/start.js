@@ -175,7 +175,8 @@ element('sign-in').addEventListener('click', (event) => runStep(event.target, as
     element('step-choose').hidden = false;
     return;
   }
-  const { slug, spreadsheetId } = await postToWorker('/api/reconnect', { pendingId, slug: reconnectSlug });
+  const { slug, spreadsheetId, teamName, seasonLabel } = await postToWorker('/api/reconnect', { pendingId, slug: reconnectSlug });
+  rememberTeam({ slug, spreadsheetId, teamName, seasonLabel });
   showTeamLink(slug, spreadsheetId);
 }));
 

@@ -26,7 +26,7 @@ function exampleDateSerial() {
 const SETTINGS = [
   ['Team name', '', 'The heading on the page'],
   ['Season label', '', 'The tag beside the team name, like "Fall 2026"'],
-  ['Icon', '🥎', 'One emoji, or a link starting with https:// to a small image'],
+  ['Icon', 'https://duncan-wood.github.io/kickball/icons/kickball.svg', 'One emoji, or a link starting with https:// to a small image'],
   ['Main color', null, 'Buttons, headings and text'],
   ['Second color', null, 'Page background, highlights and borders'],
   ['Stripe', 'Blend', 'Blend fades from main to second color, Rainbow shows six pastel bands'],
