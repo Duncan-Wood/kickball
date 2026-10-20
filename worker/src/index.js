@@ -76,7 +76,7 @@ async function connect(request, environment) {
   return { slug };
 }
 
-async function reconnect(request, environment) {
+async function verifiedCaptain(request, environment) {
   const { pendingId, slug } = await request.json();
   if (!/^[a-z0-9]{12}$/.test(String(pendingId)) || !/^[a-z0-9]{12}$/.test(String(slug))) throw new Error('Missing sign-in or team');
   const stored = await environment.TEAMS.get(`team:${slug}`, 'json');
@@ -85,9 +85,21 @@ async function reconnect(request, environment) {
   if (refreshToken === null) throw new Error('That sign-in expired. Sign in again');
   const accessToken = await accessTokenFromRefreshToken(await decryptToken(refreshToken, environment.TOKEN_ENCRYPTION_KEY), environment);
   const { config } = await readTeamSheet(accessToken, stored.spreadsheetId);
+  return { pendingId, slug, stored, refreshToken, config };
+}
+
+async function reconnect(request, environment) {
+  const { pendingId, slug, stored, refreshToken, config } = await verifiedCaptain(request, environment);
   await environment.TEAMS.put(`team:${slug}`, JSON.stringify({ ...stored, refreshToken, connectedAt: new Date().toISOString() }));
   await environment.TEAMS.delete(`pending:${pendingId}`);
   return { slug, spreadsheetId: stored.spreadsheetId, teamName: config.teamName, seasonLabel: config.seasonLabel };
+}
+
+async function disconnect(request, environment) {
+  const { pendingId, slug } = await verifiedCaptain(request, environment);
+  await environment.TEAMS.delete(`team:${slug}`);
+  await environment.TEAMS.delete(`pending:${pendingId}`);
+  return {};
 }
 
 async function handleTeam(request, slug, isComment, environment, context) {
@@ -120,6 +132,7 @@ export default {
       if (request.method === 'POST' && pathname === '/api/signin') return jsonResponse({ ok: true, ...(await signIn(request, environment)) }, 200, request, environment);
       if (request.method === 'POST' && pathname === '/api/connect') return jsonResponse({ ok: true, ...(await connect(request, environment)) }, 200, request, environment);
       if (request.method === 'POST' && pathname === '/api/reconnect') return jsonResponse({ ok: true, ...(await reconnect(request, environment)) }, 200, request, environment);
+      if (request.method === 'POST' && pathname === '/api/disconnect') return jsonResponse({ ok: true, ...(await disconnect(request, environment)) }, 200, request, environment);
       const teamMatch = TEAM_ROUTE.exec(pathname);
       if (teamMatch !== null) {
         const body = await handleTeam(request, teamMatch[1], teamMatch[2] !== undefined, environment, context);

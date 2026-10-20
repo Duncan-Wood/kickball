@@ -1,3 +1,4 @@
+import { findTeams } from './teams.js';
 import { addTeamConfigTab, createTeamSheet, saveShareLink } from './template.js';
 
 const { workerAddress, googleClientId, googleApiKey, googleProjectNumber } = window.KICKBALL;
@@ -94,10 +95,21 @@ function linkElement(text, address, opensNewTab) {
   return link;
 }
 
+function forgetTeam(slug) {
+  try {
+    localStorage.setItem(SAVED_TEAMS_KEY, JSON.stringify(savedTeams().filter((saved) => saved.slug !== slug)));
+  } catch (storageUnavailable) {
+    return;
+  }
+}
+
 function showSavedTeams() {
   const teams = savedTeams();
-  if (teams.length === 0 || reconnectSlug !== null) return;
+  if (reconnectSlug !== null) return;
   const list = element('saved-teams');
+  list.replaceChildren();
+  element('step-saved').hidden = teams.length === 0;
+  if (teams.length === 0) return;
   teams.forEach((team) => {
     const item = document.createElement('li');
     const heading = document.createElement('strong');
@@ -106,17 +118,23 @@ function showSavedTeams() {
     links.className = 'links';
     const reconnectAddress = new URL('start.html', location.href);
     reconnectAddress.searchParams.set('reconnect', team.slug);
+    const disconnectLink = linkElement('Disconnect', '#');
+    disconnectLink.addEventListener('click', (event) => {
+      event.preventDefault();
+      disconnectTeam(team, disconnectLink);
+    });
     links.append(
       linkElement('Team link', teamAddress(team.slug)),
       ' · ',
       linkElement('Open sheet', SHEET_ADDRESS_PREFIX + team.spreadsheetId, true),
       ' · ',
       linkElement('Reconnect', reconnectAddress.href),
+      ' · ',
+      disconnectLink,
     );
     item.append(heading, links);
     list.append(item);
   });
-  element('step-saved').hidden = false;
   element('sign-in-heading').textContent = 'Add another team: sign in with Google';
 }
 
@@ -166,13 +184,32 @@ async function runStep(button, work) {
   }
 }
 
-element('sign-in').addEventListener('click', (event) => runStep(event.target, async () => {
+async function establishSignIn() {
   const signInResult = await postToWorker('/api/signin', { code: await signIn() });
   pendingId = signInResult.pendingId;
   accessToken = signInResult.accessToken;
+}
+
+async function disconnectTeam(team, link) {
+  const confirmation = `Disconnect ${team.teamName}? The team link will stop working for your players. Your sheet stays in your Drive.`;
+  if (!confirm(confirmation)) return;
+  await runStep(link, async () => {
+    await establishSignIn();
+    await postToWorker('/api/disconnect', { pendingId, slug: team.slug });
+    pendingId = null;
+    await saveShareLink(accessToken, team.spreadsheetId, '');
+    forgetTeam(team.slug);
+    showSavedTeams();
+  });
+}
+
+element('sign-in').addEventListener('click', (event) => runStep(event.target, async () => {
+  await establishSignIn();
   element('step-sign-in').hidden = true;
   if (reconnectSlug === null) {
     element('step-choose').hidden = false;
+    (await findTeams(accessToken)).forEach(rememberTeam);
+    showSavedTeams();
     return;
   }
   const { slug, spreadsheetId, teamName, seasonLabel } = await postToWorker('/api/reconnect', { pendingId, slug: reconnectSlug });
