@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Kickball Field View</title>
-<meta name="description" content="A lineup page for kickball teams. Players open one link on their phone to see who plays where and the kicking order.">
+<meta name="description" content="Your kickball lineup, drawn on a field. Players open one link on their phone to see who plays where in every inning and the kicking order.">
 <link rel="icon" id="favicon" href="icons/kickball.svg" type="image/svg+xml">
 <link rel="stylesheet" href="styles.css">
 <script>
@@ -13,17 +13,67 @@
 </head>
 <body>
 <main class="landing" id="landing">
-  <h1><img src="icons/kickball.svg" alt="" width="40" height="40"> Kickball Field View</h1>
-  <p class="landing-lead">A lineup page for kickball teams. The captain keeps the lineup in a Google Sheet. Players open one link on their phone to see who plays where in every inning, and the kicking order. It updates within seconds of the captain's edits.</p>
+  <header class="landing-hero">
+    <h1><img src="icons/kickball.svg" alt="" width="40" height="40"> Kickball Field View</h1>
+    <p class="landing-lead">Your kickball lineup, drawn on a field. Players open one link on their phone and see who plays where in every inning, and the kicking order. You keep the lineup in a Google Sheet.</p>
+    <a class="landing-button" href="start.html">Set up your team</a>
+    <p class="landing-aside">Got a link from your captain? Just open it. There is nothing to sign in to.</p>
+  </header>
 
-  <section class="landing-card">
-    <h2>Players</h2>
-    <p>Open the team link your captain sent you. There is nothing to install and no account to make.</p>
+  <section class="landing-section" id="field-view">
+    <img class="landing-shot" src="images/field-view.png" alt="The field view on a phone: Glitter Bombers, Game 2, inning 1, with each player's name at their position on a field diagram and the kicking order below" width="390" height="740">
+    <div class="landing-copy">
+      <h2>What your players see</h2>
+      <ul>
+        <li>A field for every inning, with each player at their position</li>
+        <li>The kicking order, who is sitting, and the game's time, place and opponent</li>
+        <li>A season view of how many innings everyone has played, in the infield, the outfield and on the bench</li>
+        <li>An anonymous suggestion box, if you want one</li>
+      </ul>
+      <p>No account and no sign-in. It updates by itself within seconds of your edits.</p>
+    </div>
   </section>
 
-  <section class="landing-card">
-    <h2>Captains</h2>
-    <p>Sign in with Google, then either create a ready-made team sheet or connect the one you already have. Edit lineups in Google Sheets as usual and send your players the team link.</p>
+  <section class="landing-section" id="sheet">
+    <div class="landing-copy">
+      <h2>What you edit</h2>
+      <p>Your lineup lives in a Google Sheet in your own Drive, so you can change it from the Sheets app on the sideline or from a laptop. Type a position in each inning, and strike through the name of anyone who can't make it. The field view follows.</p>
+      <p>Your roster notes and anything else in the sheet stay private. Players only see the lineup tabs.</p>
+    </div>
+    <figure class="landing-sheet" aria-label="The Game 2 Lineup tab in the team sheet">
+      <div class="sheet-scroll">
+        <table>
+          <thead><tr><th></th><th scope="col">A</th><th scope="col">B</th><th scope="col">C</th><th scope="col">D</th><th scope="col">E</th><th scope="col">F</th><th scope="col">G</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">1</th><td class="label">Game #:</td><td colspan="6">2</td></tr>
+            <tr><th scope="row">2</th><td class="label">Date:</td><td colspan="6">10/21/26</td></tr>
+            <tr><th scope="row">3</th><td class="label">Time:</td><td colspan="6">7:00 PM</td></tr>
+            <tr><th scope="row">4</th><td class="label">Location:</td><td colspan="6">Riverside Field 2</td></tr>
+            <tr><th scope="row">5</th><td class="label">Opponent:</td><td colspan="6">Lavender Line Drives</td></tr>
+            <tr><th scope="row">6</th><td class="label">Notes:</td><td colspan="6"></td></tr>
+            <tr><th scope="row">7</th><td></td><td colspan="6"></td></tr>
+            <tr><th scope="row">8</th><td class="head">Name</td><td class="head"></td><td class="head">1</td><td class="head">2</td><td class="head">3</td><td class="head">4</td><td class="head">5</td></tr>
+            <tr><th scope="row">9</th><td>Alex</td><td class="kick">1</td><td>P</td><td>C</td><td>1B</td><td>2B</td><td>3B</td></tr>
+            <tr><th scope="row">10</th><td>Sam</td><td class="kick">2</td><td>C</td><td>1B</td><td>2B</td><td>3B</td><td>SS</td></tr>
+            <tr><th scope="row">11</th><td>Jordan</td><td class="kick">3</td><td>1B</td><td>2B</td><td>3B</td><td>SS</td><td>LF</td></tr>
+            <tr><th scope="row">12</th><td>Riley</td><td class="kick">4</td><td>2B</td><td>3B</td><td>SS</td><td>LF</td><td>LC</td></tr>
+            <tr><th scope="row">13</th><td>Casey</td><td class="kick">5</td><td>3B</td><td>SS</td><td>LF</td><td>LC</td><td>CF</td></tr>
+            <tr><th scope="row">14</th><td>Morgan</td><td class="kick">6</td><td>SS</td><td>LF</td><td>LC</td><td>CF</td><td>RC</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="sheet-tabs"><span>Team Config</span><span>Roster</span><span>Schedule</span><span class="current">Game 2 Lineup</span></div>
+      <figcaption>The lineup tab for one game, shown with example names</figcaption>
+    </figure>
+  </section>
+
+  <section class="landing-card" id="how-it-works">
+    <h2>How it works for captains</h2>
+    <ol>
+      <li><strong>Sign in with Google.</strong> It takes a minute and you only do it once.</li>
+      <li><strong>Create your team sheet.</strong> You get a ready-made sheet in your Drive with a sample roster and game to edit.</li>
+      <li><strong>Send your team the link.</strong> It opens the field view and cannot change anything.</li>
+    </ol>
     <a class="landing-button" href="start.html">Set up your team</a>
   </section>
 

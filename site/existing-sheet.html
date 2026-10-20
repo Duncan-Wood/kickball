@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Using a sheet you already have</title>
+<link rel="icon" href="icons/kickball.svg" type="image/svg+xml">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 12px; font-family: 'Fredoka', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1c2a3a; background: #f6f1ea; }
+  main { max-width: 640px; margin: 0 auto; }
+  h1 { display: flex; align-items: center; gap: 8px; margin: 8px 0 4px; font-size: 26px; color: #2b6cb0; }
+  h2 { margin: 22px 0 4px; font-size: 18px; }
+  p, li { line-height: 1.45; }
+  a { color: #2b6cb0; }
+  code { padding: 1px 5px; background: #eef4fb; border-radius: 4px; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0; background: #fff; }
+  th, td { padding: 6px 8px; text-align: left; border: 1px solid #e3d9cc; font-size: 14px; }
+  th { background: #eef4fb; }
+  .note { margin: 14px 0; padding: 12px; background: #fff; border: 1px solid #e3d9cc; border-radius: 12px; }
+  .small { font-size: 13px; color: #5b6b7c; }
+</style>
+</head>
+<body>
+<main>
+  <h1><img src="icons/kickball.svg" alt="" width="32" height="32"> Using a sheet you already have</h1>
+  <p><a href="start.html">Back to setup</a></p>
+
+  <div class="note">
+    <strong>Usually quicker:</strong> create a new team sheet on the setup page and paste your roster into it. Your old sheet stays exactly as it is. Only follow this guide if your current sheet has history you want to keep in one file.
+  </div>
+
+  <p>The field view reads one fixed layout. If a tab does not match, the team link shows an error that names the tab and what is missing, so you can fix it and reload. You need edit access to the sheet, because connecting it adds a <code>Team Config</code> tab.</p>
+
+  <h2>1. One tab per game</h2>
+  <p>Name each game tab so it ends with <code>Lineup</code>, like <code>Game 3 Lineup</code>. Players see every tab that matches. A tab whose name starts with <code>OLD</code> is hidden, which is how you retire a game. Tabs like <code>Roster</code>, <code>Comments</code> and anything else are never shown to players.</p>
+
+  <h2>2. Game details at the top</h2>
+  <p>Put these labels in column A, with the value in column B of the same row. The order and the number of rows between them do not matter.</p>
+  <table>
+    <tr><th>Column A</th><th>Column B</th></tr>
+    <tr><td><code>Date:</code></td><td>A real date, like 10/21/26. It decides which games count as played.</td></tr>
+    <tr><td><code>Time:</code></td><td>7:00 PM</td></tr>
+    <tr><td><code>Location:</code></td><td>Riverside Field 2</td></tr>
+    <tr><td><code>Opponent:</code></td><td>The Dirt Sliders</td></tr>
+    <tr><td><code>Notes:</code></td><td>Anything for the team. After the game, a result like <code>W, 12-4</code> shows as Won.</td></tr>
+  </table>
+
+  <h2>3. The lineup grid</h2>
+  <ul>
+    <li>A header row with <code>Name</code> in column A and the inning numbers (1, 2, 3 and so on) starting in column C. Column B is for the kicking order.</li>
+    <li>One row per player below it: the name in column A, and a position in each inning column.</li>
+    <li>A row with <code>Acceptable</code> in column A below the last player. It marks the end of the grid.</li>
+  </ul>
+  <p>Positions must be one of: <code>P</code>, <code>C</code>, <code>1B</code>, <code>2B</code>, <code>3B</code>, <code>SS</code>, <code>LF</code>, <code>LC</code>, <code>CF</code>, <code>RC</code>, <code>RF</code>. Leave an inning blank when a player sits out. The page flags any position that is open, doubled up, or not on this list.</p>
+
+  <h2>4. Who is playing</h2>
+  <p>Pick one way and use it on every tab:</p>
+  <ul>
+    <li><strong>Kick numbers:</strong> put the kicking order (1, 2, 3 and so on) in column B. A player with a blank column B is not attending.</li>
+    <li><strong>Strikethrough:</strong> with no kick numbers on the tab, a player whose name is struck through is not attending.</li>
+  </ul>
+
+  <h2>5. Connect it</h2>
+  <ol>
+    <li>On the <a href="start.html">setup page</a>, sign in with Google.</li>
+    <li>Enter your team name and season.</li>
+    <li>Open <strong>Already have a lineup sheet?</strong>, press <strong>Use a sheet I already have</strong> and pick your sheet.</li>
+  </ol>
+  <p>The app adds a <code>Team Config</code> tab for the page heading, colors and suggestion box, and puts your team link on it. Nothing else in your sheet is changed.</p>
+
+  <p class="small">The layout above is exactly what the team sheet template creates, so it is the best reference if something does not line up.</p>
+</main>
+</body>
+</html>
