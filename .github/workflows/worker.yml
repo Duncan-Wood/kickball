@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'worker/**'
+      - 'site/template.js'
       - '.github/workflows/worker.yml'
   push:
     branches: [main]

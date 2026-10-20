@@ -33,32 +33,34 @@
   <p>The field view reads one fixed layout. If a tab does not match, the team link shows an error that names the tab and what is missing, so you can fix it and reload. You need edit access to the sheet, because connecting it adds a <code>Team Config</code> tab.</p>
 
   <h2>1. One tab per game</h2>
-  <p>Name each game tab so it ends with <code>Lineup</code>, like <code>Game 3 Lineup</code>. Players see every tab that matches. A tab whose name starts with <code>OLD</code> is hidden, which is how you retire a game. Tabs like <code>Roster</code>, <code>Comments</code> and anything else are never shown to players.</p>
+  <p>Name each game tab so it ends with <code>Lineup</code>, like <code>Game 3 Lineup</code>. A duplicated tab called <code>Copy of Game 3 Lineup</code> works too. A tab whose name starts with <code>OLD</code> is hidden, which is how you retire a game. Tabs like <code>Roster</code>, <code>Schedule</code>, <code>Comments</code> and anything else are never shown to players.</p>
 
   <h2>2. Game details at the top</h2>
   <p>Put these labels in column A, with the value in column B of the same row. The order and the number of rows between them do not matter.</p>
   <table>
     <tr><th>Column A</th><th>Column B</th></tr>
+    <tr><td><code>Game #:</code></td><td>A number, like 3. It names the game in the picker and puts the games in order. Two tabs cannot share a number.</td></tr>
     <tr><td><code>Date:</code></td><td>A real date, like 10/21/26. It decides which games count as played.</td></tr>
     <tr><td><code>Time:</code></td><td>7:00 PM</td></tr>
     <tr><td><code>Location:</code></td><td>Riverside Field 2</td></tr>
     <tr><td><code>Opponent:</code></td><td>The Dirt Sliders</td></tr>
     <tr><td><code>Notes:</code></td><td>Anything for the team. After the game, a result like <code>W, 12-4</code> shows as Won.</td></tr>
   </table>
+  <p>These can be typed in, or pulled from a <code>Schedule</code> tab with a lookup like <code>=VLOOKUP($B$1, Schedule!$A:$F, 2, FALSE)</code>, which is what the template does.</p>
 
   <h2>3. The lineup grid</h2>
   <ul>
-    <li>A header row with <code>Name</code> in column A and the inning numbers (1, 2, 3 and so on) starting in column C. Column B is for the kicking order.</li>
-    <li>One row per player below it: the name in column A, and a position in each inning column.</li>
-    <li>A row with <code>Acceptable</code> in column A below the last player. It marks the end of the grid.</li>
+    <li>A header row with <code>Name</code> in column A and the inning numbers (1, 2, 3 and so on) starting in column C.</li>
+    <li>One row per player below it: the name in column A, and a position in each inning column. The row order is the kicking order.</li>
+    <li>A row with <code>Open spots</code> in column A below the last player. It marks the end of the grid. The template fills it with the positions nobody is covering, and <code>Acceptable</code> works as the end marker too.</li>
   </ul>
-  <p>Positions must be one of: <code>P</code>, <code>C</code>, <code>1B</code>, <code>2B</code>, <code>3B</code>, <code>SS</code>, <code>LF</code>, <code>LC</code>, <code>CF</code>, <code>RC</code>, <code>RF</code>. Leave an inning blank when a player sits out. The page flags any position that is open, doubled up, or not on this list.</p>
+  <p>Positions must be one of: <code>P</code>, <code>C</code>, <code>1B</code>, <code>2B</code>, <code>3B</code>, <code>SS</code>, <code>LF</code>, <code>LC</code>, <code>CF</code>, <code>RC</code>, <code>RF</code>. Leave an inning blank when a player sits out. The page flags any position that is open, doubled up, or not on this list. Columns after the last inning, like the template's <code>Prefers</code> and <code>Won't play</code>, are yours to use and are ignored.</p>
 
   <h2>4. Who is playing</h2>
-  <p>Pick one way and use it on every tab:</p>
+  <p>Use either way, or both:</p>
   <ul>
-    <li><strong>Kick numbers:</strong> put the kicking order (1, 2, 3 and so on) in column B. A player with a blank column B is not attending.</li>
-    <li><strong>Strikethrough:</strong> with no kick numbers on the tab, a player whose name is struck through is not attending.</li>
+    <li><strong>RSVP column:</strong> put <code>RSVP</code> in the header of column B and <code>Yes</code>, <code>Maybe</code> or <code>No</code> beside each player. Players with no reply yet and Maybe players count as playing, so you can plan for them. <code>No</code> marks the player absent.</li>
+    <li><strong>Strikethrough:</strong> a player whose name is struck through is absent.</li>
   </ul>
 
   <h2>5. Connect it</h2>

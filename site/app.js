@@ -4,7 +4,7 @@ const FIELD_SPOTS = {
   P: [200, 266], C: [200, 382],
 };
 const INFIELD_POSITIONS = ['P', 'C', '1B', '2B', '3B', 'SS'];
-const MINIMUM_API_VERSION = 2;
+const MINIMUM_API_VERSION = 3;
 const REFRESH_SECONDS = 10;
 const TEAM_CODE_PATTERN = /^[a-z0-9]{12}$/;
 const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
@@ -308,8 +308,7 @@ function seasonTotals(playedLineups) {
 function renderSeason() {
   const playedLineups = lineups.filter((lineup) => lineup.played);
   const playedGameNames = playedLineups.map((lineup) => {
-    const gameName = lineup.tabName.replace(/ Lineup$/, '');
-    return lineup.notes === '' ? gameName : gameName + ' ' + describeResult(lineup.notes);
+    return lineup.notes === '' ? lineup.label : lineup.label + ' ' + describeResult(lineup.notes);
   });
   document.getElementById('subtitle').textContent = playedLineups.length === 0
     ? 'Season totals: no games played yet'
@@ -380,7 +379,7 @@ function start(data) {
   lineups.forEach((lineup) => {
     const option = document.createElement('option');
     option.value = lineup.tabName;
-    option.textContent = lineup.tabName.replace(/ Lineup$/, '');
+    option.textContent = lineup.label;
     game.appendChild(option);
   });
   const startingLineup = lineups.find((lineup) => lineup.tabName === data.activeTabName)
@@ -497,7 +496,7 @@ function clearFailure() {
 }
 
 function savedLineupsKey() {
-  return 'lineups:' + teamCode;
+  return 'lineups:v' + MINIMUM_API_VERSION + ':' + teamCode;
 }
 
 function saveLineups() {

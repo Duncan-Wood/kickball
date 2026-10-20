@@ -3,7 +3,7 @@ import { appendComment, COMMENTS_PER_HOUR, validatedComment } from './comments.j
 import { readTeamSheet } from './sheetsReader.js';
 import { decryptToken, encryptToken, newTeamSlug } from './tokens.js';
 
-const API_VERSION = 2;
+const API_VERSION = 3;
 const READ_CACHE_SECONDS = 5;
 const TEAM_ROUTE = /^\/api\/team\/([a-z0-9]{12})(\/comment)?$/;
 
