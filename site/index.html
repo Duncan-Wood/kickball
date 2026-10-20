@@ -13,35 +13,21 @@
 </head>
 <body>
 <main class="landing" id="landing">
-  <header class="landing-hero">
+  <header>
     <h1><img src="icons/kickball.svg" alt="" width="40" height="40"> Kickball Field View</h1>
-    <p class="landing-lead">Your kickball lineup, drawn on a field. Players open one link on their phone and see who plays where in every inning, and the kicking order. You keep the lineup in a Google Sheet.</p>
-    <a class="landing-button" href="start.html">Set up your team</a>
-    <p class="landing-aside">Got a link from your captain? Just open it. There is nothing to sign in to.</p>
+    <p class="landing-lead">Your kickball lineup, drawn on a field. Players open one link and see who plays where, inning by inning.</p>
   </header>
 
-  <section class="landing-section" id="field-view">
-    <img class="landing-shot" src="images/field-view.png" alt="The field view on a phone: Glitter Bombers, Game 2, inning 1, with each player's name at their position on a field diagram and the kicking order below" width="390" height="740">
-    <div class="landing-copy">
-      <h2>What your players see</h2>
-      <ul>
-        <li>A field for every inning, with each player at their position</li>
-        <li>The kicking order, who is sitting, and the game's time, place and opponent</li>
-        <li>A season view of how many innings everyone has played, in the infield, the outfield and on the bench</li>
-        <li>An anonymous suggestion box, if you want one</li>
-      </ul>
-      <p>No account and no sign-in. It updates by itself within seconds of your edits.</p>
-    </div>
-  </section>
-
-  <section class="landing-section" id="sheet">
-    <div class="landing-copy">
+  <div class="landing-previews">
+    <section class="landing-preview" id="field-view">
+      <h2>What players see</h2>
+      <img class="landing-shot" src="images/field-view.png" alt="The field view on a phone: Glitter Bombers, Game 2, inning 1, with each player's name at their position on a field diagram and the kicking order below" width="390" height="740">
+    </section>
+    <section class="landing-preview" id="sheet">
       <h2>What you edit</h2>
-      <p>Your lineup lives in a Google Sheet in your own Drive, so you can change it from the Sheets app on the sideline or from a laptop. Type a position in each inning, and strike through the name of anyone who can't make it. The field view follows.</p>
-      <p>Your roster notes and anything else in the sheet stay private. Players only see the lineup tabs.</p>
-    </div>
-    <figure class="landing-sheet" aria-label="The Game 2 Lineup tab in the team sheet">
-      <div class="sheet-scroll">
+      <p>A Google Sheet in your own Drive. Type a position in each inning.</p>
+      <figure class="landing-sheet" aria-label="The Game 2 Lineup tab in the team sheet">
+        <div class="sheet-scroll">
         <table>
           <thead><tr><th></th><th scope="col">A</th><th scope="col">B</th><th scope="col">C</th><th scope="col">D</th><th scope="col">E</th><th scope="col">F</th><th scope="col">G</th></tr></thead>
           <tbody>
@@ -63,24 +49,33 @@
         </table>
       </div>
       <div class="sheet-tabs"><span>Team Config</span><span>Roster</span><span>Schedule</span><span class="current">Game 2 Lineup</span></div>
-      <figcaption>The lineup tab for one game, shown with example names</figcaption>
-    </figure>
+      </figure>
+    </section>
+  </div>
+
+  <section class="landing-how" id="how-it-works">
+    <h2>How it works</h2>
+    <div class="landing-columns">
+      <div>
+        <h3>Captains</h3>
+        <ol>
+          <li>Sign in with Google.</li>
+          <li>Create a team sheet from our template, or connect your own if it uses the <a href="existing-sheet.html">same layout</a>.</li>
+          <li>Send your players the team link.</li>
+        </ol>
+        <p><a href="start.html">Set up your team</a></p>
+      </div>
+      <div>
+        <h3>Players</h3>
+        <ol>
+          <li>Open the link your captain sent. No account or sign-in.</li>
+          <li>Pick a game, then tap an inning.</li>
+        </ol>
+      </div>
+    </div>
   </section>
 
-  <section class="landing-card" id="how-it-works">
-    <h2>How it works for captains</h2>
-    <ol>
-      <li><strong>Sign in with Google.</strong> It takes a minute and you only do it once.</li>
-      <li><strong>Create your team sheet.</strong> You get a ready-made sheet in your Drive with a sample roster and game to edit.</li>
-      <li><strong>Send your team the link.</strong> It opens the field view and cannot change anything.</li>
-    </ol>
-    <a class="landing-button" href="start.html">Set up your team</a>
-  </section>
-
-  <section class="landing-card">
-    <h2>Your data</h2>
-    <p>The app can only see the one sheet it creates or that you pick, nothing else in your Google Drive. Players only ever see the lineup. Roster notes and anonymous suggestions stay private. Read the <a href="privacy.html">privacy policy</a>.</p>
-  </section>
+  <p class="landing-aside">The app only sees the one sheet you create or pick, and players only see the lineup. <a href="privacy.html">Privacy policy</a></p>
 </main>
 <main class="page" id="team-page">
   <h1>
