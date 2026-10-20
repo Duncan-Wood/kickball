@@ -49,7 +49,16 @@ You edit lineups in the sheet. The link refreshes by itself. Nothing is installe
 
 The app asks Google for one permission, `drive.file`. It lets the app see only the sheet it created or the one you picked, never the rest of your Drive.
 
-The `Team Config` tab has eight settings: team name, season label, icon, main color, second color, stripe (Blend or Rainbow), font and the suggestion box. The color cells take their fill color: click the box, then the paint bucket in the toolbar. White is a valid value. Everything else (page background, text, borders, highlights) is worked out from the two colors. The `Team Details` and `Roster` tabs are the team's own notes and are never sent to players.
+The `Team Config` tab has eight settings: team name, season label, icon, main color, second color, stripe (Blend or Rainbow), font and the suggestion box. The color cells take their fill color: click the box, then the paint bucket in the toolbar. White is a valid value. Everything else (page background, text, borders, highlights) is worked out from the two colors. The `Roster` and `Schedule` tabs feed the game tabs and are never sent to players.
+
+## The team sheet
+
+- `Schedule` holds each game's date, time, location, opponent and result once. A game tab looks its details up by the number in its `Game #:` cell.
+- To add the next game, duplicate a game tab and change that number.
+- `Roster` holds each player's name, the positions they prefer and the positions they won't play, and private notes. Subs go on the roster like anyone else and are added to a game's grid when they play.
+- In a game tab, the `RSVP` column takes Yes, Maybe or No as replies come in. A blank cell next to a name is gray, meaning no reply yet. Blank and Maybe players are still planned for, and a No turns the row gray.
+- The `Prefers` and `Won't play` columns after the innings fill in from the roster. A preferred position turns green in the grid and a won't-play position turns red. These columns are never sent to players.
+- The `Open spots` row under the grid lists the positions nobody is covering in each inning, and a position given to two players turns orange.
 
 ## How it works
 
@@ -113,10 +122,12 @@ The Apps Script API must be turned on at script.google.com/home/usersettings.
 | --- | --- |
 | Tab name ends in "Lineup" | The tab is a game |
 | Tab name starts with "OLD" | The tab is skipped |
-| "Date:", "Time:", "Location:", "Opponent:", "Notes:", "Name" and "Acceptable" labels in column A | Finding the game details and the player grid. If one is missing, the view names the tab instead of guessing |
+| "Date:", "Time:", "Location:", "Opponent:", "Notes:", "Name" and "Open spots" (or "Acceptable") labels in column A | Finding the game details and the player grid. If one is missing, the view names the tab instead of guessing |
+| "Game #:" label in column A with a number beside it | Names the game, like "Game 3 (10/21/26)", and puts the games in order. Two tabs cannot share a number |
 | Notes like "W, 12-0", "L, 3-5" or "T, 5-5" | Shown as "Won 12-0", "Lost 3-5" or "Tied 5-5". Other notes are shown as written |
 | Inning numbers in the "Name" row | One column per inning |
 | Position codes P, C, 1B, 2B, 3B, SS, LF, LC, CF, RC, RF | Placing players on the field. Any other code is flagged |
+| "RSVP" in the Name row's column B, with Yes, Maybe or No beside each player | No means not attending. Blank (no reply yet) and Maybe count as playing |
 | Strikethrough on a player's name | Player is not attending: left out of the kicking order, sitting list and totals |
 | Row order of players | Kicking order |
 | Game date before today | Game counts toward season totals |
