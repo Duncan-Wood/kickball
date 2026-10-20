@@ -103,39 +103,51 @@ function forgetTeam(slug) {
   }
 }
 
+function reconnectAddress(slug) {
+  const address = new URL('start.html', location.href);
+  address.searchParams.set('reconnect', slug);
+  return address.href;
+}
+
+async function showTeamProblem(team, item) {
+  const response = await fetch(`${workerAddress}/api/team/${team.slug}`);
+  const data = await response.json();
+  if (data.ok) return;
+  const problem = document.createElement('div');
+  problem.className = 'problem';
+  problem.append(data.reconnect ? 'Your Google connection expired. ' : `${data.error}. `);
+  if (data.reconnect) problem.append(linkElement('Reconnect', reconnectAddress(team.slug)));
+  item.append(problem);
+}
+
 function showSavedTeams() {
   const teams = savedTeams();
   if (reconnectSlug !== null) return;
   const list = element('saved-teams');
   list.replaceChildren();
   element('step-saved').hidden = teams.length === 0;
-  if (teams.length === 0) return;
   teams.forEach((team) => {
     const item = document.createElement('li');
     const heading = document.createElement('strong');
     heading.textContent = `${team.teamName} · ${team.seasonLabel}`;
     const links = document.createElement('div');
     links.className = 'links';
-    const reconnectAddress = new URL('start.html', location.href);
-    reconnectAddress.searchParams.set('reconnect', team.slug);
-    const disconnectLink = linkElement('Disconnect', '#');
-    disconnectLink.addEventListener('click', (event) => {
+    const stopSharingLink = linkElement('Stop sharing', '#');
+    stopSharingLink.addEventListener('click', (event) => {
       event.preventDefault();
-      disconnectTeam(team, disconnectLink);
+      stopSharing(team, stopSharingLink);
     });
     links.append(
       linkElement('Team link', teamAddress(team.slug)),
       ' · ',
       linkElement('Open sheet', SHEET_ADDRESS_PREFIX + team.spreadsheetId, true),
       ' · ',
-      linkElement('Reconnect', reconnectAddress.href),
-      ' · ',
-      disconnectLink,
+      stopSharingLink,
     );
     item.append(heading, links);
     list.append(item);
+    showTeamProblem(team, item);
   });
-  element('sign-in-heading').textContent = 'Add another team: sign in with Google';
 }
 
 function teamAddress(slug) {
@@ -190,8 +202,8 @@ async function establishSignIn() {
   accessToken = signInResult.accessToken;
 }
 
-async function disconnectTeam(team, link) {
-  const confirmation = `Disconnect ${team.teamName}? The team link will stop working for your players. Your sheet stays in your Drive.`;
+async function stopSharing(team, link) {
+  const confirmation = `Stop sharing ${team.teamName}? The team link will stop working for your players. Your sheet stays in your Drive.`;
   if (!confirm(confirmation)) return;
   await runStep(link, async () => {
     await establishSignIn();

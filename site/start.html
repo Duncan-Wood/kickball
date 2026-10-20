@@ -11,6 +11,7 @@
   main { max-width: 520px; margin: 0 auto; }
   h1 { display: flex; align-items: center; gap: 8px; margin: 8px 0 4px; font-size: 26px; color: #2b6cb0; }
   p { line-height: 1.4; }
+  a { color: #2b6cb0; }
   .card { margin: 14px 0; padding: 14px; background: #fff; border: 1px solid #e3d9cc; border-radius: 12px; }
   label { display: block; margin: 10px 0 4px; font-weight: 600; font-size: 14px; }
   input { width: 100%; padding: 8px 10px; font: inherit; border: 1px solid #d3c7b8; border-radius: 8px; }
@@ -24,37 +25,42 @@
   li { padding: 10px 0; border-top: 1px solid #e3d9cc; }
   li:first-child { border-top: 0; }
   li .links { margin-top: 4px; font-size: 14px; }
+  .problem { margin-top: 4px; font-size: 14px; color: #7a1d1d; }
+  details.existing-sheet { margin-top: 14px; }
+  details.existing-sheet summary { cursor: pointer; color: #2b6cb0; font-weight: 600; font-size: 14px; }
   [hidden] { display: none !important; }
 </style>
 </head>
 <body>
 <main>
   <h1><img src="icons/kickball.svg" alt="" width="32" height="32"> Set up your team</h1>
-  <p>Get a lineup sheet in your own Google Drive and a link your players can open on their phones. Nothing to install.</p>
+  <p>You get a lineup sheet in your own Google Drive and one link to send your team. Players open it on their phone and see the field view: who plays where each inning, and the kicking order. <a href="./#field-view">See an example</a></p>
   <div class="error" id="error" hidden></div>
 
   <section class="card" id="step-saved" hidden>
     <strong>Your teams</strong>
-    <p class="small">Saved in this browser. Signing in finds your other teams. Disconnect stops a team link from working.</p>
     <ul id="saved-teams"></ul>
   </section>
 
   <section class="card" id="step-sign-in">
-    <strong id="sign-in-heading">1. Sign in with Google</strong>
-    <p class="small">The app can only see the one sheet it creates or that you pick. It cannot see anything else in your Drive.</p>
+    <strong>Sign in with Google</strong>
+    <p class="small">The app can only see the one sheet it creates or that you pick. It cannot see anything else in your Drive. Players never sign in. Already set up a team? Sign in again to find it.</p>
     <button type="button" id="sign-in">Sign in with Google</button>
   </section>
 
   <section class="card" id="step-choose" hidden>
-    <strong>2. Your sheet</strong>
+    <strong>Add a team</strong>
     <p class="small">Fill in both to continue.</p>
     <label for="team-name">Team name</label>
-    <input id="team-name" maxlength="60" placeholder="Fruity Bunts" required>
+    <input id="team-name" maxlength="60" placeholder="Glitter Bombers" required>
     <label for="season-label">Season</label>
     <input id="season-label" maxlength="60" placeholder="Fall 2026" required>
     <button type="button" id="create-sheet">Create my team sheet</button>
-    <button type="button" class="secondary" id="pick-sheet">Use a sheet I already have</button>
-    <p class="small">Existing sheets must use the same layout as the template (Date, Time, Location, Opponent, Notes, then a Name / Acceptable grid).</p>
+    <details class="existing-sheet">
+      <summary>Already have a lineup sheet?</summary>
+      <p class="small">It has to match our layout. Read the <a href="existing-sheet.html">guide to using an existing sheet</a> first. Creating a new team sheet and pasting your roster into it is usually quicker.</p>
+      <button type="button" class="secondary" id="pick-sheet">Use a sheet I already have</button>
+    </details>
   </section>
 
   <section class="card" id="step-done" hidden>
