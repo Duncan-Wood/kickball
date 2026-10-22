@@ -138,9 +138,8 @@ function scheduleLookup(columnNumber, format = {}) {
   return formulaCell(`=IFERROR(VLOOKUP($B$1,Schedule!$A:$F,${columnNumber},FALSE),"")`, { horizontalAlignment: 'LEFT', ...format });
 }
 
-function playerLookup(columnNumber) {
-  const names = `$A$${GAME_FIRST_PLAYER_ROW_INDEX + 1}:$A$${GAME_LAST_PLAYER_ROW_INDEX + 1}`;
-  return `=ARRAYFORMULA(IFERROR(VLOOKUP(${names},Roster!$A:$C,${columnNumber},FALSE),""))`;
+function playerLookup(rowNumber, columnNumber) {
+  return `=IFERROR(VLOOKUP(TRIM($A${rowNumber}),Roster!$A:$C,${columnNumber},FALSE),"")`;
 }
 
 function openSpotsFormula(columnIndex) {
@@ -165,9 +164,8 @@ function gameRows() {
   const rsvpNote = 'Yes, Maybe or No as replies come in. Gray means no reply yet. Players with no reply or a Maybe are still planned for';
   const header = [textCell('Name', headerFormat), textCell('RSVP', centeredHeaderFormat, rsvpNote), ...inningHeaders, textCell('Prefers', headerFormat), textCell("Won't play", headerFormat)];
   const players = Array.from({ length: LINEUP_ROW_COUNT }, (unused, rowIndex) => {
-    const lookups = rowIndex === 0
-      ? [formulaCell(playerLookup(2)), formulaCell(playerLookup(3))]
-      : [];
+    const rowNumber = GAME_FIRST_PLAYER_ROW_INDEX + rowIndex + 1;
+    const lookups = [formulaCell(playerLookup(rowNumber, 2)), formulaCell(playerLookup(rowNumber, 3))];
     const name = EXAMPLE_PLAYERS[rowIndex];
     const emptyPositions = Array.from({ length: INNING_COUNT }, () => emptyCell(centeredFormat));
     if (name === undefined) return [emptyCell(), emptyCell(centeredFormat), ...emptyPositions, ...lookups];

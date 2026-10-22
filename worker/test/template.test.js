@@ -33,3 +33,14 @@ test('the template lineup fills every position once in every inning', () => {
     assert.deepEqual([...filled].sort(), [...POSITIONS].sort());
   });
 });
+
+test('every Prefers and Won\'t play lookup reads the name on its own row', () => {
+  const gameSheet = teamSheetDefinition('Test Team', 'Fall 2026').sheets.find(({ properties }) => properties.title === 'Game 1 Lineup');
+  const firstPlayerRowIndex = 8;
+  const playerRows = gameSheet.rowData.slice(firstPlayerRowIndex, firstPlayerRowIndex + 22);
+  playerRows.forEach(({ values }, offset) => {
+    const rowNumber = firstPlayerRowIndex + offset + 1;
+    assert.match(values[7].userEnteredValue.formulaValue, new RegExp(`TRIM\\(\\$A${rowNumber}\\)`));
+    assert.match(values[8].userEnteredValue.formulaValue, new RegExp(`TRIM\\(\\$A${rowNumber}\\)`));
+  });
+});
