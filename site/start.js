@@ -230,7 +230,7 @@ element('sign-in').addEventListener('click', (event) => runStep(event.target, as
 }));
 
 element('create-sheet').addEventListener('click', (event) => runStep(event.target, async () => {
-  const { spreadsheetId } = await createTeamSheet(accessToken, element('team-name').value.trim(), element('season-label').value.trim());
+  const { spreadsheetId } = await createTeamSheet(accessToken, element('team-name').value.trim(), element('season-label').value.trim(), Intl.DateTimeFormat().resolvedOptions().timeZone);
   await finish(spreadsheetId);
 }));
 

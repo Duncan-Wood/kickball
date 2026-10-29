@@ -54,7 +54,9 @@ The `Team Config` tab has eight settings: team name, season label, icon, main co
 ## The team sheet
 
 - `Schedule` holds each game's date, time, location, opponent and result once. A game tab looks its details up by the number in its `Game #:` cell.
-- To add the next game, duplicate a game tab and change that number.
+- `Start here` is the first tab: setup steps and what the colors mean. It is never sent to players.
+- To add the next game, duplicate the `New game (copy me)` tab, rename the copy so it ends with `Lineup`, and type its number in the `Game #:` cell. The blank tab is ignored until it is renamed.
+- The lookup cells in a game tab are protected with a warning, not a lock.
 - `Roster` holds each player's name, the positions they prefer and the positions they won't play, and private notes. Subs go on the roster like anyone else and are added to a game's grid when they play.
 - In a game tab, the `RSVP` column takes Yes, Maybe or No as replies come in. A blank cell next to a name is gray, meaning no reply yet. Blank and Maybe players are still planned for, and a No turns the row gray.
 - The `Prefers` and `Won't play` columns after the innings fill in from the roster. A preferred position turns green in the grid and a won't-play position turns red. These columns are never sent to players.

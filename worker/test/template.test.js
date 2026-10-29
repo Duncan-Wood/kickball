@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { teamSheetDefinition } from '../../site/template.js';
-import { readLineup } from '../src/lineup.js';
+import { formattingRequests, teamSheetDefinition } from '../../site/template.js';
+import { isCurrentLineupTab, readLineup } from '../src/lineup.js';
 
 const POSITIONS = ['P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'LC', 'CF', 'RC', 'RF'];
 
@@ -42,5 +42,32 @@ test('every Prefers and Won\'t play lookup reads the name on its own row', () =>
     const rowNumber = firstPlayerRowIndex + offset + 1;
     assert.match(values[7].userEnteredValue.formulaValue, new RegExp(`TRIM\\(\\$A${rowNumber}\\)`));
     assert.match(values[8].userEnteredValue.formulaValue, new RegExp(`TRIM\\(\\$A${rowNumber}\\)`));
+  });
+});
+
+function templateSheet(title) {
+  return teamSheetDefinition('Test Team', 'Fall 2026').sheets.find(({ properties }) => properties.title === title);
+}
+
+test('Start here comes first and no helper tab is mistaken for a game', () => {
+  const titles = teamSheetDefinition('Test Team', 'Fall 2026').sheets.map(({ properties }) => properties.title);
+  assert.equal(titles[0], 'Start here');
+  assert.deepEqual(titles.filter(isCurrentLineupTab), ['Game 1 Lineup']);
+});
+
+test('the New game tab has no players, RSVPs or game number, and reads as an empty lineup once renamed', () => {
+  const lineup = readLineup('Game 2 Lineup', parserRows(templateSheet('New game (copy me)').rowData), '2026-10-18');
+  assert.equal(lineup.gameNumber, null);
+  assert.deepEqual(lineup.players, []);
+  assert.deepEqual(lineup.innings, ['1', '2', '3', '4', '5']);
+});
+
+test('both game tabs freeze the name column and warn before formulas are overwritten', () => {
+  ['Game 1 Lineup', 'New game (copy me)'].forEach((title) => {
+    const { properties } = templateSheet(title);
+    assert.equal(properties.gridProperties.frozenColumnCount, 1);
+    const protectedRanges = formattingRequests().filter((request) => request.addProtectedRange?.protectedRange.range.sheetId === properties.sheetId);
+    assert.equal(protectedRanges.length, 3);
+    assert.ok(protectedRanges.every((request) => request.addProtectedRange.protectedRange.warningOnly === true));
   });
 });
