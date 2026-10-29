@@ -149,11 +149,15 @@ test('the label comes from the game number and date, or the tab name', () => {
   assert.equal(unnumbered.gameNumber, null);
 });
 
-test('lineups are ordered by game number and a repeated number fails loudly', () => {
+test('lineups are ordered by game number and a repeated number hides the later tab with a named problem', () => {
   const lineupFor = (tabName, gameNumber) => ({ tabName, gameNumber });
   const ordered = orderedLineups([lineupFor('Copy of Game 1 Lineup', 3), lineupFor('Game 1 Lineup', 1), lineupFor('Game 2 Lineup', 2)]);
-  assert.deepEqual(ordered.map((lineup) => lineup.gameNumber), [1, 2, 3]);
-  assert.throws(() => orderedLineups([lineupFor('Game 1 Lineup', 1), lineupFor('Copy of Game 1 Lineup', 1)]), /both Game 1/);
+  assert.deepEqual(ordered.lineups.map((lineup) => lineup.gameNumber), [1, 2, 3]);
+  assert.deepEqual(ordered.problems, []);
+  const repeated = orderedLineups([lineupFor('Game 1 Lineup', 1), lineupFor('Game 2 Lineup', 2), lineupFor('Copy of Game 1 Lineup', 1)]);
+  assert.deepEqual(repeated.lineups.map((lineup) => lineup.tabName), ['Game 1 Lineup', 'Game 2 Lineup']);
+  assert.equal(repeated.problems.length, 1);
+  assert.match(repeated.problems[0], /"Game 1 Lineup" and "Copy of Game 1 Lineup" are both Game 1/);
   const unnumbered = [lineupFor('P1 Lineup', null), lineupFor('Game 1 Lineup', 1)];
-  assert.deepEqual(orderedLineups(unnumbered), unnumbered);
+  assert.deepEqual(orderedLineups(unnumbered), { lineups: unnumbered, problems: [] });
 });

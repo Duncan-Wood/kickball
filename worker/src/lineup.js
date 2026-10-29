@@ -60,13 +60,19 @@ function lineupLabel(tabName, gameNumber, date) {
 
 export function orderedLineups(lineups) {
   const firstTabByGameNumber = new Map();
-  lineups.filter((lineup) => lineup.gameNumber !== null).forEach((lineup) => {
+  const problems = [];
+  const distinctLineups = lineups.filter((lineup) => {
+    if (lineup.gameNumber === null) return true;
     const firstTab = firstTabByGameNumber.get(lineup.gameNumber);
-    if (firstTab !== undefined) throw new Error(`Tabs "${firstTab}" and "${lineup.tabName}" are both Game ${lineup.gameNumber}. Change the Game # on one of them`);
-    firstTabByGameNumber.set(lineup.gameNumber, lineup.tabName);
+    if (firstTab === undefined) {
+      firstTabByGameNumber.set(lineup.gameNumber, lineup.tabName);
+      return true;
+    }
+    problems.push(`Tabs "${firstTab}" and "${lineup.tabName}" are both Game ${lineup.gameNumber}, so "${lineup.tabName}" is hidden. Captain: change the Game # on one of them`);
+    return false;
   });
-  if (lineups.some((lineup) => lineup.gameNumber === null)) return lineups;
-  return [...lineups].sort((first, second) => first.gameNumber - second.gameNumber);
+  if (distinctLineups.some((lineup) => lineup.gameNumber === null)) return { lineups: distinctLineups, problems };
+  return { lineups: [...distinctLineups].sort((first, second) => first.gameNumber - second.gameNumber), problems };
 }
 
 function readPlayers(tabName, rows, grid) {

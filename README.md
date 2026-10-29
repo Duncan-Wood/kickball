@@ -69,7 +69,8 @@ The `Team Config` tab has eight settings: team name, season label, icon, main co
 3. Reads are cached for 5 seconds, so many players refreshing do not each hit Google.
 4. Suggestions from the page are appended to a `Comments` tab in the captain's sheet, limited to 60 per hour.
 5. `site/` is the static page on GitHub Pages. `start.html` is the setup flow and `index.html?team=<code>` is the player view.
-6. Team codes are random, so the link is the only thing protecting the lineup view. Anyone with the link can see the lineups, and nothing else.
+6. If the sheet is deleted, the Worker forgets the team and the link says so. The setup page drops the team from its list, and Stop sharing still works.
+7. Team codes are random, so the link is the only thing protecting the lineup view. Anyone with the link can see the lineups, and nothing else.
 
 ### Running the Worker
 
@@ -125,7 +126,7 @@ The Apps Script API must be turned on at script.google.com/home/usersettings.
 | Tab name ends in "Lineup" | The tab is a game |
 | Tab name starts with "OLD" | The tab is skipped |
 | "Date:", "Time:", "Location:", "Opponent:", "Notes:", "Name" and "Open spots" (or "Acceptable") labels in column A | Finding the game details and the player grid. If one is missing, the view names the tab instead of guessing |
-| "Game #:" label in column A with a number beside it | Names the game, like "Game 3 (10/21/26)", and puts the games in order. Two tabs cannot share a number |
+| "Game #:" label in column A with a number beside it | Names the game, like "Game 3 (10/21/26)", and puts the games in order. Two tabs cannot share a number: the later tab is hidden and a notice on the page names both tabs |
 | Notes like "W, 12-0", "L, 3-5" or "T, 5-5" | Shown as "Won 12-0", "Lost 3-5" or "Tied 5-5". Other notes are shown as written |
 | Inning numbers in the "Name" row | One column per inning |
 | Position codes P, C, 1B, 2B, 3B, SS, LF, LC, CF, RC, RF | Placing players on the field. Any other code is flagged |

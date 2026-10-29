@@ -113,6 +113,12 @@ async function showTeamProblem(team, item) {
   const response = await fetch(`${workerAddress}/api/team/${team.slug}`);
   const data = await response.json();
   if (data.ok) return;
+  if (data.gone) {
+    forgetTeam(team.slug);
+    item.remove();
+    element('step-saved').hidden = savedTeams().length === 0;
+    return;
+  }
   const problem = document.createElement('div');
   problem.className = 'problem';
   problem.append(data.reconnect ? 'Your Google connection expired. ' : `${data.error}. `);
@@ -207,9 +213,9 @@ async function stopSharing(team, link) {
   if (!confirm(confirmation)) return;
   await runStep(link, async () => {
     await establishSignIn();
-    await postToWorker('/api/disconnect', { pendingId, slug: team.slug });
+    const { sheetGone } = await postToWorker('/api/disconnect', { pendingId, slug: team.slug });
     pendingId = null;
-    await saveShareLink(accessToken, team.spreadsheetId, '');
+    if (!sheetGone) await saveShareLink(accessToken, team.spreadsheetId, '');
     forgetTeam(team.slug);
     showSavedTeams();
   });

@@ -394,6 +394,7 @@ function start(data) {
   document.getElementById('comment-cancel').addEventListener('click', () => setCommentFormOpen(false));
   document.getElementById('comment-form').addEventListener('submit', submitCommentForm);
   clearFailure();
+  showProblems(data.problems ?? []);
   document.getElementById('status').hidden = true;
   document.getElementById('view').hidden = false;
   selectLineup(startingLineup.tabName);
@@ -489,6 +490,16 @@ function showFailure(title, error) {
     hint.append(' ', reconnectLink);
   }
   panel.hidden = false;
+}
+
+function showProblems(problems) {
+  const panel = document.getElementById('problem-panel');
+  panel.replaceChildren(...problems.map((problem) => {
+    const line = document.createElement('div');
+    line.textContent = problem;
+    return line;
+  }));
+  panel.hidden = problems.length === 0;
 }
 
 function clearFailure() {
