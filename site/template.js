@@ -125,7 +125,7 @@ function startRows() {
     swatch('No', 'Gray text on a row: the player is out. The row is left out of the lineup the players see.', WHITE, ABSENT_TEXT),
     [textCell('Open spots', { ...boldFormat, horizontalAlignment: 'CENTER' }), textCell('The row under the players lists positions nobody is covering in that inning.', wrapped)],
     [],
-    [textCell('Careful', { ...boldFormat, ...wrapped }), textCell('Date, Time, Location, Opponent, Notes, Prefers, Won\'t play and Open spots fill in by themselves. Google warns you before you type over them.', wrapped)],
+    [textCell('Careful', { ...boldFormat, ...wrapped }), textCell('Date, Time, Location, Opponent, Notes, Prefers, Won\'t play and Open spots fill in by themselves. If you type over one, a red corner flag marks it.', wrapped)],
   ];
 }
 
@@ -292,14 +292,12 @@ function configFormattingRequests(sheetId) {
   ];
 }
 
-function protectedFormulaRange(sheetId, startRow, endRow, startColumn, endColumn, description) {
+function formulaCellWarning(sheetId, startRow, endRow, startColumn, endColumn, message) {
+  const firstCell = `${columnLetter(startColumn)}${startRow + 1}`;
   return {
-    addProtectedRange: {
-      protectedRange: {
-        range: { sheetId, startRowIndex: startRow, endRowIndex: endRow, startColumnIndex: startColumn, endColumnIndex: endColumn },
-        description,
-        warningOnly: true,
-      },
+    setDataValidation: {
+      range: { sheetId, startRowIndex: startRow, endRowIndex: endRow, startColumnIndex: startColumn, endColumnIndex: endColumn },
+      rule: { condition: { type: 'CUSTOM_FORMULA', values: [{ userEnteredValue: `=ISFORMULA(${firstCell})` }] }, inputMessage: message, strict: false },
     },
   };
 }
@@ -315,9 +313,9 @@ function gameTabRequests(sheetId) {
     columnWidth(sheetId, 0, 160), columnWidth(sheetId, 1, 80),
     ...Array.from({ length: INNING_COUNT }, (unused, index) => columnWidth(sheetId, GAME_FIRST_INNING_COLUMN_INDEX + index, 70)),
     columnWidth(sheetId, GAME_PREFERS_COLUMN_INDEX, 150), columnWidth(sheetId, GAME_AVOIDS_COLUMN_INDEX, 150),
-    protectedFormulaRange(sheetId, 1, 6, 1, 2, 'Filled in from the Schedule tab'),
-    protectedFormulaRange(sheetId, GAME_FIRST_PLAYER_ROW_INDEX, playersEnd, GAME_PREFERS_COLUMN_INDEX, GAME_AVOIDS_COLUMN_INDEX + 1, 'Filled in from the Roster tab'),
-    protectedFormulaRange(sheetId, GAME_OPEN_SPOTS_ROW_INDEX, GAME_OPEN_SPOTS_ROW_INDEX + 1, GAME_FIRST_INNING_COLUMN_INDEX, GAME_PREFERS_COLUMN_INDEX, 'Worked out from the lineup above'),
+    formulaCellWarning(sheetId, 1, 6, 1, 2, 'Filled in from the Schedule tab. Typing here replaces the formula'),
+    formulaCellWarning(sheetId, GAME_FIRST_PLAYER_ROW_INDEX, playersEnd, GAME_PREFERS_COLUMN_INDEX, GAME_AVOIDS_COLUMN_INDEX + 1, 'Filled in from the Roster tab. Typing here replaces the formula'),
+    formulaCellWarning(sheetId, GAME_OPEN_SPOTS_ROW_INDEX, GAME_OPEN_SPOTS_ROW_INDEX + 1, GAME_FIRST_INNING_COLUMN_INDEX, GAME_PREFERS_COLUMN_INDEX, 'Worked out from the lineup above. Typing here replaces the formula'),
     ...gameConditionalFormats(sheetId),
     {
       addBanding: {

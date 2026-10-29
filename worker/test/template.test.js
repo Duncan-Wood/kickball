@@ -62,12 +62,17 @@ test('the New game tab has no players, RSVPs or game number, and reads as an emp
   assert.deepEqual(lineup.innings, ['1', '2', '3', '4', '5']);
 });
 
-test('both game tabs freeze the name column and warn before formulas are overwritten', () => {
+test('both game tabs freeze the name column and warn when a formula cell is typed over', () => {
   ['Game 1 Lineup', 'New game (copy me)'].forEach((title) => {
     const { properties } = templateSheet(title);
     assert.equal(properties.gridProperties.frozenColumnCount, 1);
-    const protectedRanges = formattingRequests().filter((request) => request.addProtectedRange?.protectedRange.range.sheetId === properties.sheetId);
-    assert.equal(protectedRanges.length, 3);
-    assert.ok(protectedRanges.every((request) => request.addProtectedRange.protectedRange.warningOnly === true));
+    const warnings = formattingRequests()
+      .filter((request) => request.setDataValidation?.range.sheetId === properties.sheetId && request.setDataValidation.rule.condition.type === 'CUSTOM_FORMULA')
+      .map((request) => request.setDataValidation.rule);
+    assert.equal(warnings.length, 3);
+    warnings.forEach((rule) => {
+      assert.equal(rule.strict, false);
+      assert.match(rule.condition.values[0].userEnteredValue, /^=ISFORMULA\([A-Z]+\d+\)$/);
+    });
   });
 });
