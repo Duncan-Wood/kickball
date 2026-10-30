@@ -62,6 +62,16 @@ The `Team Config` tab has eight settings: team name, season label, icon, main co
 - The `Prefers` and `Won't play` columns after the innings fill in from the roster. A preferred position turns green in the grid and a won't-play position turns red. These columns are never sent to players.
 - The `Open spots` row under the grid lists the positions nobody is covering in each inning, and a position given to two players turns orange.
 
+## Captain tools
+
+Under the team page, **Captain tools** lets anyone who can edit the sheet change the lineup from their phone while a game is going on.
+
+- Sign in with Google and the page checks that your account can edit the team sheet. A co-captain who was shared the sheet picks it once in Google's file picker.
+- **Fielding:** tap a player, then tap a position to move them there, another player to swap with them, or **Sit out this inning**. Changes apply to the selected inning. On a computer you can drag instead.
+- **Kicking order:** tap a kicker, then tap who they should go next to. The order is the same in every inning.
+- Edits are written to the sheet with your own account, so the sheet's version history shows who made them. If the sheet changed since the page last updated, nothing is saved and the page says so.
+- Sheets that number the kicking order in column B are edited in the sheet.
+
 ## How it works
 
 1. `worker/` is a Cloudflare Worker. It holds an encrypted refresh token for each connected sheet and reads that one sheet through the Google Sheets API.

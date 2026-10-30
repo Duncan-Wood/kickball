@@ -144,3 +144,18 @@ html:not(.has-team) body { background: #f6f1ea; color: #1c2a3a; }
 .error-panel div { margin-top: 4px; overflow-wrap: anywhere; }
 .error-panel .error-hint { font-size: 12px; color: var(--muted); }
 .status { padding: 24px 4px; font-size: 14px; color: var(--muted); }
+.captain-bar { margin: 8px 0; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--tint); }
+.captain-bar[hidden] { display: none; }
+.captain-row { display: flex; gap: 6px; }
+.captain-row button { flex: 1; padding: 6px 8px; border: 1px solid var(--primary); border-radius: 8px; background: #fff; color: var(--primary); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.captain-row button.selected { background: var(--primary); color: #fff; }
+.captain-row button.cancel { flex: none; border-color: var(--border); color: var(--muted); font-weight: 500; }
+.captain-status { min-height: 18px; margin-top: 6px; font-size: 13px; color: var(--muted); }
+.captain-status.error { color: #b3261e; }
+.sit-target { display: block; width: 100%; margin-top: 6px; padding: 6px 8px; border: 1px dashed var(--primary); border-radius: 8px; background: none; color: var(--primary); font: inherit; font-size: 14px; cursor: pointer; }
+.sit-target[hidden] { display: none; }
+.captain-active .chip, .captain-active #bench li { cursor: pointer; }
+.captain-kicking #kicking-order li { cursor: pointer; }
+.chip.edit-selected .chip-box, .bench li.edit-selected { stroke: var(--accent); stroke-width: 3; }
+.bench li.edit-selected { outline: 3px solid var(--accent); }
+.drag-ghost { position: fixed; z-index: 10; padding: 4px 10px; border-radius: 999px; background: var(--primary); color: #fff; font-size: 14px; pointer-events: none; }

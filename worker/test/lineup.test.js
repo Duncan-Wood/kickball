@@ -47,6 +47,7 @@ test('kick numbers order the batting lineup and blank means absent', () => {
   assert.deepEqual(lineup.players.map((player) => player.name), ['Emma E', 'Chad S', 'Amy B']);
   assert.equal(lineup.players[2].attending, false);
   assert.equal(lineup.played, false);
+  assert.equal(lineup.editable, false);
 });
 
 test('a missing label names the tab', () => {
@@ -160,4 +161,15 @@ test('lineups are ordered by game number and a repeated number hides the later t
   assert.match(repeated.problems[0], /"Game 1 Lineup" and "Copy of Game 1 Lineup" are both Game 1/);
   const unnumbered = [lineupFor('P1 Lineup', null), lineupFor('Game 1 Lineup', 1)];
   assert.deepEqual(orderedLineups(unnumbered), { lineups: unnumbered, problems: [] });
+});
+
+test('players carry their sheet row, skipping blank rows, and RSVP lineups can be edited', () => {
+  const lineup = readLineup('Game 2 Lineup', rsvpRows([
+    rowOf('Chad S', 'Yes', 'SS', 'P', '', ''),
+    rowOf('', '', '', '', '', ''),
+    rowOf('Emma E', 'No', '', '', '', ''),
+  ]), '2026-10-18');
+  assert.deepEqual(lineup.players.map((player) => [player.name, player.sheetRow]), [['Chad S', 8], ['Emma E', 10]]);
+  assert.deepEqual(lineup.inningColumns, [2, 3]);
+  assert.equal(lineup.editable, true);
 });
