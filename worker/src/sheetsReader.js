@@ -4,8 +4,11 @@ import { isCurrentLineupTab, orderedLineups, readLineup } from './lineup.js';
 const SHEETS_ADDRESS = 'https://sheets.googleapis.com/v4/spreadsheets';
 const CELL_FIELDS = 'formattedValue,effectiveValue.numberValue,effectiveFormat(textFormat.strikethrough,backgroundColor)';
 
+export class SheetGoneError extends Error {}
+
 async function sheetsGet(accessToken, path) {
   const response = await fetch(`${SHEETS_ADDRESS}/${path}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (response.status === 404) throw new SheetGoneError('This team\'s sheet was deleted from Google Drive. Ask your captain to set the team up again');
   if (!response.ok) throw new Error(`Google could not read the sheet (${response.status}). The captain may need to reconnect it`);
   return response.json();
 }
@@ -42,10 +45,8 @@ export async function readTeamSheet(accessToken, spreadsheetId, now = new Date()
   const detail = await sheetsGet(accessToken, `${spreadsheetId}?${query}`);
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: overview.properties.timeZone }).format(now);
   const rowsByTab = new Map(detail.sheets.map((sheet) => [sheet.properties.title, normalizedRows(sheet)]));
-  return {
-    config: readConfig(rowsByTab.get(CONFIG_TAB_NAME) ?? null),
-    lineups: orderedLineups(tabNames
-      .filter(isCurrentLineupTab)
-      .map((tabName) => readLineup(tabName, rowsByTab.get(tabName), today))),
-  };
+  const { lineups, problems } = orderedLineups(tabNames
+    .filter(isCurrentLineupTab)
+    .map((tabName) => readLineup(tabName, rowsByTab.get(tabName), today)));
+  return { config: readConfig(rowsByTab.get(CONFIG_TAB_NAME) ?? null), lineups, problems };
 }

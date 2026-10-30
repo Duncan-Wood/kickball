@@ -9,6 +9,9 @@ const ROSTER_SHEET_ID = 1;
 const SCHEDULE_SHEET_ID = 2;
 const GAME_SHEET_ID = 3;
 const POSITIONS_SHEET_ID = 4;
+const START_SHEET_ID = 5;
+const NEW_GAME_SHEET_ID = 6;
+const GAME_SHEET_IDS = [GAME_SHEET_ID, NEW_GAME_SHEET_ID];
 const SCHEDULE_GAME_ROW_COUNT = 8;
 const SCHEDULE_FIRST_ROW_INDEX = 1;
 const ROSTER_LAST_ROW = 60;
@@ -23,6 +26,7 @@ const GAME_AVOIDS_COLUMN_INDEX = GAME_PREFERS_COLUMN_INDEX + 1;
 const RSVP_ANSWERS = ['Yes', 'Maybe', 'No'];
 const HEADER_FILL = { red: 0.17, green: 0.42, blue: 0.69 };
 const WHITE = { red: 1, green: 1, blue: 1 };
+const BLACK = { red: 0, green: 0, blue: 0 };
 const MAIN_FILL = { red: 0.17, green: 0.42, blue: 0.69 };
 const SECOND_FILL = { red: 0.93, green: 0.54, blue: 0.21 };
 const INPUT_FILL = { red: 1, green: 0.97, blue: 0.84 };
@@ -80,15 +84,15 @@ function rowsOf(rows) {
   return rows.map((cells) => ({ values: cells }));
 }
 
-function sheet(sheetId, title, rows, frozenRowCount = 0) {
+function sheet(sheetId, title, rows, frozenRowCount = 0, frozenColumnCount = 0) {
   return {
-    properties: { sheetId, title, gridProperties: { frozenRowCount } },
+    properties: { sheetId, title, gridProperties: { frozenRowCount, frozenColumnCount } },
     rowData: rowsOf(rows),
   };
 }
 
 function configRows(teamName, seasonLabel) {
-  const header = [textCell('Setting', headerFormat), textCell('Value', headerFormat), textCell('Notes (for colors: click the box, then the paint bucket in the toolbar)', headerFormat)];
+  const header = [textCell('Setting', headerFormat), textCell('Value', headerFormat), textCell('Notes (colors are optional. To change one, click its box, then the paint bucket in the toolbar)', headerFormat)];
   const settingRows = SETTINGS.map(([label, value, note]) => {
     const valueCell = label === 'Main color' ? emptyCell({ backgroundColor: MAIN_FILL })
       : label === 'Second color' ? emptyCell({ backgroundColor: SECOND_FILL })
@@ -96,6 +100,33 @@ function configRows(teamName, seasonLabel) {
     return [textCell(label, boldFormat), valueCell, textCell(note)];
   });
   return [header, ...settingRows, [], [textCell(SHARE_LINK_LABEL, boldFormat), textCell(''), textCell('Send this link to your team. It opens the field view and cannot edit anything')]];
+}
+
+function startRows() {
+  const wrapped = { wrapStrategy: 'WRAP', verticalAlignment: 'TOP' };
+  const step = (title, instructions) => [textCell(title, { ...boldFormat, ...wrapped }), textCell(instructions, wrapped)];
+  const swatch = (label, meaning, fill, textColor) => [textCell(label, { backgroundColor: fill, textFormat: { bold: true, foregroundColor: textColor }, horizontalAlignment: 'CENTER' }), textCell(meaning, wrapped)];
+  return [
+    [textCell('Start here', headerFormat), textCell('Five minutes to a team link', headerFormat)],
+    step('1. Roster', 'Type your players on the Roster tab, one per row, over the examples. Under Prefers and Won\'t play, list positions separated by commas, like SS, 2B. Subs go on the roster too.'),
+    step('2. Schedule', 'On the Schedule tab, fill in each game\'s date, time, location and opponent. After a game, add the result to Notes, like W, 12-0.'),
+    step('3. Lineup', 'On Game 1 Lineup, pick each player\'s name in column A. The order is the kicking order. Pick a position for each inning, and set the RSVP column as replies come in.'),
+    step('4. Share', 'Your team link is on the Team Config tab, in the Share link row. Send it to your players. They see the lineups and nothing else in this sheet. Roster, Schedule, Positions, Team Config and this tab stay private.'),
+    step('Next game', 'Right-click the New game (copy me) tab and choose Duplicate. Rename the copy so it ends with Lineup, like Game 2 Lineup, and type its number in the Game # cell. Players only see tabs whose names end with Lineup.'),
+    step('Retire a game', 'Start a tab\'s name with OLD to hide it from players.'),
+    step('Add a co-captain', 'Use the Share button at the top right of Google Sheets to give an assistant captain edit access. Players never need access.'),
+    [],
+    [textCell('What the colors mean', headerFormat), textCell('', headerFormat)],
+    swatch('SS', 'Green: a position the player prefers.', PREFERS_FILL, PREFERS_TEXT),
+    swatch('P', 'Red: a position the player won\'t play.', AVOIDS_FILL, AVOIDS_TEXT),
+    swatch('1B', 'Orange: two players have the same position in that inning.', DOUBLED_FILL, DOUBLED_TEXT),
+    swatch('Maybe', 'Yellow RSVP: still planned for.', MAYBE_FILL, BLACK),
+    swatch('', 'Gray RSVP: no reply yet. Still planned for.', NO_REPLY_FILL, BLACK),
+    swatch('No', 'Gray text on a row: the player is out. The row is left out of the lineup the players see.', WHITE, ABSENT_TEXT),
+    [textCell('Open spots', { ...boldFormat, horizontalAlignment: 'CENTER' }), textCell('The row under the players lists positions nobody is covering in that inning.', wrapped)],
+    [],
+    [textCell('Careful', { ...boldFormat, ...wrapped }), textCell('Date, Time, Location, Opponent, Notes, Prefers, Won\'t play and Open spots fill in by themselves. If you type over one, a red corner flag marks it.', wrapped)],
+  ];
 }
 
 function rosterRows() {
@@ -150,10 +181,12 @@ function openSpotsFormula(columnIndex) {
   return `=IFERROR(TEXTJOIN(", ",TRUE,FILTER(Positions!$B$2:$B$12,COUNTIFS(${column}$${firstRow}:${column}$${lastRow},Positions!$B$2:$B$12,$${rsvp}$${firstRow}:$${rsvp}$${lastRow},"<>No")=0)),"")`;
 }
 
-function gameRows() {
-  const gameNumberNote = 'To add the next game, duplicate this tab (right-click the tab name), then change this number. The date, time, place and opponent come from the Schedule tab';
+function gameRows(isBlank = false) {
+  const gameNumberNote = 'The date, time, place and opponent below come from the Schedule tab row with this number. To add the next game, duplicate the New game (copy me) tab instead of this one';
+  const blankGameNumberNote = 'Type this game\'s number from the Schedule tab. Then rename this tab so it ends with Lineup, like Game 2 Lineup, and players will see it';
+  const gameNumberFormat = { backgroundColor: INPUT_FILL, textFormat: { bold: true }, horizontalAlignment: 'LEFT' };
   const details = [
-    [textCell('Game #:', boldFormat), numberCell(1, { backgroundColor: INPUT_FILL, textFormat: { bold: true }, horizontalAlignment: 'LEFT' }, gameNumberNote)],
+    [textCell('Game #:', boldFormat), isBlank ? { ...emptyCell(gameNumberFormat), note: blankGameNumberNote } : numberCell(1, gameNumberFormat, gameNumberNote)],
     [textCell('Date:', boldFormat), scheduleLookup(2, { numberFormat: DATE_FORMAT })],
     [textCell('Time:', boldFormat), scheduleLookup(3, { numberFormat: TIME_FORMAT })],
     [textCell('Location:', boldFormat), scheduleLookup(4)],
@@ -166,7 +199,7 @@ function gameRows() {
   const players = Array.from({ length: LINEUP_ROW_COUNT }, (unused, rowIndex) => {
     const rowNumber = GAME_FIRST_PLAYER_ROW_INDEX + rowIndex + 1;
     const lookups = [formulaCell(playerLookup(rowNumber, 2)), formulaCell(playerLookup(rowNumber, 3))];
-    const name = EXAMPLE_PLAYERS[rowIndex];
+    const name = isBlank ? undefined : EXAMPLE_PLAYERS[rowIndex];
     const emptyPositions = Array.from({ length: INNING_COUNT }, () => emptyCell(centeredFormat));
     if (name === undefined) return [emptyCell(), emptyCell(centeredFormat), ...emptyPositions, ...lookups];
     const answer = EXAMPLE_ANSWERS[name] ?? 'Yes';
@@ -259,28 +292,35 @@ function configFormattingRequests(sheetId) {
   ];
 }
 
-function formattingRequests() {
-  const scheduleEndRow = SCHEDULE_FIRST_ROW_INDEX + SCHEDULE_GAME_ROW_COUNT + 40;
+function formulaCellWarning(sheetId, startRow, endRow, startColumn, endColumn, message) {
+  const firstCell = `${columnLetter(startColumn)}${startRow + 1}`;
+  return {
+    setDataValidation: {
+      range: { sheetId, startRowIndex: startRow, endRowIndex: endRow, startColumnIndex: startColumn, endColumnIndex: endColumn },
+      rule: { condition: { type: 'CUSTOM_FORMULA', values: [{ userEnteredValue: `=ISFORMULA(${firstCell})` }] }, inputMessage: message, strict: false },
+    },
+  };
+}
+
+function gameTabRequests(sheetId) {
+  const playersEnd = GAME_LAST_PLAYER_ROW_INDEX + 1;
   return [
-    ...configFormattingRequests(CONFIG_SHEET_ID),
-    listValidation(GAME_SHEET_ID, GAME_FIRST_PLAYER_ROW_INDEX, GAME_LAST_PLAYER_ROW_INDEX + 1, GAME_FIRST_INNING_COLUMN_INDEX, GAME_PREFERS_COLUMN_INDEX, POSITION_CODES),
-    listValidation(GAME_SHEET_ID, GAME_FIRST_PLAYER_ROW_INDEX, GAME_LAST_PLAYER_ROW_INDEX + 1, GAME_RSVP_COLUMN_INDEX, GAME_RSVP_COLUMN_INDEX + 1, RSVP_ANSWERS),
-    rosterNameValidation(GAME_SHEET_ID, GAME_FIRST_PLAYER_ROW_INDEX, GAME_LAST_PLAYER_ROW_INDEX + 1),
-    columnFormat(SCHEDULE_SHEET_ID, SCHEDULE_FIRST_ROW_INDEX, scheduleEndRow, 1, { numberFormat: DATE_FORMAT, horizontalAlignment: 'LEFT' }, NUMBER_AND_ALIGNMENT_FIELDS),
-    columnFormat(SCHEDULE_SHEET_ID, SCHEDULE_FIRST_ROW_INDEX, scheduleEndRow, 2, { numberFormat: TIME_FORMAT, horizontalAlignment: 'LEFT' }, NUMBER_AND_ALIGNMENT_FIELDS),
-    columnFormat(GAME_SHEET_ID, GAME_FIRST_PLAYER_ROW_INDEX, GAME_LAST_PLAYER_ROW_INDEX + 1, GAME_PREFERS_COLUMN_INDEX, { textFormat: { foregroundColor: PREFERS_TEXT } }, TEXT_COLOR_FIELDS),
-    columnFormat(GAME_SHEET_ID, GAME_FIRST_PLAYER_ROW_INDEX, GAME_LAST_PLAYER_ROW_INDEX + 1, GAME_AVOIDS_COLUMN_INDEX, { textFormat: { foregroundColor: AVOIDS_TEXT } }, TEXT_COLOR_FIELDS),
-    columnWidth(ROSTER_SHEET_ID, 0, 160), columnWidth(ROSTER_SHEET_ID, 1, 160), columnWidth(ROSTER_SHEET_ID, 2, 160), columnWidth(ROSTER_SHEET_ID, 3, 380),
-    columnWidth(SCHEDULE_SHEET_ID, 1, 90), columnWidth(SCHEDULE_SHEET_ID, 3, 220), columnWidth(SCHEDULE_SHEET_ID, 4, 200), columnWidth(SCHEDULE_SHEET_ID, 5, 320),
-    columnWidth(GAME_SHEET_ID, 0, 160), columnWidth(GAME_SHEET_ID, 1, 80),
-    ...Array.from({ length: INNING_COUNT }, (unused, index) => columnWidth(GAME_SHEET_ID, GAME_FIRST_INNING_COLUMN_INDEX + index, 70)),
-    columnWidth(GAME_SHEET_ID, GAME_PREFERS_COLUMN_INDEX, 150), columnWidth(GAME_SHEET_ID, GAME_AVOIDS_COLUMN_INDEX, 150),
-    columnWidth(POSITIONS_SHEET_ID, 0, 200),
-    ...gameConditionalFormats(GAME_SHEET_ID),
+    listValidation(sheetId, GAME_FIRST_PLAYER_ROW_INDEX, playersEnd, GAME_FIRST_INNING_COLUMN_INDEX, GAME_PREFERS_COLUMN_INDEX, POSITION_CODES),
+    listValidation(sheetId, GAME_FIRST_PLAYER_ROW_INDEX, playersEnd, GAME_RSVP_COLUMN_INDEX, GAME_RSVP_COLUMN_INDEX + 1, RSVP_ANSWERS),
+    rosterNameValidation(sheetId, GAME_FIRST_PLAYER_ROW_INDEX, playersEnd),
+    columnFormat(sheetId, GAME_FIRST_PLAYER_ROW_INDEX, playersEnd, GAME_PREFERS_COLUMN_INDEX, { textFormat: { foregroundColor: PREFERS_TEXT } }, TEXT_COLOR_FIELDS),
+    columnFormat(sheetId, GAME_FIRST_PLAYER_ROW_INDEX, playersEnd, GAME_AVOIDS_COLUMN_INDEX, { textFormat: { foregroundColor: AVOIDS_TEXT } }, TEXT_COLOR_FIELDS),
+    columnWidth(sheetId, 0, 160), columnWidth(sheetId, 1, 80),
+    ...Array.from({ length: INNING_COUNT }, (unused, index) => columnWidth(sheetId, GAME_FIRST_INNING_COLUMN_INDEX + index, 70)),
+    columnWidth(sheetId, GAME_PREFERS_COLUMN_INDEX, 150), columnWidth(sheetId, GAME_AVOIDS_COLUMN_INDEX, 150),
+    formulaCellWarning(sheetId, 1, 6, 1, 2, 'Filled in from the Schedule tab. Typing here replaces the formula'),
+    formulaCellWarning(sheetId, GAME_FIRST_PLAYER_ROW_INDEX, playersEnd, GAME_PREFERS_COLUMN_INDEX, GAME_AVOIDS_COLUMN_INDEX + 1, 'Filled in from the Roster tab. Typing here replaces the formula'),
+    formulaCellWarning(sheetId, GAME_OPEN_SPOTS_ROW_INDEX, GAME_OPEN_SPOTS_ROW_INDEX + 1, GAME_FIRST_INNING_COLUMN_INDEX, GAME_PREFERS_COLUMN_INDEX, 'Worked out from the lineup above. Typing here replaces the formula'),
+    ...gameConditionalFormats(sheetId),
     {
       addBanding: {
         bandedRange: {
-          range: { sheetId: GAME_SHEET_ID, startRowIndex: GAME_FIRST_PLAYER_ROW_INDEX, endRowIndex: GAME_LAST_PLAYER_ROW_INDEX + 1, startColumnIndex: 0, endColumnIndex: GAME_AVOIDS_COLUMN_INDEX + 1 },
+          range: { sheetId, startRowIndex: GAME_FIRST_PLAYER_ROW_INDEX, endRowIndex: playersEnd, startColumnIndex: 0, endColumnIndex: GAME_AVOIDS_COLUMN_INDEX + 1 },
           rowProperties: { firstBandColor: WHITE, secondBandColor: BAND_FILL },
         },
       },
@@ -288,13 +328,29 @@ function formattingRequests() {
   ];
 }
 
+export function formattingRequests() {
+  const scheduleEndRow = SCHEDULE_FIRST_ROW_INDEX + SCHEDULE_GAME_ROW_COUNT + 40;
+  return [
+    ...configFormattingRequests(CONFIG_SHEET_ID),
+    columnFormat(SCHEDULE_SHEET_ID, SCHEDULE_FIRST_ROW_INDEX, scheduleEndRow, 1, { numberFormat: DATE_FORMAT, horizontalAlignment: 'LEFT' }, NUMBER_AND_ALIGNMENT_FIELDS),
+    columnFormat(SCHEDULE_SHEET_ID, SCHEDULE_FIRST_ROW_INDEX, scheduleEndRow, 2, { numberFormat: TIME_FORMAT, horizontalAlignment: 'LEFT' }, NUMBER_AND_ALIGNMENT_FIELDS),
+    columnWidth(ROSTER_SHEET_ID, 0, 160), columnWidth(ROSTER_SHEET_ID, 1, 160), columnWidth(ROSTER_SHEET_ID, 2, 160), columnWidth(ROSTER_SHEET_ID, 3, 380),
+    columnWidth(SCHEDULE_SHEET_ID, 1, 90), columnWidth(SCHEDULE_SHEET_ID, 3, 220), columnWidth(SCHEDULE_SHEET_ID, 4, 200), columnWidth(SCHEDULE_SHEET_ID, 5, 320),
+    columnWidth(POSITIONS_SHEET_ID, 0, 200),
+    columnWidth(START_SHEET_ID, 0, 150), columnWidth(START_SHEET_ID, 1, 620),
+    ...GAME_SHEET_IDS.flatMap(gameTabRequests),
+  ];
+}
+
 export function teamSheetDefinition(teamName, seasonLabel) {
   return {
     properties: { title: `${teamName} Kickball Lineup` },
     sheets: [
+      sheet(START_SHEET_ID, 'Start here', startRows(), 1),
       sheet(ROSTER_SHEET_ID, 'Roster', rosterRows(), 1),
       sheet(SCHEDULE_SHEET_ID, 'Schedule', scheduleRows(), 1),
-      sheet(GAME_SHEET_ID, 'Game 1 Lineup', gameRows()),
+      sheet(GAME_SHEET_ID, 'Game 1 Lineup', gameRows(), 0, 1),
+      sheet(NEW_GAME_SHEET_ID, 'New game (copy me)', gameRows(true), 0, 1),
       sheet(POSITIONS_SHEET_ID, 'Positions', positionsRows(), 1),
       sheet(CONFIG_SHEET_ID, 'Team Config', configRows(teamName, seasonLabel), 1),
     ],
@@ -311,10 +367,10 @@ async function sheetsRequest(accessToken, path, method, body) {
   return response.json();
 }
 
-export async function createTeamSheet(accessToken, teamName, seasonLabel) {
+export async function createTeamSheet(accessToken, teamName, seasonLabel, timeZone) {
   const definition = teamSheetDefinition(teamName, seasonLabel);
   const created = await sheetsRequest(accessToken, '', 'POST', {
-    properties: definition.properties,
+    properties: { ...definition.properties, timeZone },
     sheets: definition.sheets.map(({ properties }) => ({ properties })),
   });
   const cellRequests = definition.sheets.map(({ properties, rowData }) => ({

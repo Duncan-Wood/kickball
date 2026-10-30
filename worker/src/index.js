@@ -1,6 +1,6 @@
 import { accessTokenFromRefreshToken, ConnectionExpiredError, exchangeAuthorizationCode } from './google.js';
 import { appendComment, COMMENTS_PER_HOUR, validatedComment } from './comments.js';
-import { readTeamSheet } from './sheetsReader.js';
+import { readTeamSheet, SheetGoneError } from './sheetsReader.js';
 import { decryptToken, encryptToken, newTeamSlug } from './tokens.js';
 
 const API_VERSION = 3;
@@ -31,12 +31,17 @@ async function loadTeam(slug, environment) {
   return { spreadsheetId: stored.spreadsheetId, accessToken: await accessTokenFromRefreshToken(refreshToken, environment) };
 }
 
+async function forgetTeamIfSheetGone(slug, error, environment) {
+  if (error instanceof SheetGoneError) await environment.TEAMS.delete(`team:${slug}`);
+  throw error;
+}
+
 async function teamPayload(slug, environment, context) {
   const cacheKey = new Request(`https://cache.invalid/team/${slug}`);
   const cached = await caches.default.match(cacheKey);
   if (cached !== undefined) return cached.json();
   const { spreadsheetId, accessToken } = await loadTeam(slug, environment);
-  const payload = await readTeamSheet(accessToken, spreadsheetId);
+  const payload = await readTeamSheet(accessToken, spreadsheetId).catch((error) => forgetTeamIfSheetGone(slug, error, environment));
   context.waitUntil(caches.default.put(cacheKey, new Response(JSON.stringify(payload), { headers: { 'Cache-Control': `max-age=${READ_CACHE_SECONDS}` } })));
   return payload;
 }
@@ -84,22 +89,26 @@ async function verifiedCaptain(request, environment) {
   const refreshToken = await environment.TEAMS.get(`pending:${pendingId}`);
   if (refreshToken === null) throw new Error('That sign-in expired. Sign in again');
   const accessToken = await accessTokenFromRefreshToken(await decryptToken(refreshToken, environment.TOKEN_ENCRYPTION_KEY), environment);
-  const { config } = await readTeamSheet(accessToken, stored.spreadsheetId);
-  return { pendingId, slug, stored, refreshToken, config };
+  const sheet = await readTeamSheet(accessToken, stored.spreadsheetId).catch((error) => (error instanceof SheetGoneError ? null : Promise.reject(error)));
+  return { pendingId, slug, stored, refreshToken, config: sheet?.config ?? null };
 }
 
 async function reconnect(request, environment) {
   const { pendingId, slug, stored, refreshToken, config } = await verifiedCaptain(request, environment);
+  if (config === null) {
+    await environment.TEAMS.delete(`team:${slug}`);
+    throw new SheetGoneError('This team\'s sheet was deleted from Google Drive. Ask your captain to set the team up again');
+  }
   await environment.TEAMS.put(`team:${slug}`, JSON.stringify({ ...stored, refreshToken, connectedAt: new Date().toISOString() }));
   await environment.TEAMS.delete(`pending:${pendingId}`);
   return { slug, spreadsheetId: stored.spreadsheetId, teamName: config.teamName, seasonLabel: config.seasonLabel };
 }
 
 async function disconnect(request, environment) {
-  const { pendingId, slug } = await verifiedCaptain(request, environment);
+  const { pendingId, slug, config } = await verifiedCaptain(request, environment);
   await environment.TEAMS.delete(`team:${slug}`);
   await environment.TEAMS.delete(`pending:${pendingId}`);
-  return {};
+  return { sheetGone: config === null };
 }
 
 async function handleTeam(request, slug, isComment, environment, context) {
@@ -141,7 +150,7 @@ export default {
       return jsonResponse({ ok: false, error: 'Not found' }, 404, request, environment);
     } catch (error) {
       console.error(pathname, error);
-      return jsonResponse({ ok: false, error: error.message, ...(error instanceof ConnectionExpiredError && { reconnect: true }) }, 200, request, environment);
+      return jsonResponse({ ok: false, error: error.message, ...(error instanceof ConnectionExpiredError && { reconnect: true }), ...(error instanceof SheetGoneError && { gone: true }) }, 200, request, environment);
     }
   },
 };
