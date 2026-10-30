@@ -33,6 +33,7 @@ export function readLineup(tabName, rows, today) {
   const grid = locateLineupGrid(tabName, rows);
   const { headerRowIndex, gameNumberRowIndex, opponentRowIndex, dateRowIndex, timeRowIndex, locationRowIndex, notesRowIndex, inningColumnIndexes } = grid;
   const textAt = (rowIndex, columnIndex) => (rows[rowIndex][columnIndex]?.text ?? '').trim();
+  const players = readPlayers(tabName, rows, grid);
   const gameNumber = gameNumberRowIndex === -1 ? null : parsedGameNumber(textAt(gameNumberRowIndex, 1));
   return {
     tabName,
@@ -45,7 +46,9 @@ export function readLineup(tabName, rows, today) {
     location: textAt(locationRowIndex, 1),
     notes: textAt(notesRowIndex, 1),
     innings: inningColumnIndexes.map((columnIndex) => textAt(headerRowIndex, columnIndex)),
-    players: readPlayers(tabName, rows, grid),
+    inningColumns: inningColumnIndexes,
+    editable: players.every((player) => player.kickNumber === null),
+    players,
   };
 }
 
@@ -79,18 +82,20 @@ function readPlayers(tabName, rows, grid) {
   const { headerRowIndex, acceptableRowIndex, inningColumnIndexes, usesRsvp } = grid;
   const playerRows = rows
     .slice(headerRowIndex + 1, acceptableRowIndex)
-    .filter((row) => (row[0]?.text ?? '').trim() !== '');
+    .map((row, offset) => ({ row, sheetRow: headerRowIndex + 2 + offset }))
+    .filter(({ row }) => (row[0]?.text ?? '').trim() !== '');
   const kickNumberText = (row) => (row[1]?.text ?? '').trim();
-  const usesKickNumbers = !usesRsvp && playerRows.some((row) => isKickNumber(kickNumberText(row)));
-  const players = playerRows.map((row) => {
+  const usesKickNumbers = !usesRsvp && playerRows.some(({ row }) => isKickNumber(kickNumberText(row)));
+  const players = playerRows.map(({ row, sheetRow }) => {
     const name = row[0].text.trim();
     const kickText = kickNumberText(row);
-    if (usesRsvp) return readRsvpPlayer(tabName, row, name, inningColumnIndexes);
+    if (usesRsvp) return readRsvpPlayer(tabName, row, sheetRow, name, inningColumnIndexes);
     if (usesKickNumbers && kickText !== '' && !isKickNumber(kickText)) {
       throw new Error(`Tab "${tabName}": the kick number for "${name}" in column B must be a whole number or blank`);
     }
     return {
       name,
+      sheetRow,
       attending: usesKickNumbers ? isKickNumber(kickText) : row[0].strikethrough !== true,
       kickNumber: usesKickNumbers && isKickNumber(kickText) ? Number(kickText) : null,
       positions: inningColumnIndexes.map((columnIndex) => (row[columnIndex]?.text ?? '').trim()),
@@ -101,13 +106,14 @@ function readPlayers(tabName, rows, grid) {
   return kicking.concat(players.filter((player) => !player.attending));
 }
 
-function readRsvpPlayer(tabName, row, name, inningColumnIndexes) {
+function readRsvpPlayer(tabName, row, sheetRow, name, inningColumnIndexes) {
   const answer = (row[RSVP_COLUMN_INDEX]?.text ?? '').trim().toLowerCase();
   if (answer !== '' && !RSVP_ANSWERS.includes(answer)) {
     throw new Error(`Tab "${tabName}": the RSVP for "${name}" must be Yes, Maybe, No or blank`);
   }
   return {
     name,
+    sheetRow,
     attending: answer !== 'no' && row[0].strikethrough !== true,
     kickNumber: null,
     positions: inningColumnIndexes.map((columnIndex) => (row[columnIndex]?.text ?? '').trim()),

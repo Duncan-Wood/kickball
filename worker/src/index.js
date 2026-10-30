@@ -6,6 +6,8 @@ import { decryptToken, encryptToken, newTeamSlug } from './tokens.js';
 const API_VERSION = 3;
 const READ_CACHE_SECONDS = 5;
 const TEAM_ROUTE = /^\/api\/team\/([a-z0-9]{12})(\/comment)?$/;
+const CAPTAIN_ROUTE = /^\/api\/team\/([a-z0-9]{12})\/captain$/;
+const DRIVE_FILES_ADDRESS = 'https://www.googleapis.com/drive/v3/files';
 
 function corsHeaders(request, environment) {
   const allowedOrigins = environment.ALLOWED_ORIGINS.split(',');
@@ -111,6 +113,19 @@ async function disconnect(request, environment) {
   return { sheetGone: config === null };
 }
 
+async function captainAccess(request, slug, environment) {
+  const { accessToken } = await request.json();
+  if (typeof accessToken !== 'string' || accessToken === '') throw new Error('Missing sign-in');
+  const stored = await environment.TEAMS.get(`team:${slug}`, 'json');
+  if (stored === null) throw new Error('This team link is not recognized. Ask your captain for a new one');
+  const response = await fetch(`${DRIVE_FILES_ADDRESS}/${stored.spreadsheetId}?fields=capabilities(canEdit)&supportsAllDrives=true`, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (response.status === 404) return { access: 'needs-pick' };
+  if (!response.ok) throw new Error(`Google could not check your access to the sheet (${response.status})`);
+  const { capabilities } = await response.json();
+  if (capabilities.canEdit !== true) throw new Error('You can view this sheet but not edit it. Ask the captain to share it with you as an editor');
+  return { access: 'editor', spreadsheetId: stored.spreadsheetId };
+}
+
 async function handleTeam(request, slug, isComment, environment, context) {
   if (!isComment) {
     const payload = await teamPayload(slug, environment, context);
@@ -142,6 +157,8 @@ export default {
       if (request.method === 'POST' && pathname === '/api/connect') return jsonResponse({ ok: true, ...(await connect(request, environment)) }, 200, request, environment);
       if (request.method === 'POST' && pathname === '/api/reconnect') return jsonResponse({ ok: true, ...(await reconnect(request, environment)) }, 200, request, environment);
       if (request.method === 'POST' && pathname === '/api/disconnect') return jsonResponse({ ok: true, ...(await disconnect(request, environment)) }, 200, request, environment);
+      const captainMatch = CAPTAIN_ROUTE.exec(pathname);
+      if (request.method === 'POST' && captainMatch !== null) return jsonResponse({ ok: true, ...(await captainAccess(request, captainMatch[1], environment)) }, 200, request, environment);
       const teamMatch = TEAM_ROUTE.exec(pathname);
       if (teamMatch !== null) {
         const body = await handleTeam(request, teamMatch[1], teamMatch[2] !== undefined, environment, context);
