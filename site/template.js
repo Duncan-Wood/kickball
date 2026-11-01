@@ -4,6 +4,9 @@ const POSITION_NAMES = ['Pitcher', 'Catcher', 'First Baseperson', 'Second Basepe
 const INNING_COUNT = 5;
 const LINEUP_ROW_COUNT = 22;
 const SHARE_LINK_LABEL = 'Share link';
+export const ROSTER_TAB_NAME = 'Roster';
+export const SCHEDULE_TAB_NAME = 'Schedule';
+export const NEW_GAME_TAB_NAME = 'New game (copy me)';
 const CONFIG_SHEET_ID = 0;
 const ROSTER_SHEET_ID = 1;
 const SCHEDULE_SHEET_ID = 2;
@@ -110,11 +113,11 @@ function startRows() {
     [textCell('Start here', headerFormat), textCell('Five minutes to a team link', headerFormat)],
     step('1. Roster', 'Type your players on the Roster tab, one per row, over the examples. Under Prefers and Won\'t play, list positions separated by commas, like SS, 2B. Subs go on the roster too.'),
     step('2. Schedule', 'On the Schedule tab, fill in each game\'s date, time, location and opponent. After a game, add the result to Notes, like W, 12-0.'),
-    step('3. Lineup', 'On Game 1 Lineup, pick each player\'s name in column A. The order is the kicking order. Pick a position for each inning, and set the RSVP column as replies come in.'),
+    step('3. Lineup', 'On Game 1 Lineup, pick each player\'s name in column A. The order is the kicking order. Pick a position for each inning, and set the RSVP column as replies come in. You can also do all of this, and start the next game, from Captain tools on the team page.'),
     step('4. Share', 'Your team link is on the Team Config tab, in the Share link row. Send it to your players. They see the lineups and nothing else in this sheet. Roster, Schedule, Positions, Team Config and this tab stay private.'),
-    step('Next game', 'Right-click the New game (copy me) tab and choose Duplicate. Rename the copy so it ends with Lineup, like Game 2 Lineup, and type its number in the Game # cell. Players only see tabs whose names end with Lineup.'),
+    step('Next game', 'In Captain tools on the team page, choose New game. Or right-click the New game (copy me) tab and choose Duplicate. Rename the copy so it ends with Lineup, like Game 2 Lineup, and type its number in the Game # cell. Players only see tabs whose names end with Lineup.'),
     step('Retire a game', 'Start a tab\'s name with OLD to hide it from players.'),
-    step('Add a co-captain', 'Use the Share button at the top right of Google Sheets to give an assistant captain edit access. Players never need access.'),
+    step('Add a co-captain', 'Use the Share button at the top right of Google Sheets to give an assistant captain edit access. Players never need access. Then have them open the team link with #captain on the end. That shows the Captain tools link at the bottom of the page.'),
     [],
     [textCell('What the colors mean', headerFormat), textCell('', headerFormat)],
     swatch('SS', 'Green: a position the player prefers.', PREFERS_FILL, PREFERS_TEXT),
@@ -347,10 +350,10 @@ export function teamSheetDefinition(teamName, seasonLabel) {
     properties: { title: `${teamName} Kickball Lineup` },
     sheets: [
       sheet(START_SHEET_ID, 'Start here', startRows(), 1),
-      sheet(ROSTER_SHEET_ID, 'Roster', rosterRows(), 1),
-      sheet(SCHEDULE_SHEET_ID, 'Schedule', scheduleRows(), 1),
+      sheet(ROSTER_SHEET_ID, ROSTER_TAB_NAME, rosterRows(), 1),
+      sheet(SCHEDULE_SHEET_ID, SCHEDULE_TAB_NAME, scheduleRows(), 1),
       sheet(GAME_SHEET_ID, 'Game 1 Lineup', gameRows(), 0, 1),
-      sheet(NEW_GAME_SHEET_ID, 'New game (copy me)', gameRows(true), 0, 1),
+      sheet(NEW_GAME_SHEET_ID, NEW_GAME_TAB_NAME, gameRows(true), 0, 1),
       sheet(POSITIONS_SHEET_ID, 'Positions', positionsRows(), 1),
       sheet(CONFIG_SHEET_ID, 'Team Config', configRows(teamName, seasonLabel), 1),
     ],

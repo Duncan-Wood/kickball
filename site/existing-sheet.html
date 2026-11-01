@@ -30,13 +30,13 @@
     <strong>Usually quicker:</strong> create a new team sheet on the setup page and paste your roster into it. Your old sheet stays exactly as it is. Only follow this guide if your current sheet has history you want to keep in one file.
   </div>
 
-  <p>The field view reads one fixed layout. If a tab does not match, the team link shows an error that names the tab and what is missing, so you can fix it and reload. You need edit access to the sheet, because connecting it adds a <code>Team Config</code> tab.</p>
+  <p>The field view reads one fixed layout: one row per player and a position code in each inning. A sheet that lists positions down the side with names in the cells does not fit it. If a tab is missing the <code>Name</code> or <code>Open spots</code> label, the team link shows an error that names the tab, so you can fix it and reload. You need edit access to the sheet, because connecting it adds a <code>Team Config</code> tab.</p>
 
   <h2>1. One tab per game</h2>
-  <p>Name each game tab so it ends with <code>Lineup</code>, like <code>Game 3 Lineup</code>. A duplicated tab called <code>Copy of Game 3 Lineup</code> works too. A tab whose name starts with <code>OLD</code> is hidden, which is how you retire a game. Tabs like <code>Roster</code>, <code>Schedule</code>, <code>Comments</code> and anything else are never shown to players.</p>
+  <p>Name each game tab so it ends with <code>Lineup</code>, like <code>Game 3 Lineup</code> or <code>week 7 lineup</code>. Capitalization does not matter, and a duplicated tab called <code>Copy of Game 3 Lineup</code> works too. A tab whose name starts with <code>OLD</code> is hidden, which is how you retire a game. Tabs like <code>Roster</code>, <code>Schedule</code>, <code>Comments</code> and anything else are never shown to players.</p>
 
   <h2>2. Game details at the top</h2>
-  <p>Put these labels in column A, with the value in column B of the same row. The order and the number of rows between them do not matter.</p>
+  <p>Put these labels in column A, with the value in column B of the same row. The order and the number of rows between them do not matter, and any you leave out show as blank on the team page.</p>
   <table>
     <tr><th>Column A</th><th>Column B</th></tr>
     <tr><td><code>Game #:</code></td><td>A number, like 3. It names the game in the picker and puts the games in order. Two tabs cannot share a number.</td></tr>
@@ -70,6 +70,9 @@
     <li>Open <strong>Already have a lineup sheet?</strong>, press <strong>Use a sheet I already have</strong> and pick your sheet.</li>
   </ol>
   <p>The app adds a <code>Team Config</code> tab for the page heading, colors and suggestion box, and puts your team link on it. Nothing else in your sheet is changed.</p>
+
+  <h2>6. Captain tools</h2>
+  <p>Open your team link with <code>#captain</code> on the end to see the Captain tools link. Moving players, the kicking order and RSVPs work on any sheet that follows this layout. Adding players from a roster needs a <code>Roster</code> tab with names in column A, and starting a game from the page needs the template's <code>Schedule</code> and <code>New game (copy me)</code> tabs.</p>
 
   <p class="small">The layout above is exactly what the team sheet template creates, so it is the best reference if something does not line up.</p>
 </main>

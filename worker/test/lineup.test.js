@@ -26,6 +26,27 @@ test('only current lineup tabs are read', () => {
   assert.equal(isCurrentLineupTab('Roster'), false);
 });
 
+test('tab names match whatever the capitalization', () => {
+  assert.equal(isCurrentLineupTab('week 7 lineup'), true);
+  assert.equal(isCurrentLineupTab('Week 8 LINEUP'), true);
+  assert.equal(isCurrentLineupTab('old week 6 lineup'), false);
+  assert.equal(isCurrentLineupTab('Lineup ideas'), false);
+});
+
+test('a tab with only the grid labels reads with blank game details', () => {
+  const rows = [rowOf('Name', '', '1', '2'), rowOf('Chad S', '', 'SS', 'P'), rowOf('Open spots', '', '', '')];
+  const lineup = readLineup('week 7 lineup', rows, '2026-10-18');
+  assert.deepEqual([lineup.opponent, lineup.date, lineup.time, lineup.location, lineup.notes, lineup.played, lineup.label], ['', '', '', '', '', false, 'week 7']);
+  assert.deepEqual(lineup.players.map((player) => player.name), ['Chad S']);
+});
+
+test('blank rows inside the grid are reported as spare rows', () => {
+  const rows = lineupRows([rowOf('Chad S', '', 'SS', 'P'), rowOf('', '', '', ''), rowOf('Amy B', '', '', ''), rowOf('', '', '', '')]);
+  const lineup = readLineup('Game 2 Lineup', rows, '2026-10-18');
+  assert.deepEqual(lineup.spareRows, [8, 10]);
+  assert.deepEqual(lineup.players.map((player) => player.sheetRow), [7, 9]);
+});
+
 test('strikethrough names are not attending and keep sheet order', () => {
   const rows = lineupRows([
     rowOf('Chad S', '', 'SS', 'P'),
@@ -111,6 +132,8 @@ test('an RSVP column marks Maybe and blank as attending and No as absent', () =>
   assert.deepEqual(lineup.players.map((player) => [player.name, player.attending]), [['Chad S', true], ['Emma E', true], ['Amy B', true], ['Mac B', false]]);
   assert.deepEqual(lineup.innings, ['1', '2']);
   assert.deepEqual(lineup.players[0].positions, ['SS', 'P']);
+  assert.deepEqual(lineup.players.map((player) => player.rsvp), ['yes', 'maybe', '', 'no']);
+  assert.equal(lineup.usesRsvp, true);
 });
 
 test('position preferences never reach the lineup', () => {

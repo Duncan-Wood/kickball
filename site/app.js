@@ -4,7 +4,7 @@ const FIELD_SPOTS = {
   P: [200, 266], C: [200, 382],
 };
 const INFIELD_POSITIONS = ['P', 'C', '1B', '2B', '3B', 'SS'];
-const MINIMUM_API_VERSION = 3;
+const MINIMUM_API_VERSION = 4;
 const REFRESH_SECONDS = 10;
 const TEAM_CODE_PATTERN = /^[a-z0-9]{12}$/;
 const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
@@ -374,6 +374,16 @@ function selectLineup(tabName) {
   render();
 }
 
+function populateGameOptions() {
+  const game = document.getElementById('game');
+  game.replaceChildren(...lineups.map((lineup) => {
+    const option = document.createElement('option');
+    option.value = lineup.tabName;
+    option.textContent = lineup.label;
+    return option;
+  }));
+}
+
 function start(data) {
   config = data.config;
   applyConfig(config);
@@ -381,12 +391,7 @@ function start(data) {
   document.getElementById('status').textContent = 'No current tabs ending in "Lineup" were found.';
   if (lineups.length === 0) return;
   const game = document.getElementById('game');
-  lineups.forEach((lineup) => {
-    const option = document.createElement('option');
-    option.value = lineup.tabName;
-    option.textContent = lineup.label;
-    game.appendChild(option);
-  });
+  populateGameOptions();
   const startingLineup = lineups.find((lineup) => lineup.tabName === data.activeTabName)
     || lineups.find((lineup) => !lineup.played)
     || lineups[lineups.length - 1];
@@ -405,6 +410,18 @@ function start(data) {
   selectLineup(startingLineup.tabName);
   document.addEventListener('visibilitychange', scheduleRefresh);
   scheduleRefresh();
+}
+
+async function reloadLineups(tabNameToSelect) {
+  const data = await apiGet();
+  lineups = data.lineups;
+  showProblems(data.problems ?? []);
+  saveLineups();
+  populateGameOptions();
+  const lineupToSelect = lineups.find((lineup) => lineup.tabName === tabNameToSelect) ?? selectedLineup;
+  document.getElementById('game').value = lineupToSelect.tabName;
+  selectLineup(lineupToSelect.tabName);
+  return lineupToSelect.tabName === tabNameToSelect;
 }
 
 function scheduleRefresh() {
@@ -576,6 +593,8 @@ window.addEventListener('unhandledrejection', (event) => showFailure('Something 
 window.fieldView = {
   teamCode,
   currentLineup: () => selectedLineup,
+  allLineups: () => lineups,
+  reloadLineups,
   currentInningIndex: () => selectedInningIndex,
   inFieldMode: () => mode === 'inning',
   rerender: () => render(),

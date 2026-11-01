@@ -77,10 +77,19 @@
       <div class="captain-row">
         <button type="button" id="area-fielding" class="selected">Fielding</button>
         <button type="button" id="area-kicking">Kicking order</button>
+        <button type="button" id="area-players">Players</button>
         <button type="button" id="captain-done" class="cancel">Done</button>
+      </div>
+      <div class="captain-row captain-options" id="captain-options">
+        <span id="scope-label">Apply to</span>
+        <button type="button" id="scope-inning" class="selected">This inning</button>
+        <button type="button" id="scope-rest">Rest of game</button>
+        <button type="button" id="scope-all">All innings</button>
+        <button type="button" id="area-new-game" class="cancel" hidden>New game</button>
       </div>
       <div class="captain-status" id="captain-status" role="status"></div>
       <button type="button" class="sit-target" id="sit-target" data-edit-kind="bench" hidden>Sit out this inning</button>
+      <div class="captain-panel" id="captain-panel" hidden></div>
     </div>
     <svg id="field" viewBox="-24 28 448 372" xmlns="http://www.w3.org/2000/svg">
       <path class="outfield-grass" d="M200,350 L-12,138 A300,300 0 0 1 412,138 Z"/>
@@ -103,7 +112,7 @@
     <div class="bench" id="kicking-order"></div>
     <div class="bench" id="bench"></div>
     <button type="button" class="comment-toggle" id="comment-toggle" hidden>Anonymous suggestion box</button>
-    <button type="button" class="comment-toggle" id="captain-toggle">Captain tools</button>
+    <button type="button" class="comment-toggle" id="captain-toggle" hidden>Captain tools</button>
     <form class="comment-form" id="comment-form" hidden>
       <textarea id="comment-text" maxlength="1000" placeholder="Anything on your mind?" required></textarea>
       <div class="comment-actions">
