@@ -172,7 +172,7 @@ async function finish(spreadsheetId) {
 function showTeamLink(slug, spreadsheetId) {
   const shareLink = teamAddress(slug);
   element('team-link').textContent = shareLink;
-  element('open-team').href = shareLink;
+  element('open-team').href = `${shareLink}#captain`;
   element('open-sheet').href = SHEET_ADDRESS_PREFIX + spreadsheetId;
   element('step-choose').hidden = true;
   element('step-saved').hidden = true;

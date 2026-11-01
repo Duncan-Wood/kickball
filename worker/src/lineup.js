@@ -1,5 +1,5 @@
 export function isCurrentLineupTab(tabName) {
-  return tabName.endsWith('Lineup') && !tabName.toUpperCase().startsWith('OLD');
+  return /lineup$/i.test(tabName) && !/^old/i.test(tabName);
 }
 
 const END_OF_GRID_LABELS = ['Open spots', 'Acceptable'];
@@ -17,9 +17,8 @@ export function locateLineupGrid(tabName, rows) {
   const timeRowIndex = firstColumn.indexOf('Time:');
   const locationRowIndex = firstColumn.indexOf('Location:');
   const notesRowIndex = firstColumn.indexOf('Notes:');
-  const labelRowIndexes = [headerRowIndex, acceptableRowIndex, opponentRowIndex, dateRowIndex, timeRowIndex, locationRowIndex, notesRowIndex];
-  if (labelRowIndexes.includes(-1)) {
-    throw new Error(`Tab "${tabName}" needs "Date:", "Time:", "Location:", "Opponent:", "Notes:", "Name" and "Open spots" labels in column A`);
+  if (headerRowIndex === -1 || acceptableRowIndex === -1) {
+    throw new Error(`Tab "${tabName}" needs "Name" and "Open spots" labels in column A`);
   }
   const headerCells = rows[headerRowIndex];
   const inningColumnIndexes = headerCells
@@ -32,15 +31,15 @@ export function locateLineupGrid(tabName, rows) {
 export function readLineup(tabName, rows, today) {
   const grid = locateLineupGrid(tabName, rows);
   const { headerRowIndex, gameNumberRowIndex, opponentRowIndex, dateRowIndex, timeRowIndex, locationRowIndex, notesRowIndex, inningColumnIndexes } = grid;
-  const textAt = (rowIndex, columnIndex) => (rows[rowIndex][columnIndex]?.text ?? '').trim();
+  const textAt = (rowIndex, columnIndex) => (rows[rowIndex]?.[columnIndex]?.text ?? '').trim();
   const players = readPlayers(tabName, rows, grid);
   const gameNumber = gameNumberRowIndex === -1 ? null : parsedGameNumber(textAt(gameNumberRowIndex, 1));
   return {
     tabName,
     label: lineupLabel(tabName, gameNumber, textAt(dateRowIndex, 1)),
     gameNumber,
-    played: isBeforeToday(rows[dateRowIndex][1]?.serialDate, today),
-    opponent: rows[opponentRowIndex][1]?.text ?? '',
+    played: isBeforeToday(rows[dateRowIndex]?.[1]?.serialDate, today),
+    opponent: textAt(opponentRowIndex, 1),
     date: textAt(dateRowIndex, 1),
     time: textAt(timeRowIndex, 1),
     location: textAt(locationRowIndex, 1),
@@ -48,6 +47,8 @@ export function readLineup(tabName, rows, today) {
     innings: inningColumnIndexes.map((columnIndex) => textAt(headerRowIndex, columnIndex)),
     inningColumns: inningColumnIndexes,
     editable: players.every((player) => player.kickNumber === null),
+    usesRsvp: grid.usesRsvp,
+    spareRows: spareRows(rows, grid),
     players,
   };
 }
@@ -57,7 +58,7 @@ function parsedGameNumber(cellText) {
 }
 
 function lineupLabel(tabName, gameNumber, date) {
-  if (gameNumber === null) return tabName.replace(/ Lineup$/, '');
+  if (gameNumber === null) return tabName.replace(/ Lineup$/i, '');
   return date === '' ? `Game ${gameNumber}` : `Game ${gameNumber} (${date})`;
 }
 
@@ -76,6 +77,14 @@ export function orderedLineups(lineups) {
   });
   if (distinctLineups.some((lineup) => lineup.gameNumber === null)) return { lineups: distinctLineups, problems };
   return { lineups: [...distinctLineups].sort((first, second) => first.gameNumber - second.gameNumber), problems };
+}
+
+function spareRows(rows, { headerRowIndex, acceptableRowIndex }) {
+  return rows
+    .slice(headerRowIndex + 1, acceptableRowIndex)
+    .map((row, offset) => ({ row, sheetRow: headerRowIndex + 2 + offset }))
+    .filter(({ row }) => (row[0]?.text ?? '').trim() === '')
+    .map(({ sheetRow }) => sheetRow);
 }
 
 function readPlayers(tabName, rows, grid) {
@@ -98,6 +107,7 @@ function readPlayers(tabName, rows, grid) {
       sheetRow,
       attending: usesKickNumbers ? isKickNumber(kickText) : row[0].strikethrough !== true,
       kickNumber: usesKickNumbers && isKickNumber(kickText) ? Number(kickText) : null,
+      rsvp: '',
       positions: inningColumnIndexes.map((columnIndex) => (row[columnIndex]?.text ?? '').trim()),
     };
   });
@@ -116,6 +126,7 @@ function readRsvpPlayer(tabName, row, sheetRow, name, inningColumnIndexes) {
     sheetRow,
     attending: answer !== 'no' && row[0].strikethrough !== true,
     kickNumber: null,
+    rsvp: answer,
     positions: inningColumnIndexes.map((columnIndex) => (row[columnIndex]?.text ?? '').trim()),
   };
 }

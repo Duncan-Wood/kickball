@@ -25,7 +25,7 @@ export function validatedComment(tabName, commentText, currentTabNames) {
 }
 
 export async function appendComment(accessToken, spreadsheetId, tabName, trimmedComment, now = new Date()) {
-  const row = [now.toISOString(), tabName.replace(/ Lineup$/, ''), trimmedComment];
+  const row = [now.toISOString(), tabName.replace(/ Lineup$/i, ''), trimmedComment];
   const address = `${spreadsheetId}/values/${encodeURIComponent(`'${COMMENTS_TAB_NAME}'!A:C`)}:append?valueInputOption=RAW`;
   let response = await sheetsSend(accessToken, address, 'POST', { values: [row] });
   if (response.status === 400) {
