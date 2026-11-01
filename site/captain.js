@@ -1,5 +1,5 @@
-import { applyAddedPlayers, applyFieldingChanges, applyKickingMove, applyRsvp, cellAddress, fieldingChangesForInnings, inningsToEdit, kickingMove, nextGameNumber, playersToAdd, rosterNamesToAdd, rowAfterMove } from './edits.js';
-import { NEW_GAME_TAB_NAME, ROSTER_TAB_NAME, SCHEDULE_TAB_NAME } from './template.js';
+import { applyAddedPlayers, applyFieldingChanges, applyKickingMove, applyRsvp, candidatesForSpot, cellAddress, fieldingChangesForInnings, inningRangeLabel, inningsToEdit, inverseKickingMove, kickingMove, nextGameNumber, occupantsOf, playersToAdd, positionChoices, rosterNamesToAdd, rowAfterMove } from './edits.js';
+import { NEW_GAME_TAB_NAME, POSITION_CODES, POSITION_NAMES, ROSTER_TAB_NAME, SCHEDULE_TAB_NAME } from './template.js';
 
 const { workerAddress, googleClientId, googleApiKey, googleProjectNumber } = window.KICKBALL;
 const DRIVE_FILE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
@@ -11,24 +11,26 @@ const DRAG_START_PIXELS = 8;
 const CLICK_SUPPRESSION_MILLISECONDS = 50;
 const NEW_GAME_LOOKUP_ATTEMPTS = 4;
 const NEW_GAME_LOOKUP_WAIT_MILLISECONDS = 2000;
+const TOAST_MILLISECONDS = 2500;
+const TOAST_WITH_UNDO_MILLISECONDS = 7000;
 const CAPTAIN_DEVICE_KEY = 'kickball-captain-device';
 const CAPTAIN_LINK_HASH = '#captain';
 const RSVP_COLUMN_INDEX = 1;
 const GAME_NUMBER_LABEL = 'Game #:';
 const GAME_DETAIL_FIRST_COLUMN_INDEX = 1;
 const AREAS = ['fielding', 'kicking', 'players'];
-const SCOPES = ['inning', 'rest', 'all'];
+const SCOPES = [
+  { scope: 'inning', label: 'This inning' },
+  { scope: 'rest', label: 'Rest of game' },
+  { scope: 'all', label: 'All innings' },
+];
 const RSVP_ANSWERS = ['Yes', 'Maybe', 'No'];
 const HINTS = {
-  fielding: 'Tap a player, then tap where they should go. Tap another player to swap.',
-  kicking: 'Tap a kicker, then tap who they should go next to.',
-  players: 'Tap Yes, Maybe or No to record a reply, or tap a name to add them to this game.',
-  newgame: 'Fill in what you know and leave the rest blank.',
-};
-const SCOPE_HINTS = {
-  inning: '',
-  rest: ' This applies to this inning and every later one.',
-  all: ' This applies to every inning.',
+  fielding: 'Tap a position to choose who plays there. Tap someone sitting to choose where they play.',
+  fieldingElsewhere: 'Pick an inning above to edit the field.',
+  kicking: 'Tap a kicker, then tap the spot in the order they should take.',
+  players: 'Tell the lineup who is coming, or add someone from the roster.',
+  playersWithoutRsvp: 'This sheet marks players who are out with strikethrough. Change that in the sheet.',
 };
 
 const element = (id) => document.getElementById(id);
@@ -47,10 +49,12 @@ const captain = {
   canCreateGames: false,
   rosterNames: null,
   rosterError: null,
+  undo: null,
 };
 
 let suppressClicksUntil = 0;
 let dragState = null;
+let toastTimer = null;
 
 function loadScript(address) {
   if (!scriptLoads.has(address)) {
@@ -196,12 +200,14 @@ function nameExpectations(lineup, sheetRows) {
 }
 
 async function saveFielding(lineup, changes) {
+  const reversal = changes.map(({ sheetRow, inningIndex }) => ({ sheetRow, inningIndex, value: lineupPlayer(lineup, sheetRow).positions[inningIndex] }));
   await confirmSheetStillMatches([
     ...nameExpectations(lineup, changes.map(({ sheetRow }) => sheetRow)),
     ...changes.map(({ sheetRow, inningIndex }) => ({ address: cellAddress(lineup.tabName, lineup.inningColumns[inningIndex], sheetRow), expected: lineupPlayer(lineup, sheetRow).positions[inningIndex] })),
   ]);
   await writeValues(changes.map(({ sheetRow, inningIndex, value }) => ({ range: cellAddress(lineup.tabName, lineup.inningColumns[inningIndex], sheetRow), values: [[value]] })));
   lineup.players = applyFieldingChanges(lineup.players, changes);
+  return () => saveFielding(lineup, reversal);
 }
 
 async function saveKickingMove(lineup, move, sourceRow, targetRow) {
@@ -215,15 +221,19 @@ async function saveKickingMove(lineup, move, sourceRow, targetRow) {
   });
   lineup.players = applyKickingMove(lineup.players, move);
   lineup.spareRows = lineup.spareRows.map((sheetRow) => rowAfterMove(sheetRow, move)).sort((first, second) => first - second);
+  return () => saveKickingMove(lineup, inverseKickingMove(move), move.finalRow, move.fromRow);
 }
 
-async function saveRsvp(lineup, player, answer) {
+async function saveRsvp(lineup, sheetRow, answer) {
+  const player = lineupPlayer(lineup, sheetRow);
+  const previousAnswer = RSVP_ANSWERS.find((candidate) => candidate.toLowerCase() === player.rsvp) ?? '';
   await confirmSheetStillMatches([
-    ...nameExpectations(lineup, [player.sheetRow]),
-    { address: cellAddress(lineup.tabName, RSVP_COLUMN_INDEX, player.sheetRow), expected: player.rsvp },
+    ...nameExpectations(lineup, [sheetRow]),
+    { address: cellAddress(lineup.tabName, RSVP_COLUMN_INDEX, sheetRow), expected: player.rsvp },
   ]);
-  await writeValues([{ range: cellAddress(lineup.tabName, RSVP_COLUMN_INDEX, player.sheetRow), values: [[answer]] }]);
-  lineup.players = lineup.players.map((candidate) => (candidate.sheetRow === player.sheetRow ? applyRsvp(candidate, answer.toLowerCase()) : candidate));
+  await writeValues([{ range: cellAddress(lineup.tabName, RSVP_COLUMN_INDEX, sheetRow), values: [[answer]] }]);
+  lineup.players = lineup.players.map((candidate) => (candidate.sheetRow === sheetRow ? applyRsvp(candidate, answer.toLowerCase()) : candidate));
+  return () => saveRsvp(lineup, sheetRow, previousAnswer);
 }
 
 async function saveAddedPlayers(lineup, names) {
@@ -247,7 +257,6 @@ async function loadRosterNames() {
   } catch (error) {
     captain.rosterError = error.message;
   }
-  window.fieldView.rerender();
 }
 
 async function scheduleRowFor(gameNumber) {
@@ -263,7 +272,7 @@ function waitMilliseconds(milliseconds) {
 async function createGame(gameDetails) {
   const gameNumber = nextGameNumber(window.fieldView.allLineups());
   const tabName = `Game ${gameNumber} Lineup`;
-  setStatus(`Creating Game ${gameNumber}…`);
+  showToast(`Creating Game ${gameNumber}…`, { sticky: true });
   await refreshTabs();
   const templateTab = captain.tabs.get(NEW_GAME_TAB_NAME);
   if (templateTab === undefined || !captain.tabs.has(SCHEDULE_TAB_NAME)) throw new Error(`The sheet needs the "${NEW_GAME_TAB_NAME}" and "${SCHEDULE_TAB_NAME}" tabs to start a game from here`);
@@ -285,37 +294,239 @@ async function createGame(gameDetails) {
   ]);
   captain.area = 'fielding';
   for (let attempt = 1; attempt <= NEW_GAME_LOOKUP_ATTEMPTS; attempt += 1) {
-    if (await window.fieldView.reloadLineups(tabName)) return;
+    if (await window.fieldView.reloadLineups(tabName)) return undefined;
     await waitMilliseconds(NEW_GAME_LOOKUP_WAIT_MILLISECONDS);
   }
   throw new Error(`${tabName} was created, but this page has not picked it up yet. Reload the page in a few seconds`);
 }
 
-function setStatus(text, isError = false) {
-  const status = element('captain-status');
-  status.textContent = text;
-  status.classList.toggle('error', isError);
+function hideToast() {
+  clearTimeout(toastTimer);
+  captain.undo = null;
+  element('toast').hidden = true;
 }
 
-function hintFor(area) {
-  return area === 'fielding' ? HINTS.fielding + SCOPE_HINTS[captain.scope] : HINTS[area];
+function showToast(text, { isError = false, undo = null, sticky = false } = {}) {
+  clearTimeout(toastTimer);
+  captain.undo = undo;
+  element('toast-text').textContent = text;
+  element('toast-undo').hidden = undo === null;
+  element('toast').classList.toggle('error', isError);
+  element('toast').hidden = false;
+  if (!isError && !sticky) toastTimer = setTimeout(hideToast, undo === null ? TOAST_MILLISECONDS : TOAST_WITH_UNDO_MILLISECONDS);
 }
 
-async function saveEdit(work) {
+async function saveEdit(work, { doneMessage = 'Saved', offerUndo = true } = {}) {
   captain.saving = true;
-  setStatus('Saving…');
+  showToast('Saving…', { sticky: true });
   try {
-    await work();
+    const undo = await work();
     captain.selectedRow = null;
-    captain.scope = 'inning';
     window.fieldView.changed();
-    setStatus('Saved');
+    showToast(doneMessage, { undo: offerUndo ? undo ?? null : null });
   } catch (error) {
     window.fieldView.rerender();
-    setStatus(error.message, true);
+    showToast(error.message, { isError: true });
   } finally {
     captain.saving = false;
   }
+}
+
+function applyFielding(sourceRow, target, scope) {
+  const lineup = window.fieldView.currentLineup();
+  const inningIndex = window.fieldView.currentInningIndex();
+  let changes;
+  try {
+    changes = fieldingChangesForInnings(lineup.players, inningsToEdit(scope, inningIndex, lineup.innings.length), sourceRow, target, lineup.innings);
+  } catch (error) {
+    showToast(error.message, { isError: true });
+    return;
+  }
+  if (changes.length === 0) {
+    captain.selectedRow = null;
+    decorate();
+    return;
+  }
+  saveEdit(() => saveFielding(lineup, changes));
+}
+
+function moveKicker(sourceRow, targetRow) {
+  const lineup = window.fieldView.currentLineup();
+  const move = kickingMove(lineup.players, sourceRow, targetRow);
+  if (move === null) {
+    captain.selectedRow = null;
+    window.fieldView.rerender();
+    return;
+  }
+  saveEdit(() => saveKickingMove(lineup, move, sourceRow, targetRow));
+}
+
+function node(tag, className, text) {
+  const created = document.createElement(tag);
+  if (className) created.className = className;
+  if (text !== undefined) created.textContent = text;
+  return created;
+}
+
+function button(text, className, onClick) {
+  const created = node('button', className, text);
+  created.type = 'button';
+  created.addEventListener('click', () => {
+    if (!captain.saving) onClick();
+  });
+  return created;
+}
+
+function openSheet({ title, subtitle, body, footer = null }) {
+  hideToast();
+  element('sheet-title').textContent = title;
+  element('sheet-subtitle').textContent = subtitle;
+  element('sheet-body').replaceChildren(...body);
+  element('sheet-footer').replaceChildren(...(footer ?? []));
+  element('sheet-footer').hidden = footer === null;
+  element('sheet-backdrop').hidden = false;
+  element('captain-sheet').hidden = false;
+  element('captain-sheet').focus();
+}
+
+function closeSheet() {
+  element('captain-sheet').hidden = true;
+  element('sheet-backdrop').hidden = true;
+  delete element('captain-sheet').dataset.kind;
+}
+
+function pickRow(label, badge, onPick, { quietBadge = false, note = null, badgeFirst = false } = {}) {
+  const row = button('', badgeFirst ? 'pick badge-first' : 'pick', onPick);
+  const badgeElement = badge === null ? null : node('span', quietBadge ? 'pick-badge quiet' : 'pick-badge', badge);
+  const end = node('span', 'pick-end');
+  if (note !== null) end.append(node('span', 'pick-note', note));
+  if (badgeElement !== null && !badgeFirst) end.append(badgeElement);
+  if (badgeElement !== null && badgeFirst) row.append(badgeElement);
+  row.append(node('span', 'pick-name', label), end);
+  return row;
+}
+
+function scopeFooter(lineup, inningIndex) {
+  if (lineup.innings.length === 1) return null;
+  const caption = node('p', 'scope-caption');
+  const choices = node('div', 'segmented');
+  const isMiddleInning = inningIndex > 0 && inningIndex < lineup.innings.length - 1;
+  const distinctScopes = SCOPES.filter(({ scope }) => scope !== 'rest' || isMiddleInning);
+  const refresh = () => {
+    caption.textContent = `Applies to ${inningRangeLabel(inningsToEdit(captain.scope, inningIndex, lineup.innings.length), lineup.innings).toLowerCase()}`;
+    choices.querySelectorAll('button').forEach((choice, index) => choice.setAttribute('aria-pressed', String(distinctScopes[index].scope === captain.scope)));
+  };
+  choices.append(...distinctScopes.map(({ scope, label }) => {
+    const choice = button(label, '', () => {
+      captain.scope = scope;
+      refresh();
+    });
+    return choice;
+  }));
+  refresh();
+  return [caption, choices];
+}
+
+function openSpotSheet(position) {
+  const lineup = window.fieldView.currentLineup();
+  const inningIndex = window.fieldView.currentInningIndex();
+  captain.scope = 'inning';
+  const occupants = occupantsOf(lineup.players, inningIndex, position);
+  const place = (sourceRow, target) => {
+    closeSheet();
+    applyFielding(sourceRow, target, captain.scope);
+  };
+  const holderRows = occupants.map((occupant) => pickRow(`${occupant.name} is here`, null, () => place(occupant.sheetRow, { kind: 'bench' }), { note: 'Sit out' }));
+  const candidateRows = candidatesForSpot(lineup.players, inningIndex, position).map((candidate) => {
+    const current = candidate.positions[inningIndex];
+    return pickRow(candidate.name, current === '' ? 'Sitting' : current, () => place(candidate.sheetRow, { kind: 'spot', position }), { quietBadge: current === '' });
+  });
+  openSheet({
+    title: POSITION_NAMES[POSITION_CODES.indexOf(position)],
+    subtitle: occupants.length === 0 ? `Open in inning ${lineup.innings[inningIndex]}` : `Inning ${lineup.innings[inningIndex]}`,
+    body: [...holderRows, ...(candidateRows.length === 0 ? [] : [node('p', 'sheet-section', occupants.length === 0 ? 'Put someone here' : 'Or swap in someone else'), ...candidateRows])],
+    footer: scopeFooter(lineup, inningIndex),
+  });
+}
+
+function openPlayerSheet(sheetRow) {
+  const lineup = window.fieldView.currentLineup();
+  const inningIndex = window.fieldView.currentInningIndex();
+  const player = lineupPlayer(lineup, sheetRow);
+  const current = player.positions[inningIndex];
+  captain.scope = 'inning';
+  const place = (target) => {
+    closeSheet();
+    applyFielding(sheetRow, target, captain.scope);
+  };
+  const sitRow = current === '' ? [] : [pickRow('Sit out', null, () => place({ kind: 'bench' }), { note: `now at ${current}` })];
+  const positionRows = positionChoices(lineup.players, inningIndex, current).map(({ position, occupants }) => pickRow(
+    POSITION_NAMES[POSITION_CODES.indexOf(position)],
+    position,
+    () => place({ kind: 'spot', position }),
+    { note: occupants.length === 0 ? 'open' : occupants.map((occupant) => occupant.name).join(' and '), badgeFirst: true },
+  ));
+  openSheet({
+    title: player.name,
+    subtitle: `${current === '' ? 'Sitting' : `At ${POSITION_NAMES[POSITION_CODES.indexOf(current)]}`} in inning ${lineup.innings[inningIndex]}`,
+    body: [...sitRow, node('p', 'sheet-section', 'Where should they play?'), ...positionRows],
+    footer: scopeFooter(lineup, inningIndex),
+  });
+}
+
+function renderRosterSheet() {
+  const sheet = element('captain-sheet');
+  if (sheet.hidden || sheet.dataset.kind !== 'roster') return;
+  const lineup = window.fieldView.currentLineup();
+  const body = [];
+  let footer = null;
+  if (captain.rosterError !== null) {
+    body.push(node('p', 'sheet-section', captain.rosterError));
+  } else if (captain.rosterNames === null) {
+    body.push(node('p', 'sheet-section', 'Loading the roster…'));
+  } else {
+    const names = rosterNamesToAdd(captain.rosterNames, lineup.players);
+    if (names.length === 0) body.push(node('p', 'sheet-section', `Everyone on the ${ROSTER_TAB_NAME} tab is already in this game.`));
+    body.push(...names.map((name) => pickRow(name, null, () => saveEdit(() => saveAddedPlayers(lineup, [name])).then(renderRosterSheet), { note: 'Add' })));
+    if (names.length > 1) footer = [button('Add everyone', 'panel-action primary', () => saveEdit(() => saveAddedPlayers(lineup, names)).then(renderRosterSheet))];
+  }
+  element('sheet-body').replaceChildren(...body);
+  element('sheet-footer').replaceChildren(...(footer ?? []));
+  element('sheet-footer').hidden = footer === null;
+}
+
+function openRosterSheet() {
+  openSheet({ title: 'Add players', subtitle: `From the ${ROSTER_TAB_NAME} tab. They go in the next empty rows.`, body: [] });
+  element('captain-sheet').dataset.kind = 'roster';
+  captain.rosterNames = null;
+  captain.rosterError = null;
+  renderRosterSheet();
+  loadRosterNames().then(renderRosterSheet);
+}
+
+function formField(labelText, type, name) {
+  const label = node('label', undefined, labelText);
+  const input = node('input');
+  input.type = type;
+  input.name = name;
+  label.append(input);
+  return label;
+}
+
+function openNewGameSheet() {
+  const gameNumber = nextGameNumber(window.fieldView.allLineups());
+  const form = node('form', 'captain-form');
+  const submit = node('button', 'panel-action primary', `Create Game ${gameNumber}`);
+  submit.type = 'submit';
+  form.append(formField('Date', 'date', 'date'), formField('Time', 'time', 'time'), formField('Location', 'text', 'location'), formField('Opponent', 'text', 'opponent'), submit);
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    if (captain.saving) return;
+    const fields = new FormData(form);
+    closeSheet();
+    saveEdit(() => createGame({ date: fields.get('date'), time: fields.get('time'), location: fields.get('location').trim(), opponent: fields.get('opponent').trim() }));
+  });
+  openSheet({ title: 'New game', subtitle: 'Fill in what you know. You can change it later on the Schedule tab.', body: [form] });
 }
 
 function describeTarget(targetElement) {
@@ -330,85 +541,20 @@ function describeTarget(targetElement) {
 function sourceRowFor(target, lineup, inningIndex) {
   if (target.kind === 'player') return target.sheetRow;
   if (target.kind !== 'spot') return null;
-  const occupants = lineup.players.filter((player) => player.attending && player.positions[inningIndex] === target.position);
+  const occupants = occupantsOf(lineup.players, inningIndex, target.position);
   return occupants.length === 0 ? null : occupants[occupants.length - 1].sheetRow;
-}
-
-function chooseFrom(target) {
-  const lineup = window.fieldView.currentLineup();
-  const inningIndex = window.fieldView.currentInningIndex();
-  const sourceRow = sourceRowFor(target, lineup, inningIndex);
-  if (sourceRow === null) {
-    setStatus(hintFor(captain.area));
-    return;
-  }
-  captain.selectedRow = sourceRow;
-  setStatus(`${lineupPlayer(lineup, sourceRow).name} selected. ${captain.area === 'fielding' ? 'Tap where they should go.' : 'Tap who they should go next to.'}`);
-  decorate();
-}
-
-function dropOn(target) {
-  const lineup = window.fieldView.currentLineup();
-  const inningIndex = window.fieldView.currentInningIndex();
-  const sourceRow = captain.selectedRow;
-  if (captain.area === 'kicking') {
-    if (target.kind !== 'player') return;
-    let move;
-    try {
-      move = kickingMove(lineup.players, sourceRow, target.sheetRow);
-    } catch (error) {
-      setStatus(error.message, true);
-      return;
-    }
-    if (move === null) {
-      captain.selectedRow = null;
-      decorate();
-      return;
-    }
-    saveEdit(() => saveKickingMove(lineup, move, sourceRow, target.sheetRow));
-    return;
-  }
-  let changes;
-  try {
-    changes = fieldingChangesForInnings(lineup.players, inningsToEdit(captain.scope, inningIndex, lineup.innings.length), sourceRow, target, lineup.innings);
-  } catch (error) {
-    setStatus(error.message, true);
-    return;
-  }
-  if (changes.length === 0) {
-    captain.selectedRow = null;
-    decorate();
-    return;
-  }
-  saveEdit(() => saveFielding(lineup, changes));
 }
 
 function handleTap(targetElement) {
   if (captain.saving || Date.now() < suppressClicksUntil) return;
   const target = describeTarget(targetElement);
   if (target === null) return;
-  if (captain.selectedRow === null) {
-    chooseFrom(target);
-    return;
-  }
-  if (target.kind === 'player' && target.sheetRow === captain.selectedRow) {
-    captain.selectedRow = null;
-    setStatus(hintFor(captain.area));
-    decorate();
-    return;
-  }
-  if (target.kind === 'spot' && sourceRowFor(target, window.fieldView.currentLineup(), window.fieldView.currentInningIndex()) === captain.selectedRow) {
-    captain.selectedRow = null;
-    setStatus(hintFor(captain.area));
-    decorate();
-    return;
-  }
-  dropOn(target);
+  if (target.kind === 'spot') openSpotSheet(target.position);
+  if (target.kind === 'player') openPlayerSheet(target.sheetRow);
 }
 
 function editableElements() {
-  if (captain.area === 'kicking') return [...document.querySelectorAll('#kicking-order li')];
-  return [...document.querySelectorAll('#chips .chip, #bench li, #sit-target')];
+  return [...document.querySelectorAll('#chips .chip, #bench li')];
 }
 
 function startDrag(event, sourceElement) {
@@ -428,9 +574,7 @@ function moveDrag(event) {
     }
     captain.selectedRow = sourceRow;
     dragState.dragging = true;
-    dragState.ghost = document.createElement('div');
-    dragState.ghost.className = 'drag-ghost';
-    dragState.ghost.textContent = lineupPlayer(window.fieldView.currentLineup(), sourceRow).name;
+    dragState.ghost = node('div', 'drag-ghost', lineupPlayer(window.fieldView.currentLineup(), sourceRow).name);
     document.body.append(dragState.ghost);
     decorate();
   }
@@ -446,19 +590,20 @@ function endDrag(event) {
   ghost.remove();
   suppressClicksUntil = Date.now() + CLICK_SUPPRESSION_MILLISECONDS;
   const target = describeTarget(document.elementFromPoint(event.clientX, event.clientY) ?? sourceElement);
-  if (target === null) {
+  const sourceRow = captain.selectedRow;
+  if (target === null || sourceRow === null) {
     captain.selectedRow = null;
     decorate();
     return;
   }
-  dropOn(target);
+  applyFielding(sourceRow, target, 'inning');
 }
 
 function decorate() {
   const lineup = window.fieldView.currentLineup();
   const inningIndex = window.fieldView.currentInningIndex();
   document.querySelectorAll('.edit-selected').forEach((marked) => marked.classList.remove('edit-selected'));
-  if (!captain.active || lineup === null) return;
+  if (!captain.active || lineup === null || captain.area !== 'fielding') return;
   editableElements().forEach((editable) => {
     const target = describeTarget(editable);
     const isSelected = captain.selectedRow !== null && target !== null && sourceRowFor(target, lineup, inningIndex) === captain.selectedRow && target.kind !== 'bench';
@@ -471,130 +616,78 @@ function bindEditable(editable) {
   editable.addEventListener('pointerdown', (event) => startDrag(event, editable));
 }
 
-function panelButton(text, onClick, isSelected = false) {
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.textContent = text;
-  button.classList.toggle('selected', isSelected);
-  button.addEventListener('click', () => {
-    if (!captain.saving) onClick();
+function kickingPanel(lineup) {
+  const kickers = lineup.players.filter((player) => player.attending);
+  const list = node('ol', 'order-list');
+  kickers.forEach((player, index) => {
+    const isMoving = player.sheetRow === captain.selectedRow;
+    const row = button('', isMoving ? 'order-row moving' : 'order-row', () => {
+      if (captain.selectedRow === null) captain.selectedRow = player.sheetRow;
+      else if (isMoving) captain.selectedRow = null;
+      else {
+        moveKicker(captain.selectedRow, player.sheetRow);
+        return;
+      }
+      window.fieldView.rerender();
+    });
+    row.append(node('span', 'order-slot', String(index + 1)), node('span', 'order-name', player.name));
+    const item = node('li');
+    item.append(row);
+    list.append(item);
   });
-  return button;
-}
-
-function panelHeading(text) {
-  const heading = document.createElement('h2');
-  heading.textContent = text;
-  return heading;
-}
-
-function panelNote(text) {
-  const note = document.createElement('p');
-  note.className = 'captain-status';
-  note.textContent = text;
-  return note;
-}
-
-function rsvpRows(lineup) {
-  return lineup.players.map((player) => {
-    const row = document.createElement('div');
-    row.className = 'captain-player';
-    const answers = document.createElement('div');
-    answers.className = 'captain-answers';
-    answers.append(...RSVP_ANSWERS.map((answer) => panelButton(answer, () => saveEdit(() => saveRsvp(lineup, player, player.rsvp === answer.toLowerCase() ? '' : answer)), player.rsvp === answer.toLowerCase())));
-    row.append(player.name, answers);
-    return row;
-  });
-}
-
-function addPlayersSection(lineup) {
-  if (captain.rosterError !== null) return [panelNote(captain.rosterError)];
-  if (captain.rosterNames === null) return [panelNote('Loading the roster…')];
-  const names = rosterNamesToAdd(captain.rosterNames, lineup.players);
-  if (names.length === 0) return [panelNote(`Everyone on the ${ROSTER_TAB_NAME} tab is already in this game.`)];
-  const chips = document.createElement('div');
-  chips.className = 'captain-chips';
-  chips.append(...names.map((name) => panelButton(name, () => saveEdit(() => saveAddedPlayers(lineup, [name])))));
-  return [chips, panelButton('Add everyone', () => saveEdit(() => saveAddedPlayers(lineup, names)))];
+  const moving = kickers.find((player) => player.sheetRow === captain.selectedRow);
+  return [node('p', 'captain-hint', moving === undefined ? HINTS.kicking : `Now tap the spot ${moving.name} should take, or tap ${moving.name} again to cancel.`), list];
 }
 
 function playersPanel(lineup) {
-  const attendance = lineup.usesRsvp
-    ? [panelHeading('Who is playing'), ...rsvpRows(lineup)]
-    : [panelNote('This sheet marks players who are out with strikethrough. Change that in the sheet.')];
-  return [...attendance, panelHeading('Add to this game'), ...addPlayersSection(lineup)];
+  const list = node('div', 'player-list');
+  if (lineup.usesRsvp) {
+    list.append(...lineup.players.map((player) => {
+      const answers = node('div', 'rsvp');
+      answers.append(...RSVP_ANSWERS.map((answer) => {
+        const choice = button(answer, answer.toLowerCase() === 'yes' ? '' : answer.toLowerCase(), () => saveEdit(() => saveRsvp(lineup, player.sheetRow, player.rsvp === answer.toLowerCase() ? '' : answer)));
+        choice.setAttribute('aria-pressed', String(player.rsvp === answer.toLowerCase()));
+        return choice;
+      }));
+      const row = node('div', 'player-row');
+      row.append(node('span', undefined, player.name), answers);
+      return row;
+    }));
+  }
+  return [
+    node('p', 'captain-hint', lineup.usesRsvp ? HINTS.players : HINTS.playersWithoutRsvp),
+    ...(lineup.usesRsvp ? [list] : []),
+    button('Add from roster', 'panel-action', openRosterSheet),
+  ];
 }
 
-function formField(labelText, type, name) {
-  const label = document.createElement('label');
-  label.textContent = labelText;
-  const input = document.createElement('input');
-  input.type = type;
-  input.name = name;
-  label.append(input);
-  return label;
-}
-
-function newGamePanel() {
-  const gameNumber = nextGameNumber(window.fieldView.allLineups());
-  const form = document.createElement('form');
-  form.className = 'captain-form';
-  const submit = document.createElement('button');
-  submit.type = 'submit';
-  submit.className = 'primary';
-  submit.textContent = `Create Game ${gameNumber}`;
-  form.append(formField('Date', 'date', 'date'), formField('Time', 'time', 'time'), formField('Location', 'text', 'location'), formField('Opponent', 'text', 'opponent'), submit);
-  form.addEventListener('submit', (event) => {
-    event.preventDefault();
-    if (captain.saving) return;
-    const fields = new FormData(form);
-    saveEdit(() => createGame({ date: fields.get('date'), time: fields.get('time'), location: fields.get('location').trim(), opponent: fields.get('opponent').trim() }));
-  });
-  return [form];
-}
-
-function renderPanel(lineup) {
+function renderPanel(lineup, inField) {
   const panel = element('captain-panel');
-  const showsPanel = captain.active && lineup !== null && (captain.area === 'players' || captain.area === 'newgame');
-  panel.hidden = !showsPanel;
-  if (!showsPanel) {
-    delete panel.dataset.area;
+  panel.hidden = !captain.active || lineup === null;
+  if (panel.hidden) {
     panel.replaceChildren();
     return;
   }
-  if (captain.area === 'newgame' && panel.dataset.area === 'newgame') return;
-  panel.dataset.area = captain.area;
-  panel.replaceChildren(...(captain.area === 'players' ? playersPanel(lineup) : newGamePanel()));
+  if (captain.area === 'kicking') panel.replaceChildren(...kickingPanel(lineup));
+  else if (captain.area === 'players') panel.replaceChildren(...playersPanel(lineup));
+  else panel.replaceChildren(node('p', 'captain-hint', inField ? HINTS.fielding : HINTS.fieldingElsewhere));
 }
 
 function afterRender() {
   const bar = element('captain-bar');
   const inField = window.fieldView.inFieldMode();
-  const editsGrid = captain.area === 'fielding' || captain.area === 'kicking';
   bar.hidden = !captain.active;
-  document.body.classList.toggle('captain-active', captain.active && inField && editsGrid);
-  document.body.classList.toggle('captain-kicking', captain.active && inField && captain.area === 'kicking');
+  document.body.classList.toggle('captain-active', captain.active && inField && captain.area === 'fielding');
+  document.body.classList.toggle('captain-list', captain.active && captain.area !== 'fielding');
   element('captain-toggle').hidden = captain.active || !captainToolsOffered();
+  element('new-game').hidden = !captain.active || !captain.canCreateGames;
   if (!captain.active) return;
   const lineup = window.fieldView.currentLineup();
   if (lineup === null || (captain.selectedRow !== null && lineupPlayer(lineup, captain.selectedRow) === undefined)) captain.selectedRow = null;
-  AREAS.forEach((area) => element(`area-${area}`).classList.toggle('selected', captain.area === area));
-  SCOPES.forEach((scope) => {
-    element(`scope-${scope}`).hidden = captain.area !== 'fielding';
-    element(`scope-${scope}`).classList.toggle('selected', captain.scope === scope);
-  });
-  element('scope-label').hidden = captain.area !== 'fielding';
-  element('area-new-game').hidden = !captain.canCreateGames;
-  element('area-new-game').classList.toggle('selected', captain.area === 'newgame');
-  element('captain-options').hidden = captain.area !== 'fielding' && !captain.canCreateGames;
-  element('sit-target').hidden = captain.area !== 'fielding' || !inField;
-  renderPanel(lineup);
-  if (!editsGrid) return;
-  if (!inField) {
-    setStatus('Pick an inning to edit the field');
-    return;
-  }
-  editableElements().filter((editable) => editable.id !== 'sit-target').forEach(bindEditable);
+  AREAS.forEach((area) => element(`area-${area}`).setAttribute('aria-pressed', String(captain.area === area)));
+  renderPanel(lineup, inField);
+  if (captain.area !== 'fielding' || !inField) return;
+  editableElements().forEach(bindEditable);
   decorate();
 }
 
@@ -624,7 +717,6 @@ async function startCaptainMode() {
     captain.scope = 'inning';
     captain.selectedRow = null;
     rememberCaptainDevice();
-    setStatus(hintFor('fielding'));
     window.fieldView.rerender();
   } catch (error) {
     window.fieldView.showMessage('Captain tools', error);
@@ -639,35 +731,40 @@ function stopCaptainMode() {
   captain.accessToken = null;
   captain.spreadsheetId = null;
   captain.tabs = new Map();
-  setStatus('');
+  closeSheet();
+  hideToast();
   window.fieldView.rerender();
 }
 
 function chooseArea(area) {
   captain.area = area;
-  captain.scope = 'inning';
   captain.selectedRow = null;
-  setStatus(hintFor(area));
-  if (area === 'players') loadRosterNames();
   window.fieldView.rerender();
 }
 
-function chooseScope(scope) {
-  captain.scope = scope;
-  setStatus(hintFor('fielding'));
-  window.fieldView.rerender();
-}
-
-bindEditable(element('sit-target'));
+element('toast').addEventListener('click', (event) => {
+  if (event.target === element('toast-undo')) return;
+  if (element('toast').classList.contains('error')) hideToast();
+});
+element('toast-undo').addEventListener('click', () => {
+  const undo = captain.undo;
+  hideToast();
+  if (undo !== null && !captain.saving) saveEdit(undo, { doneMessage: 'Undone', offerUndo: false });
+});
 element('captain-toggle').addEventListener('pointerdown', () => loadScript(SIGN_IN_SCRIPT));
 element('captain-toggle').addEventListener('click', startCaptainMode);
 element('captain-done').addEventListener('click', stopCaptainMode);
+element('new-game').addEventListener('click', openNewGameSheet);
+element('sheet-close').addEventListener('click', closeSheet);
+element('sheet-backdrop').addEventListener('click', closeSheet);
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') closeSheet();
+});
 AREAS.forEach((area) => element(`area-${area}`).addEventListener('click', () => chooseArea(area)));
-element('area-new-game').addEventListener('click', () => chooseArea('newgame'));
-SCOPES.forEach((scope) => element(`scope-${scope}`).addEventListener('click', () => chooseScope(scope)));
 window.addEventListener('hashchange', () => {
   if (window.fieldView.currentLineup() !== null) window.fieldView.rerender();
 });
 document.addEventListener('pointermove', moveDrag);
 document.addEventListener('pointerup', endDrag);
 window.captainTools = { afterRender };
+if (window.fieldView.currentLineup() !== null) window.fieldView.rerender();

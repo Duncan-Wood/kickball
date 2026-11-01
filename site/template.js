@@ -1,6 +1,6 @@
 const SHEETS_ADDRESS = 'https://sheets.googleapis.com/v4/spreadsheets';
-const POSITION_CODES = ['P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'LC', 'CF', 'RC', 'RF'];
-const POSITION_NAMES = ['Pitcher', 'Catcher', 'First Baseperson', 'Second Baseperson', 'Third Baseperson', 'Shortstop', 'Left Fielder', 'Left Center Fielder', 'Center Fielder', 'Right Center Fielder', 'Right Fielder'];
+export const POSITION_CODES = ['P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'LC', 'CF', 'RC', 'RF'];
+export const POSITION_NAMES = ['Pitcher', 'Catcher', 'First Baseperson', 'Second Baseperson', 'Third Baseperson', 'Shortstop', 'Left Fielder', 'Left Center Fielder', 'Center Fielder', 'Right Center Fielder', 'Right Fielder'];
 const INNING_COUNT = 5;
 const LINEUP_ROW_COUNT = 22;
 const SHARE_LINK_LABEL = 'Share link';

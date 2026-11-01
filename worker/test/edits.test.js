@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { applyAddedPlayers, applyFieldingChanges, applyKickingMove, applyRsvp, cellAddress, columnLetter, fieldingChanges, fieldingChangesForInnings, inningsToEdit, kickingMove, nextGameNumber, playersToAdd, rosterNamesToAdd, rowAfterMove } from '../../site/edits.js';
+import { applyAddedPlayers, applyFieldingChanges, applyKickingMove, applyRsvp, candidatesForSpot, cellAddress, columnLetter, fieldingChanges, fieldingChangesForInnings, inningRangeLabel, inningsToEdit, inverseKickingMove, kickingMove, nextGameNumber, occupantsOf, positionChoices, playersToAdd, rosterNamesToAdd, rowAfterMove } from '../../site/edits.js';
 
 const player = (name, sheetRow, positions, attending = true) => ({ name, sheetRow, attending, positions });
 const lineupPlayers = () => [
@@ -142,4 +142,37 @@ test('spare rows move with a kicker', () => {
 test('the next game number follows the highest one, and starts at 1', () => {
   assert.equal(nextGameNumber([{ gameNumber: 2 }, { gameNumber: 5 }, { gameNumber: null }]), 6);
   assert.equal(nextGameNumber([]), 1);
+});
+
+test('undoing a kicking move sends the kicker back to where they started', () => {
+  const down = kickingMove(lineupPlayers(), 9, 11);
+  const movedDown = applyKickingMove(lineupPlayers(), down);
+  const backUp = applyKickingMove(movedDown, inverseKickingMove(down));
+  assert.deepEqual(backUp.map((each) => [each.name, each.sheetRow]), lineupPlayers().map((each) => [each.name, each.sheetRow]));
+  const up = kickingMove(lineupPlayers(), 11, 9);
+  assert.deepEqual(inverseKickingMove(up), { fromRow: 9, finalRow: 11, destinationIndex: 11 });
+});
+
+test('occupants only count players who are attending', () => {
+  assert.deepEqual(occupantsOf(lineupPlayers(), 0, 'LF'), []);
+  assert.deepEqual(occupantsOf(lineupPlayers(), 0, 'P').map((each) => each.name), ['Alex']);
+});
+
+test('spot candidates list the bench first, then fielders in field order, and leave out the spot holder and absent players', () => {
+  const players = [player('Alex', 9, ['RF']), player('Sam', 10, ['P']), player('Jordan', 11, ['']), player('Riley', 12, ['SS']), player('Casey', 13, ['C'], false), player('Pat', 14, [''])];
+  assert.deepEqual(candidatesForSpot(players, 0, 'C').map((each) => each.name), ['Jordan', 'Pat', 'Sam', 'Riley', 'Alex']);
+  assert.deepEqual(candidatesForSpot(players, 0, 'P').map((each) => each.name), ['Jordan', 'Pat', 'Riley', 'Alex']);
+});
+
+test('position choices list every other position in field order with who is there', () => {
+  const choices = positionChoices(lineupPlayers(), 0, 'P');
+  assert.equal(choices.length, 10);
+  assert.equal(choices[0].position, 'C');
+  assert.deepEqual(choices[0].occupants.map((each) => each.name), ['Sam']);
+  assert.deepEqual(choices.find((choice) => choice.position === 'LF').occupants, []);
+});
+
+test('the innings being edited are named plainly', () => {
+  assert.equal(inningRangeLabel([1], ['1', '2', '3']), 'Inning 2');
+  assert.equal(inningRangeLabel([1, 2], ['1', '2', '3']), 'Innings 2 to 3');
 });

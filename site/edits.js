@@ -1,3 +1,5 @@
+import { POSITION_CODES } from './template.js';
+
 export function columnLetter(columnIndex) {
   let letters = '';
   for (let remaining = columnIndex + 1; remaining > 0; remaining = Math.floor((remaining - 1) / 26)) {
@@ -111,4 +113,36 @@ export function applyRsvp(player, answer) {
 
 export function nextGameNumber(lineups) {
   return Math.max(0, ...lineups.map((lineup) => lineup.gameNumber ?? 0)) + 1;
+}
+
+export function inverseKickingMove({ fromRow, finalRow }) {
+  return { fromRow: finalRow, finalRow: fromRow, destinationIndex: finalRow < fromRow ? fromRow : fromRow - 1 };
+}
+
+export function occupantsOf(players, inningIndex, position) {
+  return players.filter((player) => player.attending && player.positions[inningIndex] === position);
+}
+
+function fieldOrder(position) {
+  const index = POSITION_CODES.indexOf(position);
+  return index === -1 ? POSITION_CODES.length : index;
+}
+
+export function candidatesForSpot(players, inningIndex, position) {
+  const others = players.filter((player) => player.attending && player.positions[inningIndex] !== position);
+  const sitting = others.filter((player) => player.positions[inningIndex] === '');
+  const playing = others.filter((player) => player.positions[inningIndex] !== '').sort((first, second) => fieldOrder(first.positions[inningIndex]) - fieldOrder(second.positions[inningIndex]));
+  return [...sitting, ...playing];
+}
+
+export function positionChoices(players, inningIndex, currentPosition) {
+  return POSITION_CODES
+    .filter((position) => position !== currentPosition)
+    .map((position) => ({ position, occupants: occupantsOf(players, inningIndex, position) }));
+}
+
+export function inningRangeLabel(inningIndexes, inningLabels) {
+  const first = inningLabels[inningIndexes[0]];
+  const last = inningLabels[inningIndexes[inningIndexes.length - 1]];
+  return inningIndexes.length === 1 ? `Inning ${first}` : `Innings ${first} to ${last}`;
 }

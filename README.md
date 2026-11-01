@@ -47,10 +47,11 @@ Under the team page, **Captain tools** lets anyone who can edit the sheet change
 
 - **Who sees the link:** The Captain tools link is hidden from players. A captain or co-captain opens the team link once with `#captain` on the end, like `https://.../?team=abc123#captain`. After a successful sign-in the device remembers, and the link shows on its own.
 - **Signing in:** Sign in with Google and the page checks that your account can edit the team sheet. A co-captain who was shared the sheet picks it once in Google's file picker. Each visit starts with a Google sign-in, and the page keeps no sign-in afterward.
-- **Fielding:** tap a player, then tap a position to move them there, another player to swap with them, or **Sit out this inning**. Choose **This inning**, **Rest of game** or **All innings** first to apply the move to more than one inning. On a computer you can drag instead.
-- **Kicking order:** tap a kicker, then tap who they should go next to. The order is the same in every inning.
-- **Players:** set each player's RSVP to Yes, Maybe or No, and add players from the `Roster` tab to this game. A player added this way goes in the next empty row of the grid with no RSVP, which counts as planned for.
-- **New game:** fill in the date, time, location and opponent, or leave any blank. The page copies the `New game (copy me)` tab as the next game number and fills in that game's row on `Schedule`. It only appears for sheets that have both tabs.
+- **Field:** tap a position to open a list of who can play there, with the players sitting first and each player's current position beside their name. Tap someone to put them there, which swaps them with whoever held the spot. Tap a player in the Sitting list to choose which position they take. At the bottom of the list, choose **This inning**, **Rest of game** or **All innings** to apply the change to more than one inning. On a computer you can also drag a player onto a position.
+- **Kicking:** tap a kicker, then tap the numbered spot in the order they should take.
+- **Players:** set each player's RSVP to Yes, Maybe or No, and use **Add from roster** to put players from the `Roster` tab into the next empty rows of this game. Added players have no RSVP, which counts as planned for.
+- **New game:** the button beside the game picker asks for a date, time, location and opponent, or leave any blank. The page copies the `New game (copy me)` tab as the next game number and fills in that game's row on `Schedule`. It only appears for sheets that have both tabs.
+- **Undo:** after a field move, a kicking move or an RSVP, the confirmation at the bottom of the screen has an **Undo** link for a few seconds. Adding players and starting a game cannot be undone from the page.
 - Edits are written to the sheet with your own account, so the sheet's version history shows who made them. If the sheet changed since the page last updated, nothing is saved and the page says so.
 - Sheets that number the kicking order in column B are edited in the sheet.
 
