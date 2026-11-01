@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readLineup, isCurrentLineupTab, orderedLineups } from '../src/lineup.js';
+import { defaultLineupTabName, readLineup, isCurrentLineupTab, orderedLineups } from '../src/lineup.js';
 import { readConfig } from '../src/config.js';
 import { normalizedRows } from '../src/sheetsReader.js';
 
@@ -195,4 +195,19 @@ test('players carry their sheet row, skipping blank rows, and RSVP lineups can b
   assert.deepEqual(lineup.players.map((player) => [player.name, player.sheetRow]), [['Chad S', 8], ['Emma E', 10]]);
   assert.deepEqual(lineup.inningColumns, [2, 3]);
   assert.equal(lineup.editable, true);
+});
+
+test('the date on a game tab is exposed as an ISO date', () => {
+  const lineup = readLineup('Game 2 Lineup', lineupRows([rowOf('Chad S', '', 'SS', 'P')]), '2026-10-18');
+  assert.equal(lineup.isoDate, '2026-10-01');
+  assert.equal(readLineup('week 7 lineup', [rowOf('Name', '', '1'), rowOf('Open spots', '', '')], '2026-10-18').isoDate, '');
+});
+
+test('the default game is the next one by date, otherwise the latest, regardless of game number', () => {
+  const game = (tabName, isoDate) => ({ tabName, isoDate });
+  const lineups = [game('Game 1 Lineup', '2026-10-01'), game('Playoff Lineup', '2026-11-20'), game('Game 2 Lineup', '2026-11-08'), game('Undated Lineup', '')];
+  assert.equal(defaultLineupTabName(lineups, '2026-11-08'), 'Game 2 Lineup');
+  assert.equal(defaultLineupTabName(lineups, '2026-11-09'), 'Playoff Lineup');
+  assert.equal(defaultLineupTabName(lineups, '2026-12-01'), 'Playoff Lineup');
+  assert.equal(defaultLineupTabName([game('Undated Lineup', '')], '2026-11-08'), undefined);
 });

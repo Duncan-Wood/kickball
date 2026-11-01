@@ -1,5 +1,5 @@
 import { CONFIG_TAB_NAME, readConfig } from './config.js';
-import { isCurrentLineupTab, orderedLineups, readLineup } from './lineup.js';
+import { defaultLineupTabName, isCurrentLineupTab, orderedLineups, readLineup } from './lineup.js';
 
 const SHEETS_ADDRESS = 'https://sheets.googleapis.com/v4/spreadsheets';
 const CELL_FIELDS = 'formattedValue,effectiveValue.numberValue,effectiveFormat(textFormat.strikethrough,backgroundColor)';
@@ -48,5 +48,5 @@ export async function readTeamSheet(accessToken, spreadsheetId, now = new Date()
   const { lineups, problems } = orderedLineups(tabNames
     .filter(isCurrentLineupTab)
     .map((tabName) => readLineup(tabName, rowsByTab.get(tabName), today)));
-  return { config: readConfig(rowsByTab.get(CONFIG_TAB_NAME) ?? null), lineups, problems };
+  return { config: readConfig(rowsByTab.get(CONFIG_TAB_NAME) ?? null), lineups, problems, activeTabName: defaultLineupTabName(lineups, today) };
 }

@@ -39,6 +39,7 @@ export function readLineup(tabName, rows, today) {
     label: lineupLabel(tabName, gameNumber, textAt(dateRowIndex, 1)),
     gameNumber,
     played: isBeforeToday(rows[dateRowIndex]?.[1]?.serialDate, today),
+    isoDate: isoDateOf(rows[dateRowIndex]?.[1]?.serialDate),
     opponent: textAt(opponentRowIndex, 1),
     date: textAt(dateRowIndex, 1),
     time: textAt(timeRowIndex, 1),
@@ -135,8 +136,20 @@ function isKickNumber(cellText) {
   return /^\d+$/.test(cellText.trim());
 }
 
+function isoDateOf(serialDate) {
+  if (typeof serialDate !== 'number') return '';
+  return new Date(Date.UTC(1899, 11, 30) + Math.floor(serialDate) * 86400000).toISOString().slice(0, 10);
+}
+
 function isBeforeToday(serialDate, today) {
-  if (typeof serialDate !== 'number') return false;
-  const day = new Date(Date.UTC(1899, 11, 30) + Math.floor(serialDate) * 86400000).toISOString().slice(0, 10);
-  return day < today;
+  const day = isoDateOf(serialDate);
+  return day !== '' && day < today;
+}
+
+export function defaultLineupTabName(lineups, today) {
+  const dated = lineups.filter((lineup) => lineup.isoDate !== '');
+  const upcoming = dated.filter((lineup) => lineup.isoDate >= today).sort((first, second) => first.isoDate.localeCompare(second.isoDate));
+  if (upcoming.length > 0) return upcoming[0].tabName;
+  const latest = dated.sort((first, second) => second.isoDate.localeCompare(first.isoDate));
+  return latest.length > 0 ? latest[0].tabName : undefined;
 }

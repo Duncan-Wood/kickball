@@ -418,10 +418,20 @@ async function reloadLineups(tabNameToSelect) {
   showProblems(data.problems ?? []);
   saveLineups();
   populateGameOptions();
-  const lineupToSelect = lineups.find((lineup) => lineup.tabName === tabNameToSelect) ?? selectedLineup;
-  document.getElementById('game').value = lineupToSelect.tabName;
-  selectLineup(lineupToSelect.tabName);
-  return lineupToSelect.tabName === tabNameToSelect;
+  const lineupToSelect = lineups.find((lineup) => lineup.tabName === tabNameToSelect) ?? lineups.find((lineup) => lineup.tabName === selectedLineup.tabName) ?? lineups[0];
+  showLineup(lineupToSelect.tabName);
+  return lineups;
+}
+
+function showLineup(tabName) {
+  document.getElementById('game').value = tabName;
+  selectLineup(tabName);
+}
+
+function selectInning(inningIndex) {
+  mode = 'inning';
+  selectedInningIndex = inningIndex;
+  render();
 }
 
 function scheduleRefresh() {
@@ -595,6 +605,8 @@ window.fieldView = {
   currentLineup: () => selectedLineup,
   allLineups: () => lineups,
   reloadLineups,
+  showLineup,
+  selectInning,
   currentInningIndex: () => selectedInningIndex,
   inFieldMode: () => mode === 'inning',
   rerender: () => render(),

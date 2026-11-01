@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { applyAddedPlayers, applyFieldingChanges, applyKickingMove, applyRsvp, candidatesForSpot, cellAddress, columnLetter, fieldingChanges, fieldingChangesForInnings, inningRangeLabel, inningsToEdit, inverseKickingMove, kickingMove, nextGameNumber, occupantsOf, positionChoices, playersToAdd, rosterNamesToAdd, rowAfterMove } from '../../site/edits.js';
+import { applyAddedPlayers, applyFieldingChanges, applyKickingMove, applyRsvp, applyRemovedPlayers, candidatesForSpot, cellAddress, columnLetter, describeInnings, fieldingChanges, fieldingChangesForInnings, inningsForPreset, inningsHaveDifferentLineups, inverseKickingMove, isoDateFromDisplayed, isoTimeFromDisplayed, scheduleGames, kickingMove, nextGameNumber, occupantsOf, positionChoices, playersToAdd, rosterNamesToAdd, rowAfterMove } from '../../site/edits.js';
 
 const player = (name, sheetRow, positions, attending = true) => ({ name, sheetRow, attending, positions });
 const lineupPlayers = () => [
@@ -81,12 +81,6 @@ test('moving past a blank row keeps the gap where it was', () => {
 
 test('moving a kicker onto themselves is nothing', () => {
   assert.equal(kickingMove(lineupPlayers(), 10, 10), null);
-});
-
-test('the innings to edit follow the chosen scope', () => {
-  assert.deepEqual(inningsToEdit('inning', 2, 5), [2]);
-  assert.deepEqual(inningsToEdit('rest', 2, 5), [2, 3, 4]);
-  assert.deepEqual(inningsToEdit('all', 2, 5), [0, 1, 2, 3, 4]);
 });
 
 test('a move across innings works out each inning on its own and tags the changes', () => {
@@ -172,7 +166,53 @@ test('position choices list every other position in field order with who is ther
   assert.deepEqual(choices.find((choice) => choice.position === 'LF').occupants, []);
 });
 
-test('the innings being edited are named plainly', () => {
-  assert.equal(inningRangeLabel([1], ['1', '2', '3']), 'Inning 2');
-  assert.equal(inningRangeLabel([1, 2], ['1', '2', '3']), 'Innings 2 to 3');
+test('innings are described in plain words', () => {
+  assert.equal(describeInnings([1], ['1', '2', '3']), 'inning 2');
+  assert.equal(describeInnings([0, 2], ['1', '2', '3']), 'innings 1 and 3');
+  assert.equal(describeInnings([0, 2, 4], ['1', '2', '3', '4', '5']), 'innings 1, 3 and 5');
+});
+
+test('odd, even and all pick the innings by their number', () => {
+  assert.deepEqual(inningsForPreset('odd', 5), [0, 2, 4]);
+  assert.deepEqual(inningsForPreset('even', 5), [1, 3]);
+  assert.deepEqual(inningsForPreset('all', 3), [0, 1, 2]);
+});
+
+test('innings only count as different when an attending player is somewhere else', () => {
+  const players = [player('Alex', 9, ['P', 'P', 'C']), player('Sam', 10, ['C', 'C', 'P']), player('Riley', 13, ['LF', 'RF', 'LF'], false)];
+  assert.equal(inningsHaveDifferentLineups(players, [0, 1]), false);
+  assert.equal(inningsHaveDifferentLineups(players, [0, 2]), true);
+});
+
+test('removing added players puts their rows back in order', () => {
+  const lineup = { players: lineupPlayers(), spareRows: [14] };
+  const updated = applyRemovedPlayers(lineup, [11, 9]);
+  assert.deepEqual(updated.players.map((each) => each.name), ['Sam', 'Riley']);
+  assert.deepEqual(updated.spareRows, [9, 11, 14]);
+});
+
+test('displayed dates and times turn into what the form inputs expect', () => {
+  assert.equal(isoDateFromDisplayed('11/8/26'), '2026-11-08');
+  assert.equal(isoDateFromDisplayed('11/08/2026'), '2026-11-08');
+  assert.equal(isoDateFromDisplayed('2026-11-08'), '2026-11-08');
+  assert.equal(isoDateFromDisplayed('Sunday'), '');
+  assert.equal(isoTimeFromDisplayed('7:00 PM'), '19:00');
+  assert.equal(isoTimeFromDisplayed('12:30 AM'), '00:30');
+  assert.equal(isoTimeFromDisplayed('12:30 PM'), '12:30');
+  assert.equal(isoTimeFromDisplayed('19:05'), '19:05');
+  assert.equal(isoTimeFromDisplayed('evening'), '');
+});
+
+test('the season schedule lists numbered games that have details or a lineup, with their rows', () => {
+  const rows = [
+    ['Game #', 'Date', 'Time', 'Location', 'Opponent', 'Notes'],
+    ['1', '11/8/26', '7:00 PM', 'Field 1', 'Dirt Sliders', 'W, 12-0'],
+    ['2', '11/15/26', '', '', ''],
+    ['3'],
+    ['4'],
+    ['x', '11/22/26'],
+  ];
+  const games = scheduleGames(rows, [{ gameNumber: 1, tabName: 'Game 1 Lineup' }, { gameNumber: 3, tabName: 'Game 3 Lineup' }]);
+  assert.deepEqual(games.map((game) => [game.number, game.row, game.tabName]), [[1, 2, 'Game 1 Lineup'], [2, 3, null], [3, 4, 'Game 3 Lineup']]);
+  assert.equal(games[0].notes, 'W, 12-0');
 });

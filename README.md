@@ -34,7 +34,7 @@ The `Team Config` tab has eight settings: team name, season label, icon, main co
 
 - `Schedule` holds each game's date, time, location, opponent and result once. A game tab looks its details up by the number in its `Game #:` cell.
 - `Start here` is the first tab: setup steps and what the colors mean. It is never sent to players.
-- To add the next game, use **New game** in Captain tools, or duplicate the `New game (copy me)` tab, rename the copy so it ends with `Lineup`, and type its number in the `Game #:` cell. The blank tab is ignored until it is renamed.
+- To add games, use **Games** in Captain tools, or duplicate the `New game (copy me)` tab, rename the copy so it ends with `Lineup`, and type its number in the `Game #:` cell. The blank tab is ignored until it is renamed.
 - The lookup cells in a game tab show a red corner flag if someone types over their formula. The warning is a validation rule, so it carries over when a tab is duplicated.
 - `Roster` holds each player's name, the positions they prefer and the positions they won't play, and private notes. Subs go on the roster like anyone else and are added to a game's grid when they play.
 - In a game tab, the `RSVP` column takes Yes, Maybe or No as replies come in. A blank cell next to a name is gray, meaning no reply yet. Blank and Maybe players are still planned for, and a No turns the row gray.
@@ -47,11 +47,13 @@ Under the team page, **Captain tools** lets anyone who can edit the sheet change
 
 - **Who sees the link:** The Captain tools link is hidden from players. A captain or co-captain opens the team link once with `#captain` on the end, like `https://.../?team=abc123#captain`. After a successful sign-in the device remembers, and the link shows on its own.
 - **Signing in:** Sign in with Google and the page checks that your account can edit the team sheet. A co-captain who was shared the sheet picks it once in Google's file picker. Each visit starts with a Google sign-in, and the page keeps no sign-in afterward.
-- **Field:** tap a position to open a list of who can play there, with the players sitting first and each player's current position beside their name. Tap someone to put them there, which swaps them with whoever held the spot. Tap a player in the Sitting list to choose which position they take. At the bottom of the list, choose **This inning**, **Rest of game** or **All innings** to apply the change to more than one inning. On a computer you can also drag a player onto a position.
+- **Field:** tap a position and a panel slides up under the field listing who can play there, with the players sitting first and each player's current position beside their name. Tap someone to put them there, which swaps them with whoever held the spot. When the spot was open, the panel moves on to the next open position, so a lineup can be filled in by tapping down the list. Tap a sitting player to place them by tapping a position on the field. On a computer you can also drag a player onto a position.
+- **Edit innings:** changes apply to the inning on screen. To change several at once, tap more innings in the **Edit innings** row, or use **Odd**, **Even** or **All**. A captain who alternates two lineups can select the odd innings, set that lineup, then select the even innings and set the other. A note below the row says which innings a change will touch.
 - **Kicking:** tap a kicker, then tap the numbered spot in the order they should take.
-- **Players:** set each player's RSVP to Yes, Maybe or No, and use **Add from roster** to put players from the `Roster` tab into the next empty rows of this game. Added players have no RSVP, which counts as planned for.
-- **New game:** the button beside the game picker asks for a date, time, location and opponent, or leave any blank. The page copies the `New game (copy me)` tab as the next game number and fills in that game's row on `Schedule`. It only appears for sheets that have both tabs.
-- **Undo:** after a field move, a kicking move or an RSVP, the confirmation at the bottom of the screen has an **Undo** link for a few seconds. Adding players and starting a game cannot be undone from the page.
+- **Players:** set each player's RSVP to Yes, Maybe or No, and tap a name under **Add from the roster** to put that player into the next empty row of this game.
+- **Games:** lists every game on the `Schedule` tab with its date, time, place, opponent and whether it has a lineup tab. Tap a game to edit its details or enter the result, **Add a game** for a reschedule or playoff, and **Set up lineups** to create a lineup tab for every game that has a date and no tab yet. It only appears for sheets that have the `Schedule` and `New game (copy me)` tabs.
+- **Undo:** the **Undo** button in the top bar reverses the last field move, kicking move, RSVP or added players, and keeps going back through earlier ones. Game details and new lineup tabs cannot be undone from the page.
+- **Opening on the right game:** the team page opens on the next game by date, or the most recent one once the season is over.
 - Edits are written to the sheet with your own account, so the sheet's version history shows who made them. If the sheet changed since the page last updated, nothing is saved and the page says so.
 - Sheets that number the kicking order in column B are edited in the sheet.
 

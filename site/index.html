@@ -69,7 +69,6 @@
   <div id="view" hidden>
     <div class="controls">
       <select id="game" aria-label="Game"></select>
-      <button type="button" class="new-game" id="new-game" hidden>New game</button>
       <div class="innings" id="innings"></div>
     </div>
     <div class="subtitle" id="subtitle"></div>
@@ -79,9 +78,12 @@
         <button type="button" id="area-fielding" aria-pressed="true">Field</button>
         <button type="button" id="area-kicking" aria-pressed="false">Kicking</button>
         <button type="button" id="area-players" aria-pressed="false">Players</button>
+        <button type="button" id="area-games" aria-pressed="false">Games</button>
       </div>
+      <button type="button" class="captain-undo" id="captain-undo" disabled>Undo</button>
       <button type="button" class="captain-done" id="captain-done">Done</button>
     </div>
+    <div class="captain-status empty" id="captain-status" role="status" hidden></div>
     <div class="captain-panel" id="captain-panel" hidden></div>
     <svg id="field" viewBox="-24 28 448 372" xmlns="http://www.w3.org/2000/svg">
       <path class="outfield-grass" d="M200,350 L-12,138 A300,300 0 0 1 412,138 Z"/>
@@ -115,22 +117,7 @@
     </form>
   </div>
 </main>
-<div class="sheet-backdrop" id="sheet-backdrop" hidden></div>
-<section class="sheet" id="captain-sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" tabindex="-1" hidden>
-  <header class="sheet-header">
-    <div>
-      <h2 class="sheet-title" id="sheet-title"></h2>
-      <p class="sheet-subtitle" id="sheet-subtitle"></p>
-    </div>
-    <button type="button" class="sheet-close" id="sheet-close" aria-label="Close">&times;</button>
-  </header>
-  <div class="sheet-body" id="sheet-body"></div>
-  <footer class="sheet-footer" id="sheet-footer" hidden></footer>
-</section>
-<div class="toast" id="toast" role="status" hidden>
-  <span id="toast-text"></span>
-  <button type="button" id="toast-undo" hidden>Undo</button>
-</div>
+<section class="dock" id="captain-dock" aria-label="Choose a player" hidden></section>
 <script src="settings.js"></script>
 <script src="app.js"></script>
 <script type="module" src="captain.js"></script>
