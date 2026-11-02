@@ -15,7 +15,7 @@ function parserRows(rowData) {
 
 function sampleLineup() {
   const gameSheet = teamSheetDefinition('Test Team', 'Fall 2026').sheets.find(({ properties }) => properties.title === 'Game 1 Lineup');
-  return readLineup('Game 1 Lineup', parserRows(gameSheet.rowData), '2026-10-18');
+  return readLineup('Game 1 Lineup', parserRows(gameSheet.rowData));
 }
 
 test('the template game tab is readable and marks Rowan absent and Jamie maybe', () => {
@@ -56,7 +56,7 @@ test('Start here comes first and no helper tab is mistaken for a game', () => {
 });
 
 test('the New game tab has no players, RSVPs or game number, and reads as an empty lineup once renamed', () => {
-  const lineup = readLineup('Game 2 Lineup', parserRows(templateSheet('New game (copy me)').rowData), '2026-10-18');
+  const lineup = readLineup('Game 2 Lineup', parserRows(templateSheet('New game (copy me)').rowData));
   assert.equal(lineup.gameNumber, null);
   assert.deepEqual(lineup.players, []);
   assert.deepEqual(lineup.innings, ['1', '2', '3', '4', '5']);

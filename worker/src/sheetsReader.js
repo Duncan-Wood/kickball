@@ -47,6 +47,6 @@ export async function readTeamSheet(accessToken, spreadsheetId, now = new Date()
   const rowsByTab = new Map(detail.sheets.map((sheet) => [sheet.properties.title, normalizedRows(sheet)]));
   const { lineups, problems } = orderedLineups(tabNames
     .filter(isCurrentLineupTab)
-    .map((tabName) => readLineup(tabName, rowsByTab.get(tabName), today)));
+    .map((tabName) => readLineup(tabName, rowsByTab.get(tabName))));
   return { config: readConfig(rowsByTab.get(CONFIG_TAB_NAME) ?? null), lineups, problems, activeTabName: defaultLineupTabName(lineups, today) };
 }

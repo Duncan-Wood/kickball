@@ -57,6 +57,8 @@ svg { display: block; width: 100%; height: auto; }
 .chip-label-box { fill: var(--ink); }
 .chip-name { font-size: 12px; font-weight: 700; fill: var(--ink); text-anchor: middle; }
 .chip-name.long { font-size: 9.5px; }
+.chip.open .chip-box { fill: #f3f4f6; stroke-dasharray: 3 3; }
+.chip.open .chip-name { fill: #6b7280; font-weight: 600; }
 .chip.problem .chip-box { fill: #fde3e0; stroke: #b3261e; stroke-dasharray: 4 3; }
 .chip.problem .chip-label-box { fill: #b3261e; }
 .chip.problem .chip-name { fill: #b3261e; }
@@ -226,3 +228,19 @@ html:not(.has-team) body { background: #f6f1ea; color: #1c2a3a; }
 @media (prefers-reduced-motion: no-preference) { .dock { animation: dock-up 0.14s ease-out; } }
 @keyframes dock-up { from { transform: translateY(20px); opacity: 0; } }
 .drag-ghost { position: fixed; z-index: 10; padding: 4px 10px; border-radius: 999px; background: var(--primary); color: #fff; font-size: 14px; pointer-events: none; }
+
+.updated { margin: 12px 0 0; color: var(--muted); font-size: 12px; text-align: center; }
+.updated:empty { display: none; }
+.captain-list .updated { display: none; }
+.headcount { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 0 0 10px; padding: 8px 12px; border: 1px solid var(--border-soft); border-radius: 10px; background: #fff; font-size: 14px; }
+.headcount strong { font-size: 16px; }
+.headcount-detail { color: var(--muted); }
+.headcount.short { border-color: #b3261e; background: #fde3e0; }
+.headcount-warning { color: #b3261e; font-weight: 600; }
+.player-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.player-remove { flex: none; width: 36px; height: 36px; border: 0; border-radius: 50%; background: none; color: var(--muted); font: inherit; font-size: 22px; line-height: 1; cursor: pointer; }
+.player-remove:active { background: var(--tint); }
+.area-count { margin-left: 5px; padding: 1px 6px; border-radius: 999px; background: var(--tint); color: var(--primary); font-size: 12px; }
+.segmented button[aria-pressed="true"] .area-count { background: rgba(255, 255, 255, 0.25); color: #fff; }
+.game-editor [hidden] { display: none; }
+.game-editor select { width: 100%; padding: 9px 10px; border: 1px solid var(--border); border-radius: 8px; background: #fff; font: inherit; font-size: 16px; }

@@ -12,6 +12,10 @@ export function cellAddress(tabName, columnIndex, sheetRow) {
   return `'${tabName.replaceAll("'", "''")}'!${columnLetter(columnIndex)}${sheetRow}`;
 }
 
+export function lineupPlayer(lineup, sheetRow) {
+  return lineup.players.find((player) => player.sheetRow === sheetRow);
+}
+
 function playerAt(players, sheetRow) {
   const player = players.find((candidate) => candidate.sheetRow === sheetRow);
   if (player === undefined) throw new Error('That player is no longer in the lineup');
@@ -86,9 +90,11 @@ export function rosterNamesToAdd(rosterNames, players) {
   return rosterNames.filter((name) => !inLineup.has(name.toLowerCase()));
 }
 
-export function playersToAdd(spareRows, names) {
+export function playersToAdd(spareRows, names, players) {
   if (names.length > spareRows.length) throw new Error(`This lineup has room for ${spareRows.length} more players. Add rows to the grid in the sheet first`);
-  return names.map((name, index) => ({ name, sheetRow: spareRows[index] }));
+  const lastPlayerRow = Math.max(0, ...players.map((player) => player.sheetRow));
+  const rowsInFillOrder = [...spareRows.filter((sheetRow) => sheetRow > lastPlayerRow), ...spareRows.filter((sheetRow) => sheetRow < lastPlayerRow)];
+  return names.map((name, index) => ({ name, sheetRow: rowsInFillOrder[index] }));
 }
 
 export function applyAddedPlayers(lineup, additions, inningCount) {
@@ -153,6 +159,14 @@ export function inningsHaveDifferentLineups(players, inningIndexes) {
   return new Set(inningIndexes.map(lineupOf)).size > 1;
 }
 
+export function applyRestoredPlayers(lineup, restoredPlayers) {
+  const restoredRows = new Set(restoredPlayers.map((player) => player.sheetRow));
+  return {
+    players: [...lineup.players, ...restoredPlayers].sort((first, second) => first.sheetRow - second.sheetRow),
+    spareRows: lineup.spareRows.filter((sheetRow) => !restoredRows.has(sheetRow)),
+  };
+}
+
 export function applyRemovedPlayers(lineup, sheetRows) {
   const removedRows = new Set(sheetRows);
   return {
@@ -187,4 +201,22 @@ export function scheduleGames(scheduleRows, lineups) {
     const game = { number, row: index + 2, date: text(1), time: text(2), location: text(3), opponent: text(4), notes: text(5), tabName: lineup?.tabName ?? null };
     return [game.date, game.time, game.location, game.opponent].some((value) => value !== '') || lineup !== undefined ? [game] : [];
   });
+}
+
+export function headcount(players) {
+  const count = (answer) => players.filter((player) => player.attending && player.rsvp === answer).length;
+  return {
+    playing: players.filter((player) => player.attending).length,
+    yes: count('yes'),
+    maybe: count('maybe'),
+    waiting: count(''),
+    out: players.filter((player) => !player.attending).length,
+  };
+}
+
+export function blankPlayerRows(columnA) {
+  const headerIndex = columnA.indexOf('Name');
+  const endIndex = columnA.findIndex((label) => label === 'Open spots' || label === 'Acceptable');
+  if (headerIndex === -1 || endIndex === -1) return [];
+  return columnA.slice(headerIndex + 1, endIndex).map((text, offset) => ({ text, sheetRow: headerIndex + 2 + offset })).filter(({ text }) => text === '').map(({ sheetRow }) => sheetRow);
 }

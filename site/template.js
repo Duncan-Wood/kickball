@@ -138,11 +138,13 @@ function rosterRows() {
     textCell('Prefers', headerFormat, 'Positions they like, separated by commas, like SS, 2B. They show up green in a game lineup'),
     textCell("Won't play", headerFormat, 'Positions they would rather not play. They show up red in a game lineup'),
     textCell('Notes (only you see this tab)', headerFormat),
+    textCell('Pronouns (optional)', headerFormat, 'So you remember how each player goes by. Only you see this tab'),
   ];
   const players = [...EXAMPLE_PLAYERS, EXAMPLE_SUB].map((name) => [
     textCell(name),
     textCell(EXAMPLE_PREFERS[name] ?? ''),
     textCell(EXAMPLE_AVOIDS[name] ?? ''),
+    textCell(''),
     textCell(''),
   ]);
   return [header, ...players];
@@ -337,7 +339,7 @@ export function formattingRequests() {
     ...configFormattingRequests(CONFIG_SHEET_ID),
     columnFormat(SCHEDULE_SHEET_ID, SCHEDULE_FIRST_ROW_INDEX, scheduleEndRow, 1, { numberFormat: DATE_FORMAT, horizontalAlignment: 'LEFT' }, NUMBER_AND_ALIGNMENT_FIELDS),
     columnFormat(SCHEDULE_SHEET_ID, SCHEDULE_FIRST_ROW_INDEX, scheduleEndRow, 2, { numberFormat: TIME_FORMAT, horizontalAlignment: 'LEFT' }, NUMBER_AND_ALIGNMENT_FIELDS),
-    columnWidth(ROSTER_SHEET_ID, 0, 160), columnWidth(ROSTER_SHEET_ID, 1, 160), columnWidth(ROSTER_SHEET_ID, 2, 160), columnWidth(ROSTER_SHEET_ID, 3, 380),
+    columnWidth(ROSTER_SHEET_ID, 0, 160), columnWidth(ROSTER_SHEET_ID, 1, 160), columnWidth(ROSTER_SHEET_ID, 2, 160), columnWidth(ROSTER_SHEET_ID, 3, 380), columnWidth(ROSTER_SHEET_ID, 4, 140),
     columnWidth(SCHEDULE_SHEET_ID, 1, 90), columnWidth(SCHEDULE_SHEET_ID, 3, 220), columnWidth(SCHEDULE_SHEET_ID, 4, 200), columnWidth(SCHEDULE_SHEET_ID, 5, 320),
     columnWidth(POSITIONS_SHEET_ID, 0, 200),
     columnWidth(START_SHEET_ID, 0, 150), columnWidth(START_SHEET_ID, 1, 620),

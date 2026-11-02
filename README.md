@@ -11,14 +11,14 @@ Screenshots use made-up players.
 ## Features
 
 - Pick a game and an inning to see who plays each of the 11 positions
-- Open or double-booked positions are flagged in red, and so is an absent player who still has a position
+- A position given to two players is flagged in red, and so is an absent player who still has a position. An open position is flagged only while someone is sitting, so a team with 8 to 10 players sees plain "open" chips instead of errors
 - Game date, time, location, opponent and final score
 - Kicking order and the players sitting each inning
 - Whole-game table with innings played per player
 - Season totals: innings played, sat, infield and outfield, across games already played
-- Refreshes every 10 seconds while open, so edits in the sheet show up on their own
+- Refreshes every 10 seconds while the page is in view, so edits in the sheet show up on their own, and shows when the lineup was last updated
 - Shows load and update errors in a red box at the top, retries a failed first load on its own, and keeps the last good lineup on the device
-- Captain tools: move players, reorder the kicking order, record RSVPs, add players from the roster and start the next game, all from the team page
+- Captain tools: move players, reorder the kicking order, record RSVPs, add and remove players, enter results and set up the whole season, all from the team page
 
 ## Set up a team
 
@@ -36,7 +36,7 @@ The `Team Config` tab has eight settings: team name, season label, icon, main co
 - `Start here` is the first tab: setup steps and what the colors mean. It is never sent to players.
 - To add games, use **Games** in Captain tools, or duplicate the `New game (copy me)` tab, rename the copy so it ends with `Lineup`, and type its number in the `Game #:` cell. The blank tab is ignored until it is renamed.
 - The lookup cells in a game tab show a red corner flag if someone types over their formula. The warning is a validation rule, so it carries over when a tab is duplicated.
-- `Roster` holds each player's name, the positions they prefer and the positions they won't play, and private notes. Subs go on the roster like anyone else and are added to a game's grid when they play.
+- `Roster` holds each player's name, the positions they prefer and the positions they won't play, private notes and an optional pronouns column. Subs go on the roster like anyone else and are added to a game's grid when they play.
 - In a game tab, the `RSVP` column takes Yes, Maybe or No as replies come in. A blank cell next to a name is gray, meaning no reply yet. Blank and Maybe players are still planned for, and a No turns the row gray.
 - The `Prefers` and `Won't play` columns after the innings fill in from the roster. A preferred position turns green in the grid and a won't-play position turns red. These columns are never sent to players.
 - The `Open spots` row under the grid lists the positions nobody is covering in each inning, and a position given to two players turns orange.
@@ -50,9 +50,9 @@ Under the team page, **Captain tools** lets anyone who can edit the sheet change
 - **Field:** tap a position and a panel slides up under the field listing who can play there, with the players sitting first and each player's current position beside their name. Tap someone to put them there, which swaps them with whoever held the spot. When the spot was open, the panel moves on to the next open position, so a lineup can be filled in by tapping down the list. Tap a sitting player to place them by tapping a position on the field. On a computer you can also drag a player onto a position.
 - **Edit innings:** changes apply to the inning on screen. To change several at once, tap more innings in the **Edit innings** row, or use **Odd**, **Even** or **All**. A captain who alternates two lineups can select the odd innings, set that lineup, then select the even innings and set the other. A note below the row says which innings a change will touch.
 - **Kicking:** tap a kicker, then tap the numbered spot in the order they should take.
-- **Players:** set each player's RSVP to Yes, Maybe or No, and tap a name under **Add from the roster** to put that player into the next empty row of this game.
-- **Games:** lists every game on the `Schedule` tab with its date, time, place, opponent and whether it has a lineup tab. Tap a game to edit its details or enter the result, **Add a game** for a reschedule or playoff, and **Set up lineups** to create a lineup tab for every game that has a date and no tab yet. It only appears for sheets that have the `Schedule` and `New game (copy me)` tabs.
-- **Undo:** the **Undo** button in the top bar reverses the last field move, kicking move, RSVP or added players, and keeps going back through earlier ones. Game details and new lineup tabs cannot be undone from the page.
+- **Players:** a headcount at the top shows how many are playing and warns below 8, and the same number sits on the **Players** button. Set each player's RSVP to Yes, Maybe or No. Marking someone No also clears their positions in every inning. The **×** beside a name removes them from this game, and a name tapped under **Add from the roster** goes into the next empty row after the last player, so late arrivals land at the end of the kicking order.
+- **Games:** lists every game on the `Schedule` tab with its date, time, place, opponent and whether it has a lineup tab. Tap a game to edit its details or enter the result (Won, Lost or Tied with both scores), **Add a game** for a reschedule or playoff, and **Set up lineups** to create a lineup tab for every game that has a date and no tab yet. Each new tab starts with everyone on the `Roster` tab and no replies, so a captain only has to mark who is coming. It only appears for sheets that have the `Schedule` and `New game (copy me)` tabs.
+- **Undo:** the **Undo** button in the top bar reverses the last field move, kicking move, RSVP, added or removed player, and keeps going back through earlier ones. Game details and new lineup tabs cannot be undone from the page.
 - **Opening on the right game:** the team page opens on the next game by date, or the most recent one once the season is over.
 - Edits are written to the sheet with your own account, so the sheet's version history shows who made them. If the sheet changed since the page last updated, nothing is saved and the page says so.
 - Sheets that number the kicking order in column B are edited in the sheet.
@@ -93,19 +93,17 @@ Deploy the Worker before the site. The page asks for API version 4 and shows "ou
 | "Name" and "Open spots" (or "Acceptable") labels in column A | Finding the player grid. If one is missing, the view names the tab instead of guessing |
 | "Date:", "Time:", "Location:", "Opponent:" and "Notes:" labels in column A, value in column B | Game details. Any that are missing show blank |
 | "Game #:" label in column A with a number beside it | Names the game, like "Game 3 (10/21/26)", and puts the games in order. Two tabs cannot share a number: the later tab is hidden and a notice on the page names both tabs |
-| Notes like "W, 12-0", "L, 3-5" or "T, 5-5" | Shown as "Won 12-0", "Lost 3-5" or "Tied 5-5". Other notes are shown as written |
+| Notes like "W, 12-0", "L, 3-5" or "T, 5-5" (your runs first) | The result of the game, shown as "Won 12-0", "Lost 3-5" or "Tied 5-5". A game with a result counts toward season totals. Other notes are shown as written |
 | Inning numbers in the "Name" row | One column per inning |
 | Position codes P, C, 1B, 2B, 3B, SS, LF, LC, CF, RC, RF | Placing players on the field. Any other code is flagged |
 | "RSVP" in the Name row's column B, with Yes, Maybe or No beside each player | No means not attending. Blank (no reply yet) and Maybe count as playing |
 | Strikethrough on a player's name | Player is not attending: left out of the kicking order, sitting list and totals |
 | Row order of players | Kicking order |
-| Game date before today | Game counts toward season totals |
 | Same spelling of a name on every tab | Season totals add up as one person |
 
 ## Known limits
 
 - The field always has the 11 positions above, and the template has 5 innings.
-- A game counts toward season totals from the day after its date, whether or not it was actually played.
+- A game counts toward season totals once its result is entered, so a rained-out game never counts.
 - Date and time appear exactly as the lineup tab displays them.
 - A sheet where positions run down the side and names fill the cells is not read. Players go in rows and positions are codes.
-- Captain tools cannot remove a player from a game. Mark them No on RSVP, or clear the row in the sheet.
