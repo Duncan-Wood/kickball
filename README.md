@@ -18,7 +18,7 @@ Screenshots use made-up players.
 - Season totals: innings played, sat, infield and outfield, across games already played
 - Refreshes every 10 seconds while the page is in view, so edits in the sheet show up on their own, and shows when the lineup was last updated
 - Shows load and update errors in a red box at the top, retries a failed first load on its own, and keeps the last good lineup on the device
-- Captain tools: move players, reorder the kicking order, record RSVPs, add and remove players, enter results and set up the whole season, all from the team page
+- Captain tools: move players, reorder the kicking order, record RSVPs, add and remove players, enter results, set up the whole season and change the team's look, all from the team page
 
 ## Set up a team
 
@@ -28,7 +28,7 @@ Screenshots use made-up players.
 
 Nothing is installed in the sheet and there is no script to paste or deploy. The app asks Google for one permission, `drive.file`. It lets the app see only the sheet it created or the one you picked, never the rest of your Drive.
 
-The `Team Config` tab has eight settings: team name, season label, icon, main color, second color, stripe (Blend or Rainbow), font and the suggestion box. The color cells take their fill color: click the box, then the paint bucket in the toolbar. White is a valid value. Everything else (page background, text, borders, highlights) is worked out from the two colors. The `Roster` and `Schedule` tabs feed the game tabs and are never sent to players.
+The `Team Config` tab has eight settings, which a captain can also change from **Team** in Captain tools: team name, season label, icon, main color, second color, stripe (Blend or Rainbow), font and the suggestion box. The color cells take their fill color: click the box, then the paint bucket in the toolbar. White is a valid value. Everything else (page background, text, borders, highlights) is worked out from the two colors. The `Roster` and `Schedule` tabs feed the game tabs and are never sent to players.
 
 ## The team sheet
 
@@ -52,6 +52,7 @@ Under the team page, **Captain tools** lets anyone who can edit the sheet change
 - **Kicking:** tap a kicker, then tap the numbered spot in the order they should take.
 - **Players:** a headcount at the top shows how many are playing and warns below 8, and the same number sits on the **Players** button. Set each player's RSVP to Yes, Maybe or No. Marking someone No also clears their positions in every inning. The **×** beside a name removes them from this game, and a name tapped under **Add from the roster** goes into the next empty row after the last player, so late arrivals land at the end of the kicking order.
 - **Games:** lists every game on the `Schedule` tab with its date, time, place, opponent and whether it has a lineup tab. Tap a game to edit its details or enter the result (Won, Lost or Tied with both scores), **Add a game** for a reschedule or playoff, and **Set up lineups** to create a lineup tab for every game that has a date and no tab yet. Each new tab starts with everyone on the `Roster` tab and no replies, so a captain only has to mark who is coming. It only appears for sheets that have the `Schedule` and `New game (copy me)` tabs.
+- **Team:** the eight `Team Config` settings as a form: name, season label, icon, main and second color, stripe, font and the suggestion box. Changes show on the page as you make them, and **Save** writes them to the `Team Config` tab. Undo reverses a save. It only appears for sheets that have the `Team Config` tab.
 - **Undo:** the **Undo** button in the top bar reverses the last field move, kicking move, RSVP, added or removed player, and keeps going back through earlier ones. Game details and new lineup tabs cannot be undone from the page.
 - **Opening on the right game:** the team page opens on the next game by date, or the most recent one once the season is over.
 - Edits are written to the sheet with your own account, so the sheet's version history shows who made them. If the sheet changed since the page last updated, nothing is saved and the page says so.

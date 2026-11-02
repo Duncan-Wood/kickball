@@ -1,4 +1,5 @@
 import { NEW_GAME_TAB_NAME, SCHEDULE_TAB_NAME } from '../template.js';
+import { CONFIG_TAB_NAME } from '../teamSettings.js';
 import { resetEditingState } from './fielding.js';
 import { askWorkerForAccess, currentAccessToken, pickSheet, refreshTabs, requestAccessToken } from './sheetApi.js';
 import { captain, element } from './state.js';
@@ -47,6 +48,7 @@ export async function startCaptainMode() {
     captain.spreadsheetId = await confirmEditorAccess();
     await refreshTabs();
     captain.canManageGames = captain.tabs.has(NEW_GAME_TAB_NAME) && captain.tabs.has(SCHEDULE_TAB_NAME);
+    captain.canEditTeam = captain.tabs.has(CONFIG_TAB_NAME);
     Object.assign(captain, {
       rosterNames: null,
       rosterError: null,

@@ -1,4 +1,5 @@
-import { CONFIG_TAB_NAME, readConfig } from './config.js';
+import { CONFIG_TAB_NAME } from '../../site/teamSettings.js';
+import { readConfig } from './config.js';
 import { defaultLineupTabName, isCurrentLineupTab, orderedLineups, readLineup } from './lineup.js';
 
 const SHEETS_ADDRESS = 'https://sheets.googleapis.com/v4/spreadsheets';

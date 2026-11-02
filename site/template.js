@@ -1,3 +1,4 @@
+import { CONFIG_FIELDS, FONTS, STRIPE_STYLES } from './teamSettings.js';
 const SHEETS_ADDRESS = 'https://sheets.googleapis.com/v4/spreadsheets';
 export const POSITION_CODES = ['P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'LC', 'CF', 'RC', 'RF'];
 export const POSITION_NAMES = ['Pitcher', 'Catcher', 'First Baseperson', 'Second Baseperson', 'Third Baseperson', 'Shortstop', 'Left Fielder', 'Left Center Fielder', 'Center Fielder', 'Right Center Fielder', 'Right Fielder'];
@@ -60,16 +61,7 @@ function columnLetter(columnIndex) {
   return String.fromCharCode('A'.charCodeAt(0) + columnIndex);
 }
 
-const SETTINGS = [
-  ['Team name', '', 'The heading on the page'],
-  ['Season label', '', 'The tag beside the team name, like "Fall 2026"'],
-  ['Icon', 'https://duncan-wood.github.io/kickball/icons/kickball.svg', 'One emoji, or a link starting with https:// to a small image'],
-  ['Main color', null, 'Buttons, headings and text'],
-  ['Second color', null, 'Page background, highlights and borders'],
-  ['Stripe', 'Blend', 'Blend fades from main to second color, Rainbow shows six pastel bands'],
-  ['Font', 'Fredoka', 'Pick from the list'],
-  ['Suggestion box', 'On', 'On shows the anonymous suggestion box, Off hides it'],
-];
+const SETTINGS = CONFIG_FIELDS.map(({ key, kind, defaultValue, label, note }) => [label, kind === 'color' ? null : key === 'teamName' || key === 'seasonLabel' ? '' : defaultValue, note]);
 
 const DATE_FORMAT = { type: 'DATE', pattern: 'm/d/yy' };
 const TIME_FORMAT = { type: 'TIME', pattern: 'h:mm AM/PM' };
@@ -290,8 +282,8 @@ function gameConditionalFormats(sheetId) {
 
 function configFormattingRequests(sheetId) {
   return [
-    listValidation(sheetId, 6, 7, 1, 2, ['Blend', 'Rainbow']),
-    listValidation(sheetId, 7, 8, 1, 2, ['Fredoka', 'Nunito', 'Poppins', 'Roboto', 'Lora']),
+    listValidation(sheetId, 6, 7, 1, 2, STRIPE_STYLES),
+    listValidation(sheetId, 7, 8, 1, 2, FONTS),
     listValidation(sheetId, 8, 9, 1, 2, ['On', 'Off']),
     columnWidth(sheetId, 0, 160), columnWidth(sheetId, 1, 160), columnWidth(sheetId, 2, 460),
   ];
