@@ -5,11 +5,13 @@ on:
     paths:
       - 'worker/**'
       - 'site/template.js'
+      - 'site/result.js'
       - '.github/workflows/worker.yml'
   push:
     branches: [main]
     paths:
       - 'worker/**'
+      - 'site/result.js'
       - '.github/workflows/worker.yml'
   workflow_dispatch:
 

@@ -31,8 +31,6 @@ const CHIP_WIDTH = 78;
 const COMMENT_TOGGLE_TEXT = 'Anonymous suggestion box';
 const COMMENT_CONFIRMATION_MILLISECONDS = 4000;
 const WRITE_SETTLE_MILLISECONDS = 7000;
-const RESULT_WORDS = { W: 'Won', L: 'Lost', T: 'Tied' };
-
 const teamCode = new URLSearchParams(location.search).get('team');
 
 let config = null;
@@ -41,6 +39,7 @@ let selectedLineup = null;
 let selectedInningIndex = 0;
 let mode = 'inning';
 let refreshInFlight = false;
+let lastGoodAt = 0;
 let refreshTimer = null;
 let failedRefreshes = 0;
 let failedLoads = 0;
@@ -147,9 +146,10 @@ function svgElement(tag, attributes, text) {
   return element;
 }
 
-function drawChip(position, playerNames) {
+function drawChip(position, playerNames, openIsProblem) {
   const [x, y] = FIELD_SPOTS[position];
-  const chip = svgElement('g', { class: playerNames.length === 1 ? 'chip' : 'chip problem', 'data-edit-kind': 'spot', 'data-position': position });
+  const isProblem = playerNames.length > 1 || (playerNames.length === 0 && openIsProblem);
+  const chip = svgElement('g', { class: isProblem ? 'chip problem' : playerNames.length === 0 ? 'chip open' : 'chip', 'data-edit-kind': 'spot', 'data-position': position });
   const name = playerNames.length === 0 ? 'open' : playerNames.join(' + ');
   chip.appendChild(svgElement('rect', { class: 'chip-box', x: x - CHIP_WIDTH / 2, y: y - 6, width: CHIP_WIDTH, height: 22, rx: 5 }));
   chip.appendChild(svgElement('rect', { class: 'chip-label-box', x: x - 15, y: y - 18, width: 30, height: 13, rx: 4 }));
@@ -173,23 +173,21 @@ function summarizeInning(inningIndex) {
   });
   Object.keys(FIELD_SPOTS).forEach((position) => {
     const names = playersByPosition[position] || [];
-    if (names.length === 0) problems.push(position + ' is open');
+    if (names.length === 0 && bench.length > 0) problems.push(position + ' is open');
     if (names.length > 1) problems.push(position + ' has ' + names.join(' and '));
   });
   Object.keys(playersByPosition).filter((position) => !FIELD_SPOTS[position]).forEach((position) => {
     problems.push('"' + position + '" is not a field position (' + playersByPosition[position].join(', ') + ')');
   });
-  return { playersByPosition, bench, problems };
+  return { playersByPosition, bench, problems, openIsProblem: bench.length > 0 };
 }
 
-function describeResult(notes) {
-  const result = notes.match(/^([WLT]),?\s*(\d+\s*-\s*\d+)$/i);
-  if (result === null) return notes;
-  return RESULT_WORDS[result[1].toUpperCase()] + ' ' + result[2].replace(/\s/g, '');
+function describeResult(lineup) {
+  return lineup.result ? lineup.result.text : lineup.notes;
 }
 
 function renderGameDetails() {
-  const details = [describeResult(selectedLineup.notes), selectedLineup.date, selectedLineup.time, selectedLineup.location].filter((detail) => detail !== '');
+  const details = [describeResult(selectedLineup), selectedLineup.date, selectedLineup.time, selectedLineup.location].filter((detail) => detail !== '');
   document.getElementById('game-details').textContent = details.join(' · ');
 }
 
@@ -206,7 +204,7 @@ function renderInning() {
   renderGameDetails();
 
   const chips = document.getElementById('chips');
-  chips.replaceChildren(...Object.keys(FIELD_SPOTS).map((position) => drawChip(position, inning.playersByPosition[position] || [])));
+  chips.replaceChildren(...Object.keys(FIELD_SPOTS).map((position) => drawChip(position, inning.playersByPosition[position] || [], inning.openIsProblem)));
   document.getElementById('problems').textContent = inning.problems.join(' · ');
 
   const kickers = selectedLineup.players.filter((player) => player.attending);
@@ -312,11 +310,11 @@ function seasonTotals(playedLineups) {
 function renderSeason() {
   const playedLineups = lineups.filter((lineup) => lineup.played);
   const playedGameNames = playedLineups.map((lineup) => {
-    return lineup.notes === '' ? lineup.label : lineup.label + ' ' + describeResult(lineup.notes);
+    return lineup.notes === '' ? lineup.label : lineup.label + ' ' + describeResult(lineup);
   });
   document.getElementById('subtitle').textContent = playedLineups.length === 0
     ? 'Season totals: no games played yet'
-    : 'Season totals in innings, counting games already played: ' + playedGameNames.join(', ') + '. A game is added the day after it is played.';
+    : 'Season totals in innings, counting games already played: ' + playedGameNames.join(', ') + '. A game is added once its result is entered.';
   const headerRow = tableRow([
     tableCell('th', 'Player', 'name'),
     ...['Games', 'Played', 'Sat', 'Infield', 'Outfield'].map((heading) => tableCell('th', heading)),
@@ -415,13 +413,24 @@ function start(data) {
 async function reloadLineups(tabNameToSelect) {
   const data = await apiGet();
   lineups = data.lineups;
+  showUpdated(Date.now());
   showProblems(data.problems ?? []);
   saveLineups();
   populateGameOptions();
-  const lineupToSelect = lineups.find((lineup) => lineup.tabName === tabNameToSelect) ?? selectedLineup;
-  document.getElementById('game').value = lineupToSelect.tabName;
-  selectLineup(lineupToSelect.tabName);
-  return lineupToSelect.tabName === tabNameToSelect;
+  const lineupToSelect = lineups.find((lineup) => lineup.tabName === tabNameToSelect) ?? lineups.find((lineup) => lineup.tabName === selectedLineup.tabName) ?? lineups[0];
+  showLineup(lineupToSelect.tabName);
+  return lineups;
+}
+
+function showLineup(tabName) {
+  document.getElementById('game').value = tabName;
+  selectLineup(tabName);
+}
+
+function selectInning(inningIndex) {
+  mode = 'inning';
+  selectedInningIndex = inningIndex;
+  render();
 }
 
 function scheduleRefresh() {
@@ -440,7 +449,7 @@ async function refresh() {
   } catch (error) {
     refreshInFlight = false;
     failedRefreshes += 1;
-    showFailure('Live update failed, showing the last good lineup', error);
+    showFailure('Live update failed, showing the lineup from ' + describeAge(lastGoodAt), error);
     scheduleRefresh();
     return;
   }
@@ -453,7 +462,14 @@ async function refresh() {
   applyRefresh(freshLineup);
 }
 
+function showUpdated(timestamp) {
+  lastGoodAt = timestamp;
+  const time = new Date(timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  document.getElementById('updated').textContent = 'Updated ' + time;
+}
+
 function applyRefresh(freshLineup) {
+  showUpdated(Date.now());
   const index = lineups.findIndex((lineup) => lineup.tabName === freshLineup.tabName);
   const changed = JSON.stringify(lineups[index]) !== JSON.stringify(freshLineup);
   lineups[index] = freshLineup;
@@ -573,10 +589,12 @@ async function loadLineups() {
       return;
     }
     start(saved);
+    showUpdated(saved.savedAt);
     showFailure('Showing the lineup saved ' + describeAge(saved.savedAt), error);
     return;
   }
   start(data);
+  showUpdated(Date.now());
   saveLineups();
 }
 
@@ -595,11 +613,14 @@ window.fieldView = {
   currentLineup: () => selectedLineup,
   allLineups: () => lineups,
   reloadLineups,
+  showLineup,
+  selectInning,
   currentInningIndex: () => selectedInningIndex,
   inFieldMode: () => mode === 'inning',
   rerender: () => render(),
   changed() {
     lastWriteAt = Date.now();
+    showUpdated(lastWriteAt);
     saveLineups();
     render();
   },

@@ -1,3 +1,5 @@
+import { describeResult, resultFromNotes } from '../../site/result.js';
+
 export function isCurrentLineupTab(tabName) {
   return /lineup$/i.test(tabName) && !/^old/i.test(tabName);
 }
@@ -28,22 +30,26 @@ export function locateLineupGrid(tabName, rows) {
   return { headerRowIndex, acceptableRowIndex, gameNumberRowIndex, opponentRowIndex, dateRowIndex, timeRowIndex, locationRowIndex, notesRowIndex, inningColumnIndexes, usesRsvp };
 }
 
-export function readLineup(tabName, rows, today) {
+export function readLineup(tabName, rows) {
   const grid = locateLineupGrid(tabName, rows);
   const { headerRowIndex, gameNumberRowIndex, opponentRowIndex, dateRowIndex, timeRowIndex, locationRowIndex, notesRowIndex, inningColumnIndexes } = grid;
   const textAt = (rowIndex, columnIndex) => (rows[rowIndex]?.[columnIndex]?.text ?? '').trim();
   const players = readPlayers(tabName, rows, grid);
   const gameNumber = gameNumberRowIndex === -1 ? null : parsedGameNumber(textAt(gameNumberRowIndex, 1));
+  const notes = textAt(notesRowIndex, 1);
+  const parsedResult = resultFromNotes(notes);
   return {
     tabName,
     label: lineupLabel(tabName, gameNumber, textAt(dateRowIndex, 1)),
     gameNumber,
-    played: isBeforeToday(rows[dateRowIndex]?.[1]?.serialDate, today),
+    played: parsedResult !== null,
+    result: parsedResult === null ? null : { ...parsedResult, text: describeResult(parsedResult) },
+    isoDate: isoDateOf(rows[dateRowIndex]?.[1]?.serialDate),
     opponent: textAt(opponentRowIndex, 1),
     date: textAt(dateRowIndex, 1),
     time: textAt(timeRowIndex, 1),
     location: textAt(locationRowIndex, 1),
-    notes: textAt(notesRowIndex, 1),
+    notes,
     innings: inningColumnIndexes.map((columnIndex) => textAt(headerRowIndex, columnIndex)),
     inningColumns: inningColumnIndexes,
     editable: players.every((player) => player.kickNumber === null),
@@ -135,8 +141,15 @@ function isKickNumber(cellText) {
   return /^\d+$/.test(cellText.trim());
 }
 
-function isBeforeToday(serialDate, today) {
-  if (typeof serialDate !== 'number') return false;
-  const day = new Date(Date.UTC(1899, 11, 30) + Math.floor(serialDate) * 86400000).toISOString().slice(0, 10);
-  return day < today;
+function isoDateOf(serialDate) {
+  if (typeof serialDate !== 'number') return '';
+  return new Date(Date.UTC(1899, 11, 30) + Math.floor(serialDate) * 86400000).toISOString().slice(0, 10);
+}
+
+export function defaultLineupTabName(lineups, today) {
+  const dated = lineups.filter((lineup) => lineup.isoDate !== '');
+  const upcoming = dated.filter((lineup) => lineup.isoDate >= today).sort((first, second) => first.isoDate.localeCompare(second.isoDate));
+  if (upcoming.length > 0) return upcoming[0].tabName;
+  const latest = dated.sort((first, second) => second.isoDate.localeCompare(first.isoDate));
+  return latest.length > 0 ? latest[0].tabName : undefined;
 }

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { applyAddedPlayers, applyFieldingChanges, applyKickingMove, applyRsvp, cellAddress, columnLetter, fieldingChanges, fieldingChangesForInnings, inningsToEdit, kickingMove, nextGameNumber, playersToAdd, rosterNamesToAdd, rowAfterMove } from '../../site/edits.js';
+import { applyAddedPlayers, applyFieldingChanges, applyKickingMove, applyRsvp, applyRemovedPlayers, applyRestoredPlayers, blankPlayerRows, headcount, lineupPlayer, candidatesForSpot, cellAddress, columnLetter, describeInnings, fieldingChanges, fieldingChangesForInnings, inningsForPreset, inningsHaveDifferentLineups, inverseKickingMove, isoDateFromDisplayed, isoTimeFromDisplayed, scheduleGames, kickingMove, nextGameNumber, occupantsOf, positionChoices, playersToAdd, rosterNamesToAdd, rowAfterMove } from '../../site/edits.js';
 
 const player = (name, sheetRow, positions, attending = true) => ({ name, sheetRow, attending, positions });
 const lineupPlayers = () => [
@@ -83,12 +83,6 @@ test('moving a kicker onto themselves is nothing', () => {
   assert.equal(kickingMove(lineupPlayers(), 10, 10), null);
 });
 
-test('the innings to edit follow the chosen scope', () => {
-  assert.deepEqual(inningsToEdit('inning', 2, 5), [2]);
-  assert.deepEqual(inningsToEdit('rest', 2, 5), [2, 3, 4]);
-  assert.deepEqual(inningsToEdit('all', 2, 5), [0, 1, 2, 3, 4]);
-});
-
 test('a move across innings works out each inning on its own and tags the changes', () => {
   const changes = fieldingChangesForInnings(lineupPlayers(), [0, 1], 9, { kind: 'spot', position: 'C' }, ['1', '2']);
   assert.deepEqual(changes, [
@@ -113,8 +107,8 @@ test('roster names already in the lineup are left out, ignoring case', () => {
 });
 
 test('added players take the spare rows in order and refuse when there is no room', () => {
-  assert.deepEqual(playersToAdd([12, 14], ['Pat', 'Taylor']), [{ name: 'Pat', sheetRow: 12 }, { name: 'Taylor', sheetRow: 14 }]);
-  assert.throws(() => playersToAdd([12], ['Pat', 'Taylor']), /room for 1 more players/);
+  assert.deepEqual(playersToAdd([12, 14], ['Pat', 'Taylor'], []), [{ name: 'Pat', sheetRow: 12 }, { name: 'Taylor', sheetRow: 14 }]);
+  assert.throws(() => playersToAdd([12], ['Pat', 'Taylor'], []), /room for 1 more players/);
 });
 
 test('applying added players puts them in sheet order with blank innings and uses up their rows', () => {
@@ -142,4 +136,116 @@ test('spare rows move with a kicker', () => {
 test('the next game number follows the highest one, and starts at 1', () => {
   assert.equal(nextGameNumber([{ gameNumber: 2 }, { gameNumber: 5 }, { gameNumber: null }]), 6);
   assert.equal(nextGameNumber([]), 1);
+});
+
+test('undoing a kicking move sends the kicker back to where they started', () => {
+  const down = kickingMove(lineupPlayers(), 9, 11);
+  const movedDown = applyKickingMove(lineupPlayers(), down);
+  const backUp = applyKickingMove(movedDown, inverseKickingMove(down));
+  assert.deepEqual(backUp.map((each) => [each.name, each.sheetRow]), lineupPlayers().map((each) => [each.name, each.sheetRow]));
+  const up = kickingMove(lineupPlayers(), 11, 9);
+  assert.deepEqual(inverseKickingMove(up), { fromRow: 9, finalRow: 11, destinationIndex: 11 });
+});
+
+test('occupants only count players who are attending', () => {
+  assert.deepEqual(occupantsOf(lineupPlayers(), 0, 'LF'), []);
+  assert.deepEqual(occupantsOf(lineupPlayers(), 0, 'P').map((each) => each.name), ['Alex']);
+});
+
+test('spot candidates list the bench first, then fielders in field order, and leave out the spot holder and absent players', () => {
+  const players = [player('Alex', 9, ['RF']), player('Sam', 10, ['P']), player('Jordan', 11, ['']), player('Riley', 12, ['SS']), player('Casey', 13, ['C'], false), player('Pat', 14, [''])];
+  assert.deepEqual(candidatesForSpot(players, 0, 'C').map((each) => each.name), ['Jordan', 'Pat', 'Sam', 'Riley', 'Alex']);
+  assert.deepEqual(candidatesForSpot(players, 0, 'P').map((each) => each.name), ['Jordan', 'Pat', 'Riley', 'Alex']);
+});
+
+test('position choices list every other position in field order with who is there', () => {
+  const choices = positionChoices(lineupPlayers(), 0, 'P');
+  assert.equal(choices.length, 10);
+  assert.equal(choices[0].position, 'C');
+  assert.deepEqual(choices[0].occupants.map((each) => each.name), ['Sam']);
+  assert.deepEqual(choices.find((choice) => choice.position === 'LF').occupants, []);
+});
+
+test('innings are described in plain words', () => {
+  assert.equal(describeInnings([1], ['1', '2', '3']), 'inning 2');
+  assert.equal(describeInnings([0, 2], ['1', '2', '3']), 'innings 1 and 3');
+  assert.equal(describeInnings([0, 2, 4], ['1', '2', '3', '4', '5']), 'innings 1, 3 and 5');
+});
+
+test('odd, even and all pick the innings by their number', () => {
+  assert.deepEqual(inningsForPreset('odd', 5), [0, 2, 4]);
+  assert.deepEqual(inningsForPreset('even', 5), [1, 3]);
+  assert.deepEqual(inningsForPreset('all', 3), [0, 1, 2]);
+});
+
+test('innings only count as different when an attending player is somewhere else', () => {
+  const players = [player('Alex', 9, ['P', 'P', 'C']), player('Sam', 10, ['C', 'C', 'P']), player('Riley', 13, ['LF', 'RF', 'LF'], false)];
+  assert.equal(inningsHaveDifferentLineups(players, [0, 1]), false);
+  assert.equal(inningsHaveDifferentLineups(players, [0, 2]), true);
+});
+
+test('removing added players puts their rows back in order', () => {
+  const lineup = { players: lineupPlayers(), spareRows: [14] };
+  const updated = applyRemovedPlayers(lineup, [11, 9]);
+  assert.deepEqual(updated.players.map((each) => each.name), ['Sam', 'Riley']);
+  assert.deepEqual(updated.spareRows, [9, 11, 14]);
+});
+
+test('displayed dates and times turn into what the form inputs expect', () => {
+  assert.equal(isoDateFromDisplayed('11/8/26'), '2026-11-08');
+  assert.equal(isoDateFromDisplayed('11/08/2026'), '2026-11-08');
+  assert.equal(isoDateFromDisplayed('2026-11-08'), '2026-11-08');
+  assert.equal(isoDateFromDisplayed('Sunday'), '');
+  assert.equal(isoTimeFromDisplayed('7:00 PM'), '19:00');
+  assert.equal(isoTimeFromDisplayed('12:30 AM'), '00:30');
+  assert.equal(isoTimeFromDisplayed('12:30 PM'), '12:30');
+  assert.equal(isoTimeFromDisplayed('19:05'), '19:05');
+  assert.equal(isoTimeFromDisplayed('evening'), '');
+});
+
+test('the season schedule lists numbered games that have details or a lineup, with their rows', () => {
+  const rows = [
+    ['Game #', 'Date', 'Time', 'Location', 'Opponent', 'Notes'],
+    ['1', '11/8/26', '7:00 PM', 'Field 1', 'Dirt Sliders', 'W, 12-0'],
+    ['2', '11/15/26', '', '', ''],
+    ['3'],
+    ['4'],
+    ['x', '11/22/26'],
+  ];
+  const games = scheduleGames(rows, [{ gameNumber: 1, tabName: 'Game 1 Lineup' }, { gameNumber: 3, tabName: 'Game 3 Lineup' }]);
+  assert.deepEqual(games.map((game) => [game.number, game.row, game.tabName]), [[1, 2, 'Game 1 Lineup'], [2, 3, null], [3, 4, 'Game 3 Lineup']]);
+  assert.equal(games[0].notes, 'W, 12-0');
+});
+
+test('late additions go after the last player, then into earlier gaps', () => {
+  const players = [{ sheetRow: 9 }, { sheetRow: 11 }];
+  assert.deepEqual(playersToAdd([10, 12, 13], ['Pat', 'Taylor', 'Sam'], players).map((addition) => addition.sheetRow), [12, 13, 10]);
+});
+
+test('restoring players puts them back in their rows and out of the spare rows', () => {
+  const lineup = { players: [{ sheetRow: 9, name: 'Amy' }], spareRows: [10, 11] };
+  const restored = applyRestoredPlayers(lineup, [{ sheetRow: 10, name: 'Pat' }]);
+  assert.deepEqual(restored.players.map((player) => player.name), ['Amy', 'Pat']);
+  assert.deepEqual(restored.spareRows, [11]);
+});
+
+test('finding a player by sheet row returns undefined for a missing row', () => {
+  assert.equal(lineupPlayer({ players: [{ sheetRow: 9, name: 'Amy' }] }, 9).name, 'Amy');
+  assert.equal(lineupPlayer({ players: [] }, 9), undefined);
+});
+
+test('headcount counts who is playing, who has not replied and who is out', () => {
+  const players = [
+    { attending: true, rsvp: 'yes' },
+    { attending: true, rsvp: 'yes' },
+    { attending: true, rsvp: 'maybe' },
+    { attending: true, rsvp: '' },
+    { attending: false, rsvp: 'no' },
+  ];
+  assert.deepEqual(headcount(players), { playing: 4, yes: 2, maybe: 1, waiting: 1, out: 1 });
+});
+
+test('blank player rows are the empty rows between the header and the end label', () => {
+  assert.deepEqual(blankPlayerRows(['Game #:', 'Name', 'Amy', '', '', 'Open spots', '']), [4, 5]);
+  assert.deepEqual(blankPlayerRows(['Game #:']), []);
 });

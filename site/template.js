@@ -1,6 +1,6 @@
 const SHEETS_ADDRESS = 'https://sheets.googleapis.com/v4/spreadsheets';
-const POSITION_CODES = ['P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'LC', 'CF', 'RC', 'RF'];
-const POSITION_NAMES = ['Pitcher', 'Catcher', 'First Baseperson', 'Second Baseperson', 'Third Baseperson', 'Shortstop', 'Left Fielder', 'Left Center Fielder', 'Center Fielder', 'Right Center Fielder', 'Right Fielder'];
+export const POSITION_CODES = ['P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'LC', 'CF', 'RC', 'RF'];
+export const POSITION_NAMES = ['Pitcher', 'Catcher', 'First Baseperson', 'Second Baseperson', 'Third Baseperson', 'Shortstop', 'Left Fielder', 'Left Center Fielder', 'Center Fielder', 'Right Center Fielder', 'Right Fielder'];
 const INNING_COUNT = 5;
 const LINEUP_ROW_COUNT = 22;
 const SHARE_LINK_LABEL = 'Share link';
@@ -112,10 +112,10 @@ function startRows() {
   return [
     [textCell('Start here', headerFormat), textCell('Five minutes to a team link', headerFormat)],
     step('1. Roster', 'Type your players on the Roster tab, one per row, over the examples. Under Prefers and Won\'t play, list positions separated by commas, like SS, 2B. Subs go on the roster too.'),
-    step('2. Schedule', 'On the Schedule tab, fill in each game\'s date, time, location and opponent. After a game, add the result to Notes, like W, 12-0.'),
+    step('2. Schedule', 'On the Schedule tab, fill in each game\'s date, time, location and opponent. You can paste the whole season in at once. After a game, add the result to Notes, like W, 12-0.'),
     step('3. Lineup', 'On Game 1 Lineup, pick each player\'s name in column A. The order is the kicking order. Pick a position for each inning, and set the RSVP column as replies come in. You can also do all of this, and start the next game, from Captain tools on the team page.'),
     step('4. Share', 'Your team link is on the Team Config tab, in the Share link row. Send it to your players. They see the lineups and nothing else in this sheet. Roster, Schedule, Positions, Team Config and this tab stay private.'),
-    step('Next game', 'In Captain tools on the team page, choose New game. Or right-click the New game (copy me) tab and choose Duplicate. Rename the copy so it ends with Lineup, like Game 2 Lineup, and type its number in the Game # cell. Players only see tabs whose names end with Lineup.'),
+    step('Lineup tabs', 'In Captain tools on the team page, open Games and choose Set up lineups to make a tab for every game on the Schedule. The team page opens on the next game by date. Or right-click the New game (copy me) tab and choose Duplicate. Rename the copy so it ends with Lineup, like Game 2 Lineup, and type its number in the Game # cell. Players only see tabs whose names end with Lineup.'),
     step('Retire a game', 'Start a tab\'s name with OLD to hide it from players.'),
     step('Add a co-captain', 'Use the Share button at the top right of Google Sheets to give an assistant captain edit access. Players never need access. Then have them open the team link with #captain on the end. That shows the Captain tools link at the bottom of the page.'),
     [],
@@ -138,11 +138,13 @@ function rosterRows() {
     textCell('Prefers', headerFormat, 'Positions they like, separated by commas, like SS, 2B. They show up green in a game lineup'),
     textCell("Won't play", headerFormat, 'Positions they would rather not play. They show up red in a game lineup'),
     textCell('Notes (only you see this tab)', headerFormat),
+    textCell('Pronouns (optional)', headerFormat, 'So you remember how each player goes by. Only you see this tab'),
   ];
   const players = [...EXAMPLE_PLAYERS, EXAMPLE_SUB].map((name) => [
     textCell(name),
     textCell(EXAMPLE_PREFERS[name] ?? ''),
     textCell(EXAMPLE_AVOIDS[name] ?? ''),
+    textCell(''),
     textCell(''),
   ]);
   return [header, ...players];
@@ -337,7 +339,7 @@ export function formattingRequests() {
     ...configFormattingRequests(CONFIG_SHEET_ID),
     columnFormat(SCHEDULE_SHEET_ID, SCHEDULE_FIRST_ROW_INDEX, scheduleEndRow, 1, { numberFormat: DATE_FORMAT, horizontalAlignment: 'LEFT' }, NUMBER_AND_ALIGNMENT_FIELDS),
     columnFormat(SCHEDULE_SHEET_ID, SCHEDULE_FIRST_ROW_INDEX, scheduleEndRow, 2, { numberFormat: TIME_FORMAT, horizontalAlignment: 'LEFT' }, NUMBER_AND_ALIGNMENT_FIELDS),
-    columnWidth(ROSTER_SHEET_ID, 0, 160), columnWidth(ROSTER_SHEET_ID, 1, 160), columnWidth(ROSTER_SHEET_ID, 2, 160), columnWidth(ROSTER_SHEET_ID, 3, 380),
+    columnWidth(ROSTER_SHEET_ID, 0, 160), columnWidth(ROSTER_SHEET_ID, 1, 160), columnWidth(ROSTER_SHEET_ID, 2, 160), columnWidth(ROSTER_SHEET_ID, 3, 380), columnWidth(ROSTER_SHEET_ID, 4, 140),
     columnWidth(SCHEDULE_SHEET_ID, 1, 90), columnWidth(SCHEDULE_SHEET_ID, 3, 220), columnWidth(SCHEDULE_SHEET_ID, 4, 200), columnWidth(SCHEDULE_SHEET_ID, 5, 320),
     columnWidth(POSITIONS_SHEET_ID, 0, 200),
     columnWidth(START_SHEET_ID, 0, 150), columnWidth(START_SHEET_ID, 1, 620),

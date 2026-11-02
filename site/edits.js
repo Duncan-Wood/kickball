@@ -1,3 +1,5 @@
+import { POSITION_CODES } from './template.js';
+
 export function columnLetter(columnIndex) {
   let letters = '';
   for (let remaining = columnIndex + 1; remaining > 0; remaining = Math.floor((remaining - 1) / 26)) {
@@ -8,6 +10,10 @@ export function columnLetter(columnIndex) {
 
 export function cellAddress(tabName, columnIndex, sheetRow) {
   return `'${tabName.replaceAll("'", "''")}'!${columnLetter(columnIndex)}${sheetRow}`;
+}
+
+export function lineupPlayer(lineup, sheetRow) {
+  return lineup.players.find((player) => player.sheetRow === sheetRow);
 }
 
 function playerAt(players, sheetRow) {
@@ -55,12 +61,6 @@ export function applyFieldingChanges(players, changes) {
   });
 }
 
-export function inningsToEdit(scope, currentInningIndex, inningCount) {
-  const first = scope === 'all' ? 0 : currentInningIndex;
-  const last = scope === 'inning' ? currentInningIndex : inningCount - 1;
-  return Array.from({ length: last - first + 1 }, (unused, offset) => first + offset);
-}
-
 export function kickingMove(players, sourceRow, targetRow) {
   const source = playerAt(players, sourceRow);
   const target = playerAt(players, targetRow);
@@ -90,9 +90,11 @@ export function rosterNamesToAdd(rosterNames, players) {
   return rosterNames.filter((name) => !inLineup.has(name.toLowerCase()));
 }
 
-export function playersToAdd(spareRows, names) {
+export function playersToAdd(spareRows, names, players) {
   if (names.length > spareRows.length) throw new Error(`This lineup has room for ${spareRows.length} more players. Add rows to the grid in the sheet first`);
-  return names.map((name, index) => ({ name, sheetRow: spareRows[index] }));
+  const lastPlayerRow = Math.max(0, ...players.map((player) => player.sheetRow));
+  const rowsInFillOrder = [...spareRows.filter((sheetRow) => sheetRow > lastPlayerRow), ...spareRows.filter((sheetRow) => sheetRow < lastPlayerRow)];
+  return names.map((name, index) => ({ name, sheetRow: rowsInFillOrder[index] }));
 }
 
 export function applyAddedPlayers(lineup, additions, inningCount) {
@@ -111,4 +113,110 @@ export function applyRsvp(player, answer) {
 
 export function nextGameNumber(lineups) {
   return Math.max(0, ...lineups.map((lineup) => lineup.gameNumber ?? 0)) + 1;
+}
+
+export function inverseKickingMove({ fromRow, finalRow }) {
+  return { fromRow: finalRow, finalRow: fromRow, destinationIndex: finalRow < fromRow ? fromRow : fromRow - 1 };
+}
+
+export function occupantsOf(players, inningIndex, position) {
+  return players.filter((player) => player.attending && player.positions[inningIndex] === position);
+}
+
+function fieldOrder(position) {
+  const index = POSITION_CODES.indexOf(position);
+  return index === -1 ? POSITION_CODES.length : index;
+}
+
+export function candidatesForSpot(players, inningIndex, position) {
+  const others = players.filter((player) => player.attending && player.positions[inningIndex] !== position);
+  const sitting = others.filter((player) => player.positions[inningIndex] === '');
+  const playing = others.filter((player) => player.positions[inningIndex] !== '').sort((first, second) => fieldOrder(first.positions[inningIndex]) - fieldOrder(second.positions[inningIndex]));
+  return [...sitting, ...playing];
+}
+
+export function positionChoices(players, inningIndex, currentPosition) {
+  return POSITION_CODES
+    .filter((position) => position !== currentPosition)
+    .map((position) => ({ position, occupants: occupantsOf(players, inningIndex, position) }));
+}
+
+export function describeInnings(inningIndexes, inningLabels) {
+  const labels = inningIndexes.map((index) => inningLabels[index]);
+  if (labels.length === 1) return `inning ${labels[0]}`;
+  return `innings ${labels.slice(0, -1).join(', ')} and ${labels[labels.length - 1]}`;
+}
+
+export function inningsForPreset(preset, inningCount) {
+  const all = Array.from({ length: inningCount }, (unused, index) => index);
+  if (preset === 'odd') return all.filter((index) => index % 2 === 0);
+  if (preset === 'even') return all.filter((index) => index % 2 === 1);
+  return all;
+}
+
+export function inningsHaveDifferentLineups(players, inningIndexes) {
+  const lineupOf = (inningIndex) => players.filter((player) => player.attending).map((player) => `${player.sheetRow}:${player.positions[inningIndex]}`).join('|');
+  return new Set(inningIndexes.map(lineupOf)).size > 1;
+}
+
+export function applyRestoredPlayers(lineup, restoredPlayers) {
+  const restoredRows = new Set(restoredPlayers.map((player) => player.sheetRow));
+  return {
+    players: [...lineup.players, ...restoredPlayers].sort((first, second) => first.sheetRow - second.sheetRow),
+    spareRows: lineup.spareRows.filter((sheetRow) => !restoredRows.has(sheetRow)),
+  };
+}
+
+export function applyRemovedPlayers(lineup, sheetRows) {
+  const removedRows = new Set(sheetRows);
+  return {
+    players: lineup.players.filter((player) => !removedRows.has(player.sheetRow)),
+    spareRows: [...lineup.spareRows, ...sheetRows].sort((first, second) => first - second),
+  };
+}
+
+export function isoDateFromDisplayed(text) {
+  const iso = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (iso !== null) return text;
+  const american = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
+  if (american === null) return '';
+  const year = american[3].length === 2 ? `20${american[3]}` : american[3];
+  return `${year}-${american[1].padStart(2, '0')}-${american[2].padStart(2, '0')}`;
+}
+
+export function isoTimeFromDisplayed(text) {
+  const clock = text.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+  if (clock === null) return '';
+  const meridiem = (clock[3] ?? '').toUpperCase();
+  const hour = Number(clock[1]) % 12 + (meridiem === 'PM' ? 12 : 0);
+  return `${String(meridiem === '' ? Number(clock[1]) : hour).padStart(2, '0')}:${clock[2]}`;
+}
+
+export function scheduleGames(scheduleRows, lineups) {
+  return scheduleRows.slice(1).flatMap((cells, index) => {
+    const text = (column) => (cells[column] ?? '').trim();
+    if (!/^\d+$/.test(text(0))) return [];
+    const number = Number(text(0));
+    const lineup = lineups.find((candidate) => candidate.gameNumber === number);
+    const game = { number, row: index + 2, date: text(1), time: text(2), location: text(3), opponent: text(4), notes: text(5), tabName: lineup?.tabName ?? null };
+    return [game.date, game.time, game.location, game.opponent].some((value) => value !== '') || lineup !== undefined ? [game] : [];
+  });
+}
+
+export function headcount(players) {
+  const count = (answer) => players.filter((player) => player.attending && player.rsvp === answer).length;
+  return {
+    playing: players.filter((player) => player.attending).length,
+    yes: count('yes'),
+    maybe: count('maybe'),
+    waiting: count(''),
+    out: players.filter((player) => !player.attending).length,
+  };
+}
+
+export function blankPlayerRows(columnA) {
+  const headerIndex = columnA.indexOf('Name');
+  const endIndex = columnA.findIndex((label) => label === 'Open spots' || label === 'Acceptable');
+  if (headerIndex === -1 || endIndex === -1) return [];
+  return columnA.slice(headerIndex + 1, endIndex).map((text, offset) => ({ text, sheetRow: headerIndex + 2 + offset })).filter(({ text }) => text === '').map(({ sheetRow }) => sheetRow);
 }
