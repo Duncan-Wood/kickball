@@ -19,7 +19,7 @@ export async function loadSchedule() {
     captain.scheduleRows = null;
     captain.scheduleError = error.message;
   }
-  captain.gamesDirty = true;
+  captain.panelStale = true;
   window.fieldView.rerender();
 }
 

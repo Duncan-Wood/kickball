@@ -12,7 +12,7 @@ const OUTCOME_CHOICES = [['', 'Not played yet'], ['W', 'Won'], ['L', 'Lost'], ['
 function closeEditor() {
   captain.openGameNumber = null;
   captain.draftGameNumber = null;
-  captain.gamesDirty = true;
+  captain.panelStale = true;
   window.fieldView.rerender();
 }
 
@@ -77,7 +77,7 @@ function gameEditor(game) {
   } else if (game.row !== null) {
     actions.append(button('Set up lineup', 'panel-action', () => saveEdit(async () => {
       await createGameTabs([game.number]);
-      captain.gamesDirty = true;
+      captain.panelStale = true;
     }, `Set up Game ${game.number}`)));
   }
   actions.append(button('Cancel', 'panel-action', closeEditor));
@@ -96,7 +96,7 @@ function gameCard(game) {
   const card = node('div', isOpen ? 'game-card open' : 'game-card');
   const summary = button('', 'game-summary', () => {
     captain.openGameNumber = isOpen ? null : game.number;
-    captain.gamesDirty = true;
+    captain.panelStale = true;
     window.fieldView.rerender();
   });
   summary.setAttribute('aria-expanded', String(isOpen));
@@ -122,14 +122,14 @@ export function gamesPanel() {
   parts.push(button('Add a game', 'panel-action', () => {
     captain.draftGameNumber = Math.max(nextGameNumber(window.fieldView.allLineups()), ...games.map((game) => game.number + 1));
     captain.openGameNumber = captain.draftGameNumber;
-    captain.gamesDirty = true;
+    captain.panelStale = true;
     window.fieldView.rerender();
   }));
   if (needsLineup.length > 0) {
     const noun = needsLineup.length === 1 ? 'lineup' : 'lineups';
     parts.push(button(`Set up ${needsLineup.length} ${noun}`, 'panel-action primary', () => saveEdit(async () => {
       await createGameTabs(needsLineup.map((game) => game.number));
-      captain.gamesDirty = true;
+      captain.panelStale = true;
     }, `Set up ${needsLineup.length} ${noun}`)));
   }
   return parts;

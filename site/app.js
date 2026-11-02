@@ -95,10 +95,13 @@ function applyConfig(settings) {
   });
   applyStripe(settings.theme.stripe);
   if (!FONTS.includes(settings.font)) throw new Error('The sheet sent an unknown font');
-  const fontLink = document.createElement('link');
-  fontLink.rel = 'stylesheet';
-  fontLink.href = 'https://fonts.googleapis.com/css2?family=' + settings.font + ':wght@400;500;600;700&display=swap';
-  document.head.appendChild(fontLink);
+  const fontAddress = 'https://fonts.googleapis.com/css2?family=' + settings.font + ':wght@400;500;600;700&display=swap';
+  if (!document.querySelector('link[href="' + fontAddress + '"]')) {
+    const fontLink = document.createElement('link');
+    fontLink.rel = 'stylesheet';
+    fontLink.href = fontAddress;
+    document.head.appendChild(fontLink);
+  }
   document.documentElement.style.setProperty('--font', "'" + settings.font + "'");
   document.getElementById('team-name').textContent = settings.teamName;
   document.title = settings.teamName;
@@ -618,6 +621,13 @@ window.fieldView = {
   currentInningIndex: () => selectedInningIndex,
   inFieldMode: () => mode === 'inning',
   rerender: () => render(),
+  currentConfig: () => config,
+  previewConfig: (settings) => applyConfig(settings),
+  saveConfig(settings) {
+    config = settings;
+    applyConfig(settings);
+    saveLineups();
+  },
   changed() {
     lastWriteAt = Date.now();
     showUpdated(lastWriteAt);

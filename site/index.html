@@ -79,11 +79,14 @@
         <button type="button" id="area-kicking" aria-pressed="false">Kicking</button>
         <button type="button" id="area-players" aria-pressed="false">Players</button>
         <button type="button" id="area-games" aria-pressed="false">Games</button>
+        <button type="button" id="area-team" aria-pressed="false">Team</button>
       </div>
-      <button type="button" class="captain-undo" id="captain-undo" disabled>Undo</button>
-      <button type="button" class="captain-done" id="captain-done">Done</button>
+      <div class="captain-meta">
+        <div class="captain-status empty" id="captain-status" role="status"></div>
+        <button type="button" class="captain-undo" id="captain-undo" disabled>Undo</button>
+        <button type="button" class="captain-done" id="captain-done">Done</button>
+      </div>
     </div>
-    <div class="captain-status empty" id="captain-status" role="status" hidden></div>
     <div class="captain-panel" id="captain-panel" hidden></div>
     <svg id="field" viewBox="-24 28 448 372" xmlns="http://www.w3.org/2000/svg">
       <path class="outfield-grass" d="M200,350 L-12,138 A300,300 0 0 1 412,138 Z"/>

@@ -6,12 +6,16 @@ on:
       - 'worker/**'
       - 'site/template.js'
       - 'site/result.js'
+      - 'site/teamSettings.js'
+      - 'site/theme.js'
       - '.github/workflows/worker.yml'
   push:
     branches: [main]
     paths:
       - 'worker/**'
       - 'site/result.js'
+      - 'site/teamSettings.js'
+      - 'site/theme.js'
       - '.github/workflows/worker.yml'
   workflow_dispatch:
 

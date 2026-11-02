@@ -1,4 +1,4 @@
-export const AREAS = ['fielding', 'kicking', 'players', 'games'];
+export const AREAS = ['fielding', 'kicking', 'players', 'games', 'team'];
 export const RSVP_ANSWERS = ['Yes', 'Maybe', 'No'];
 
 export const element = (id) => document.getElementById(id);
@@ -17,12 +17,13 @@ export const captain = {
   spreadsheetId: null,
   tabs: new Map(),
   canManageGames: false,
+  canEditTeam: false,
   rosterNames: null,
   rosterError: null,
   scheduleRows: null,
   scheduleError: null,
   openGameNumber: null,
   draftGameNumber: null,
-  gamesDirty: false,
+  panelStale: false,
   undoStack: [],
 };
