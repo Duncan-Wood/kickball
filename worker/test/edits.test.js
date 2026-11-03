@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { applyAddedPlayers, applyFieldingChanges, applyKickingMove, applyRsvp, applyRemovedPlayers, applyRestoredPlayers, blankPlayerRows, headcount, lineupPlayer, candidatesForSpot, cellAddress, columnLetter, describeInnings, fieldingChanges, fieldingChangesForInnings, inningsForPreset, inningsHaveDifferentLineups, inverseKickingMove, isoDateFromDisplayed, isoTimeFromDisplayed, scheduleGames, kickingMove, nextGameNumber, occupantsOf, positionChoices, playersToAdd, rosterNamesToAdd, rowAfterMove } from '../../site/edits.js';
+import { applyAddedPlayers, applyFieldingChanges, applyKickingMove, applyRsvp, applyRemovedPlayers, applyRestoredPlayers, blankPlayerRows, firstBlankRosterRow, headcount, lineupPlayer, positionsIn, positionsText, rosterNameProblem, rosterPlayerFromRow, rowsWithName, candidatesForSpot, cellAddress, columnLetter, describeInnings, fieldingChanges, fieldingChangesForInnings, inningsForPreset, inningsHaveDifferentLineups, inverseKickingMove, isoDateFromDisplayed, isoTimeFromDisplayed, scheduleGames, kickingMove, nextGameNumber, occupantsOf, positionChoices, playersToAdd, rosterNamesToAdd, rowAfterMove } from '../../site/edits.js';
 
 const player = (name, sheetRow, positions, attending = true) => ({ name, sheetRow, attending, positions });
 const lineupPlayers = () => [
@@ -248,4 +248,34 @@ test('headcount counts who is playing, who has not replied and who is out', () =
 test('blank player rows are the empty rows between the header and the end label', () => {
   assert.deepEqual(blankPlayerRows(['Game #:', 'Name', 'Amy', '', '', 'Open spots', '']), [4, 5]);
   assert.deepEqual(blankPlayerRows(['Game #:']), []);
+});
+
+test('a roster row reads its columns and tolerates short rows', () => {
+  assert.deepEqual(rosterPlayerFromRow(['Amy B', 'SS, 2B', '', 'Subs only', 'she/her'], 4), { sheetRow: 4, name: 'Amy B', prefers: 'SS, 2B', avoids: '', notes: 'Subs only', pronouns: 'she/her' });
+  assert.deepEqual(rosterPlayerFromRow(['Amy B'], 5), { sheetRow: 5, name: 'Amy B', prefers: '', avoids: '', notes: '', pronouns: '' });
+});
+
+test('position lists keep field order and keep entries they do not recognize', () => {
+  assert.deepEqual(positionsIn('ss, 2B,bench'), ['2B', 'SS']);
+  assert.equal(positionsText(['SS', 'P'], 'ss, bench'), 'P, SS, bench');
+  assert.equal(positionsText([], ''), '');
+});
+
+test('a new roster player takes the first blank row or the row after the last name', () => {
+  assert.equal(firstBlankRosterRow(['Amy', '', 'Pat']), 3);
+  assert.equal(firstBlankRosterRow(['Amy', 'Pat']), 4);
+  assert.equal(firstBlankRosterRow([]), 2);
+});
+
+test('a roster name must be filled in and not already used', () => {
+  const roster = [{ sheetRow: 2, name: 'Amy B' }, { sheetRow: 3, name: 'Pat' }];
+  assert.equal(rosterNameProblem('', roster, null), 'Enter a name');
+  assert.match(rosterNameProblem('amy b', roster, null), /already on the roster/);
+  assert.equal(rosterNameProblem('amy b', roster, 2), null);
+  assert.equal(rosterNameProblem('Taylor', roster, null), null);
+});
+
+test('rows to rename are found in every game whatever the capitalization', () => {
+  const lineups = [{ tabName: 'Game 1 Lineup', players: [{ name: 'Amy B', sheetRow: 9 }] }, { tabName: 'Game 2 Lineup', players: [{ name: 'amy b', sheetRow: 11 }, { name: 'Pat', sheetRow: 12 }] }];
+  assert.deepEqual(rowsWithName(lineups, 'Amy B').map(({ lineup, sheetRow }) => [lineup.tabName, sheetRow]), [['Game 1 Lineup', 9], ['Game 2 Lineup', 11]]);
 });
