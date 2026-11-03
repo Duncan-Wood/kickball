@@ -4,7 +4,7 @@ const FIELD_SPOTS = {
   P: [200, 266], C: [200, 382],
 };
 const INFIELD_POSITIONS = ['P', 'C', '1B', '2B', '3B', 'SS'];
-const MINIMUM_API_VERSION = 4;
+const MINIMUM_API_VERSION = 5;
 const REFRESH_SECONDS = 10;
 const TEAM_CODE_PATTERN = /^[a-z0-9]{12}$/;
 const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;

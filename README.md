@@ -32,9 +32,9 @@ The `Team Config` tab has eight settings, which a captain can also change from *
 
 ## The team sheet
 
-- `Schedule` holds each game's date, time, location, opponent and result once. A game tab looks its details up by the number in its `Game #:` cell.
-- `Start here` is the first tab: setup steps and what the colors mean. It is never sent to players.
-- To add games, use **Games** in Captain tools, or duplicate the `New game (copy me)` tab, rename the copy so it ends with `Lineup`, and type its number in the `Game #:` cell. The blank tab is ignored until it is renamed.
+- `Schedule` holds each game's date, time, location, opponent and result once. A game tab looks its details up by the number in its `Game #:` cell. A playoff or makeup game can use text like `P1` in place of a number.
+- `Start here` is the first tab: how the sheet and the team page fit together, and what the colors mean. It is never sent to players. A new sheet hides the tabs the page manages (`Positions`, `Team Config` and `New game (copy me)`), so only Start here, Roster, Schedule and the game tabs show. View, then Hidden sheets, brings them back.
+- To add games, use **Games** in Captain tools, or duplicate the `New game (copy me)` tab, rename the copy so it ends with `Lineup`, and type its number in the `Game #:` cell. A copy keeps the old number until you change it, and the page hides a tab whose number another tab already uses. The blank tab is ignored until it is renamed.
 - The lookup cells in a game tab show a red corner flag if someone types over their formula. The warning is a validation rule, so it carries over when a tab is duplicated.
 - `Roster` holds each player's name, the positions they prefer and the positions they won't play, private notes and an optional pronouns column. Subs go on the roster like anyone else and are added to a game's grid when they play.
 - In a game tab, the `RSVP` column takes Yes, Maybe or No as replies come in. A blank cell next to a name is gray, meaning no reply yet. Blank and Maybe players are still planned for, and a No turns the row gray.
@@ -51,7 +51,7 @@ Under the team page, **Captain tools** lets anyone who can edit the sheet change
 - **Edit innings:** changes apply to the inning on screen. To change several at once, tap more innings in the **Edit innings** row, or use **Odd**, **Even** or **All**. A captain who alternates two lineups can select the odd innings, set that lineup, then select the even innings and set the other. A note below the row says which innings a change will touch.
 - **Kicking:** tap a kicker, then tap the numbered spot in the order they should take.
 - **Players:** a headcount at the top shows how many are playing and warns below 8, and the same number sits on the **Players** button. Set each player's RSVP to Yes, Maybe or No. Marking someone No also clears their positions in every inning. The **×** beside a name removes them from this game, and a name tapped under **Add from the roster** goes into the next empty row after the last player, so late arrivals land at the end of the kicking order.
-- **Games:** lists every game on the `Schedule` tab with its date, time, place, opponent and whether it has a lineup tab. Tap a game to edit its details or enter the result (Won, Lost or Tied with both scores), **Add a game** for a reschedule or playoff, and **Set up lineups** to create a lineup tab for every game that has a date and no tab yet. Each new tab starts with everyone on the `Roster` tab and no replies, so a captain only has to mark who is coming. It only appears for sheets that have the `Schedule` and `New game (copy me)` tabs.
+- **Games:** lists every game on the `Schedule` tab with its date, time, place, opponent and whether it has a lineup tab. Tap a game to edit its details or enter the result (Won, Lost or Tied with both scores), **Add a game** for a reschedule or playoff (its Game # can be a number or text like `P1`), and **Set up lineups** to create a lineup tab for every game that has a date and no tab yet. Each new tab starts with everyone on the `Roster` tab and no replies, so a captain only has to mark who is coming. It only appears for sheets that have the `Schedule` and `New game (copy me)` tabs.
 - **Team:** the eight `Team Config` settings as a form: name, season label, icon, main and second color, stripe, font and the suggestion box. Changes show on the page as you make them, and **Save** writes them to the `Team Config` tab. Undo reverses a save. It only appears for sheets that have the `Team Config` tab.
 - **Undo:** the **Undo** button in the top bar reverses the last field move, kicking move, RSVP, added or removed player, and keeps going back through earlier ones. Game details and new lineup tabs cannot be undone from the page.
 - **Opening on the right game:** the team page opens on the next game by date, or the most recent one once the season is over.
@@ -83,7 +83,7 @@ npx wrangler deploy
 
 `wrangler.toml` holds the KV namespace id, the Google client id and the allowed site origins. `TOKEN_ENCRYPTION_KEY` is 32 random bytes in base64. The Google project needs the Sheets, Drive and Picker APIs, a Web OAuth client and a Picker API key, all in `site/settings.js`.
 
-Deploy the Worker before the site. The page asks for API version 4 and shows "out of date" against an older Worker.
+Deploy the Worker before the site. The page asks for API version 5 and shows "out of date" against an older Worker.
 
 ## What the sheet needs
 
@@ -93,7 +93,7 @@ Deploy the Worker before the site. The page asks for API version 4 and shows "ou
 | Tab name starts with "OLD" | The tab is skipped |
 | "Name" and "Open spots" (or "Acceptable") labels in column A | Finding the player grid. If one is missing, the view names the tab instead of guessing |
 | "Date:", "Time:", "Location:", "Opponent:" and "Notes:" labels in column A, value in column B | Game details. Any that are missing show blank |
-| "Game #:" label in column A with a number beside it | Names the game, like "Game 3 (10/21/26)", and puts the games in order. Two tabs cannot share a number: the later tab is hidden and a notice on the page names both tabs |
+| "Game #:" label in column A with a number or text like P1 beside it | A number names the game, like "Game 3 (10/21/26)", and puts the games in order. Text like P1 matches the tab to its row on the `Schedule` tab, and the tab is named by its tab name. Two tabs cannot share a Game #: the later tab is hidden and a notice on the page names both tabs |
 | Notes like "W, 12-0", "L, 3-5" or "T, 5-5" (your runs first) | The result of the game, shown as "Won 12-0", "Lost 3-5" or "Tied 5-5". A game with a result counts toward season totals. Other notes are shown as written |
 | Inning numbers in the "Name" row | One column per inning |
 | Position codes P, C, 1B, 2B, 3B, SS, LF, LC, CF, RC, RF | Placing players on the field. Any other code is flagged |

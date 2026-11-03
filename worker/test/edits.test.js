@@ -203,7 +203,7 @@ test('displayed dates and times turn into what the form inputs expect', () => {
   assert.equal(isoTimeFromDisplayed('evening'), '');
 });
 
-test('the season schedule lists numbered games that have details or a lineup, with their rows', () => {
+test('the season schedule lists games, numbered or not, that have details or a lineup, with their rows', () => {
   const rows = [
     ['Game #', 'Date', 'Time', 'Location', 'Opponent', 'Notes'],
     ['1', '11/8/26', '7:00 PM', 'Field 1', 'Dirt Sliders', 'W, 12-0'],
@@ -212,8 +212,8 @@ test('the season schedule lists numbered games that have details or a lineup, wi
     ['4'],
     ['x', '11/22/26'],
   ];
-  const games = scheduleGames(rows, [{ gameNumber: 1, tabName: 'Game 1 Lineup' }, { gameNumber: 3, tabName: 'Game 3 Lineup' }]);
-  assert.deepEqual(games.map((game) => [game.number, game.row, game.tabName]), [[1, 2, 'Game 1 Lineup'], [2, 3, null], [3, 4, 'Game 3 Lineup']]);
+  const games = scheduleGames(rows, [{ gameId: '1', tabName: 'Game 1 Lineup' }, { gameId: '3', tabName: 'Game 3 Lineup' }]);
+  assert.deepEqual(games.map((game) => [game.id, game.row, game.tabName]), [['1', 2, 'Game 1 Lineup'], ['2', 3, null], ['3', 4, 'Game 3 Lineup'], ['x', 6, null]]);
   assert.equal(games[0].notes, 'W, 12-0');
 });
 

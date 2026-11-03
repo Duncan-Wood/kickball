@@ -1,4 +1,4 @@
-import { isoDateFromDisplayed, isoTimeFromDisplayed, nextGameNumber } from '../edits.js';
+import { gameIdProblem, isoDateFromDisplayed, isoTimeFromDisplayed, nextGameId } from '../edits.js';
 import { describeResult, notesFromResult, resultFromNotes } from '../result.js';
 import { button, formField, node, selectField } from './dom.js';
 import { chooseArea } from './navigation.js';
@@ -10,8 +10,8 @@ const HINT = 'Fill in the season here, then set up a lineup tab for every game a
 const OUTCOME_CHOICES = [['', 'Not played yet'], ['W', 'Won'], ['L', 'Lost'], ['T', 'Tied']];
 
 function closeEditor() {
-  captain.openGameNumber = null;
-  captain.draftGameNumber = null;
+  captain.openGameId = null;
+  captain.draftGameId = null;
   captain.panelStale = true;
   window.fieldView.rerender();
 }
@@ -58,6 +58,7 @@ function gameEditor(game) {
     notes: game.notes,
   };
   const form = node('form', 'game-editor');
+  if (game.row === null) form.append(formField('Game #', 'text', 'gameId', game.id));
   form.append(
     formField('Date', 'date', 'date', initialValues.date),
     formField('Time', 'time', 'time', initialValues.time),
@@ -76,9 +77,9 @@ function gameEditor(game) {
     }));
   } else if (game.row !== null) {
     actions.append(button('Set up lineup', 'panel-action', () => saveEdit(async () => {
-      await createGameTabs([game.number]);
+      await createGameTabs([game.id]);
       captain.panelStale = true;
-    }, `Set up Game ${game.number}`)));
+    }, `Set up Game ${game.id}`)));
   }
   actions.append(button('Cancel', 'panel-action', closeEditor));
   form.append(actions);
@@ -86,16 +87,23 @@ function gameEditor(game) {
     event.preventDefault();
     if (captain.saving) return;
     const fields = new FormData(form);
-    saveEdit(() => saveGameDetails(game, submittedDetails(fields), initialValues), `Game ${game.number} saved`);
+    const savedGame = game.row === null ? { ...game, id: fields.get('gameId').trim() } : game;
+    saveEdit(() => {
+      if (game.row === null) {
+        const problem = gameIdProblem(savedGame.id, scheduledGames().map((scheduled) => scheduled.id));
+        if (problem !== null) throw new Error(problem);
+      }
+      return saveGameDetails(savedGame, submittedDetails(fields), initialValues);
+    }, `Game ${savedGame.id} saved`);
   });
   return form;
 }
 
 function gameCard(game) {
-  const isOpen = captain.openGameNumber === game.number;
+  const isOpen = captain.openGameId === game.id;
   const card = node('div', isOpen ? 'game-card open' : 'game-card');
   const summary = button('', 'game-summary', () => {
-    captain.openGameNumber = isOpen ? null : game.number;
+    captain.openGameId = isOpen ? null : game.id;
     captain.panelStale = true;
     window.fieldView.rerender();
   });
@@ -103,7 +111,7 @@ function gameCard(game) {
   const result = resultFromNotes(game.notes);
   const details = [result === null ? game.notes : describeResult(result), game.date, game.time, game.location].filter((detail) => detail !== '').join(' · ');
   const text = node('span', 'game-text');
-  text.append(node('strong', undefined, `Game ${game.number}${game.opponent === '' ? '' : ` vs ${game.opponent}`}`), node('span', 'game-meta', details === '' ? 'No date yet' : details));
+  text.append(node('strong', undefined, `Game ${game.id}${game.opponent === '' ? '' : ` vs ${game.opponent}`}`), node('span', 'game-meta', details === '' ? 'No date yet' : details));
   summary.append(text, node('span', game.tabName === null ? 'game-state' : 'game-state ready', game.tabName === null ? 'No lineup' : 'Lineup ready'));
   card.append(summary);
   if (isOpen) card.append(gameEditor(game));
@@ -114,21 +122,21 @@ export function gamesPanel() {
   if (captain.scheduleError !== null) return [node('p', 'captain-hint', captain.scheduleError)];
   if (captain.scheduleRows === null) return [node('p', 'captain-hint', 'Loading the schedule…')];
   const games = scheduledGames();
-  const draft = captain.draftGameNumber === null ? [] : [{ number: captain.draftGameNumber, row: null, date: '', time: '', location: '', opponent: '', notes: '', tabName: null }];
+  const draft = captain.draftGameId === null ? [] : [{ id: captain.draftGameId, row: null, date: '', time: '', location: '', opponent: '', notes: '', tabName: null }];
   const needsLineup = games.filter((game) => game.tabName === null && game.date !== '');
   const list = node('div', 'game-list');
   list.append(...[...games, ...draft].map(gameCard));
   const parts = [node('p', 'captain-hint', HINT), list];
   parts.push(button('Add a game', 'panel-action', () => {
-    captain.draftGameNumber = Math.max(nextGameNumber(window.fieldView.allLineups()), ...games.map((game) => game.number + 1));
-    captain.openGameNumber = captain.draftGameNumber;
+    captain.draftGameId = nextGameId(games, window.fieldView.allLineups());
+    captain.openGameId = captain.draftGameId;
     captain.panelStale = true;
     window.fieldView.rerender();
   }));
   if (needsLineup.length > 0) {
     const noun = needsLineup.length === 1 ? 'lineup' : 'lineups';
     parts.push(button(`Set up ${needsLineup.length} ${noun}`, 'panel-action primary', () => saveEdit(async () => {
-      await createGameTabs(needsLineup.map((game) => game.number));
+      await createGameTabs(needsLineup.map((game) => game.id));
       captain.panelStale = true;
     }, `Set up ${needsLineup.length} ${noun}`)));
   }

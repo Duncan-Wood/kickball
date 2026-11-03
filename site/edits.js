@@ -115,6 +115,18 @@ export function nextGameNumber(lineups) {
   return Math.max(0, ...lineups.map((lineup) => lineup.gameNumber ?? 0)) + 1;
 }
 
+export function nextGameId(games, lineups) {
+  const scheduledNumbers = games.filter((game) => /^\d+$/.test(game.id)).map((game) => Number(game.id));
+  return String(Math.max(nextGameNumber(lineups), ...scheduledNumbers.map((number) => number + 1)));
+}
+
+export function gameIdProblem(id, existingIds) {
+  if (id === '') return 'Enter a game number, like 7 or P1';
+  if (!/^[A-Za-z0-9][A-Za-z0-9 -]{0,19}$/.test(id)) return 'Use letters, numbers, spaces or dashes, up to 20 characters';
+  if (existingIds.some((existing) => existing.toLowerCase() === id.toLowerCase())) return `Game ${id} is already on the schedule`;
+  return null;
+}
+
 export function inverseKickingMove({ fromRow, finalRow }) {
   return { fromRow: finalRow, finalRow: fromRow, destinationIndex: finalRow < fromRow ? fromRow : fromRow - 1 };
 }
@@ -195,10 +207,10 @@ export function isoTimeFromDisplayed(text) {
 export function scheduleGames(scheduleRows, lineups) {
   return scheduleRows.slice(1).flatMap((cells, index) => {
     const text = (column) => (cells[column] ?? '').trim();
-    if (!/^\d+$/.test(text(0))) return [];
-    const number = Number(text(0));
-    const lineup = lineups.find((candidate) => candidate.gameNumber === number);
-    const game = { number, row: index + 2, date: text(1), time: text(2), location: text(3), opponent: text(4), notes: text(5), tabName: lineup?.tabName ?? null };
+    const id = text(0);
+    if (id === '') return [];
+    const lineup = lineups.find((candidate) => candidate.gameId === id);
+    const game = { id, row: index + 2, date: text(1), time: text(2), location: text(3), opponent: text(4), notes: text(5), tabName: lineup?.tabName ?? null };
     return [game.date, game.time, game.location, game.opponent].some((value) => value !== '') || lineup !== undefined ? [game] : [];
   });
 }
