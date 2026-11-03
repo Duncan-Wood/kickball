@@ -232,3 +232,35 @@ export function blankPlayerRows(columnA) {
   if (headerIndex === -1 || endIndex === -1) return [];
   return columnA.slice(headerIndex + 1, endIndex).map((text, offset) => ({ text, sheetRow: headerIndex + 2 + offset })).filter(({ text }) => text === '').map(({ sheetRow }) => sheetRow);
 }
+
+export function rosterPlayerFromRow(cells, sheetRow) {
+  const text = (columnIndex) => (cells[columnIndex] ?? '').trim();
+  return { sheetRow, name: text(0), prefers: text(1), avoids: text(2), notes: text(3), pronouns: text(4) };
+}
+
+export function positionsIn(text) {
+  const entered = text.split(',').map((code) => code.trim().toUpperCase());
+  return POSITION_CODES.filter((code) => entered.includes(code));
+}
+
+export function positionsText(chosenCodes, originalText) {
+  const unrecognized = originalText.split(',').map((code) => code.trim()).filter((code) => code !== '' && !POSITION_CODES.includes(code.toUpperCase()));
+  return [...POSITION_CODES.filter((code) => chosenCodes.includes(code)), ...unrecognized].join(', ');
+}
+
+export function firstBlankRosterRow(names) {
+  const blankIndex = names.findIndex((name) => name === '');
+  return (blankIndex === -1 ? names.length : blankIndex) + 2;
+}
+
+export function rosterNameProblem(name, rosterPlayers, ownSheetRow) {
+  if (name === '') return 'Enter a name';
+  const duplicate = rosterPlayers.find((player) => player.sheetRow !== ownSheetRow && player.name.toLowerCase() === name.toLowerCase());
+  return duplicate === undefined ? null : `${duplicate.name} is already on the roster`;
+}
+
+export function rowsWithName(lineups, name) {
+  return lineups.flatMap((lineup) => lineup.players
+    .filter((player) => player.name.toLowerCase() === name.toLowerCase())
+    .map((player) => ({ lineup, sheetRow: player.sheetRow })));
+}
