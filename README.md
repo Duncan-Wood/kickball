@@ -18,7 +18,7 @@ Screenshots use made-up players.
 - Season totals: innings played, sat, infield and outfield, across games already played
 - Refreshes every 10 seconds while the page is in view, so edits in the sheet show up on their own, and shows when the lineup was last updated
 - Shows load and update errors in a red box at the top, retries a failed first load on its own, and keeps the last good lineup on the device
-- Captain tools: move players, reorder the kicking order, record RSVPs, add and remove players, enter results, set up the whole season and change the team's look, all from the team page
+- Captain tools: move players, reorder the kicking order, record RSVPs, add and remove players, edit the roster, enter results, set up the whole season and change the team's look, all from the team page
 
 ## Set up a team
 
@@ -36,7 +36,7 @@ The `Team Config` tab has eight settings, which a captain can also change from *
 - `Start here` is the first tab: setup steps and what the colors mean. It is never sent to players.
 - To add games, use **Games** in Captain tools, or duplicate the `New game (copy me)` tab, rename the copy so it ends with `Lineup`, and type its number in the `Game #:` cell. The blank tab is ignored until it is renamed.
 - The lookup cells in a game tab show a red corner flag if someone types over their formula. The warning is a validation rule, so it carries over when a tab is duplicated.
-- `Roster` holds each player's name, the positions they prefer and the positions they won't play, private notes and an optional pronouns column. Subs go on the roster like anyone else and are added to a game's grid when they play.
+- `Roster` can be edited from **Team** in Captain tools, and holds each player's name, the positions they prefer and the positions they won't play, private notes and an optional pronouns column. Subs go on the roster like anyone else and are added to a game's grid when they play.
 - In a game tab, the `RSVP` column takes Yes, Maybe or No as replies come in. A blank cell next to a name is gray, meaning no reply yet. Blank and Maybe players are still planned for, and a No turns the row gray.
 - The `Prefers` and `Won't play` columns after the innings fill in from the roster. A preferred position turns green in the grid and a won't-play position turns red. These columns are never sent to players.
 - The `Open spots` row under the grid lists the positions nobody is covering in each inning, and a position given to two players turns orange.
@@ -52,7 +52,7 @@ Under the team page, **Captain tools** lets anyone who can edit the sheet change
 - **Kicking:** tap a kicker, then tap the numbered spot in the order they should take.
 - **Players:** a headcount at the top shows how many are playing and warns below 8, and the same number sits on the **Players** button. Set each player's RSVP to Yes, Maybe or No. Marking someone No also clears their positions in every inning. The **×** beside a name removes them from this game, and a name tapped under **Add from the roster** goes into the next empty row after the last player, so late arrivals land at the end of the kicking order.
 - **Games:** lists every game on the `Schedule` tab with its date, time, place, opponent and whether it has a lineup tab. Tap a game to edit its details or enter the result (Won, Lost or Tied with both scores), **Add a game** for a reschedule or playoff, and **Set up lineups** to create a lineup tab for every game that has a date and no tab yet. Each new tab starts with everyone on the `Roster` tab and no replies, so a captain only has to mark who is coming. It only appears for sheets that have the `Schedule` and `New game (copy me)` tabs.
-- **Team:** the eight `Team Config` settings as a form: name, season label, icon, main and second color, stripe, font and the suggestion box. Changes show on the page as you make them, and **Save** writes them to the `Team Config` tab. Undo reverses a save. It only appears for sheets that have the `Team Config` tab.
+- **Team:** two views. **Settings** is the eight `Team Config` settings as a form (name, season label, icon, main and second color, stripe, font and the suggestion box) with the team link and a Copy button. Changes show on the page as you make them, and **Save** writes them to the `Team Config` tab. **Roster** lists everyone on the `Roster` tab. Tap a name to change their name, preferred and won't-play positions, pronouns or notes, or remove them, and use **Add a player** for someone new. Renaming a player also renames them in every game. Removing someone does not take them out of games already set up. Undo reverses any of these. Settings appears for sheets with a `Team Config` tab and Roster for sheets with a `Roster` tab.
 - **Undo:** the **Undo** button in the top bar reverses the last field move, kicking move, RSVP, added or removed player, and keeps going back through earlier ones. Game details and new lineup tabs cannot be undone from the page.
 - **Opening on the right game:** the team page opens on the next game by date, or the most recent one once the season is over.
 - Edits are written to the sheet with your own account, so the sheet's version history shows who made them. If the sheet changed since the page last updated, nothing is saved and the page says so.
