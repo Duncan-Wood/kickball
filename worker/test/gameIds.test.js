@@ -28,3 +28,19 @@ test('two tabs with the same playoff id hide the later one with a named problem'
   assert.deepEqual(visible.map((lineup) => lineup.tabName), ['Playoff A Lineup']);
   assert.match(problems[0], /both Game P2/);
 });
+
+test('every lineup the reader returns carries its Game # text, so tabs are not mistaken for duplicates', async () => {
+  const { readLineup } = await import('../src/lineup.js');
+  const cell = (text) => ({ text, strikethrough: false, serialDate: undefined, backgroundHex: '' });
+  const tabRows = (gameId) => [
+    [cell('Game #:'), cell(gameId)],
+    [cell('Name'), cell(''), cell('1')],
+    [cell('Chad S'), cell(''), cell('SS')],
+    [cell('Open spots'), cell(''), cell('')],
+  ];
+  const lineups = [['Game 5 Lineup', '5'], ['Game 6 Lineup', '6'], ['Playoff Lineup', 'P2'], ['Extra Lineup', '']].map(([tabName, gameId]) => readLineup(tabName, tabRows(gameId)));
+  assert.deepEqual(lineups.map((lineup) => lineup.gameId), ['5', '6', 'P2', '']);
+  const { lineups: visible, problems } = orderedLineups(lineups);
+  assert.equal(visible.length, 4);
+  assert.deepEqual(problems, []);
+});

@@ -42,6 +42,7 @@ export function readLineup(tabName, rows) {
   return {
     tabName,
     label: lineupLabel(tabName, gameId, textAt(dateRowIndex, 1)),
+    gameId,
     gameNumber,
     played: parsedResult !== null,
     result: parsedResult === null ? null : { ...parsedResult, text: describeResult(parsedResult) },
