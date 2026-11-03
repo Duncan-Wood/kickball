@@ -168,12 +168,12 @@ test('the label comes from the game number and date, or the tab name', () => {
   assert.equal(numbered.label, 'Game 2 (10/1/26)');
   assert.equal(numbered.gameNumber, 2);
   const unnumbered = readLineup('P1 (8/19/21) Lineup', rsvpRows([rowOf('Chad S', 'Yes', 'SS', 'P', '', '')], { gameNumber: 'P1' }));
-  assert.equal(unnumbered.label, 'P1 (8/19/21)');
+  assert.equal(unnumbered.label, 'Game P1 (10/1/26)');
   assert.equal(unnumbered.gameNumber, null);
 });
 
 test('lineups are ordered by game number and a repeated number hides the later tab with a named problem', () => {
-  const lineupFor = (tabName, gameNumber) => ({ tabName, gameNumber });
+  const lineupFor = (tabName, gameNumber) => ({ tabName, gameNumber, gameId: gameNumber === null ? 'P1' : String(gameNumber) });
   const ordered = orderedLineups([lineupFor('Copy of Game 1 Lineup', 3), lineupFor('Game 1 Lineup', 1), lineupFor('Game 2 Lineup', 2)]);
   assert.deepEqual(ordered.lineups.map((lineup) => lineup.gameNumber), [1, 2, 3]);
   assert.deepEqual(ordered.problems, []);

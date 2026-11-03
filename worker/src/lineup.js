@@ -35,12 +35,13 @@ export function readLineup(tabName, rows) {
   const { headerRowIndex, gameNumberRowIndex, opponentRowIndex, dateRowIndex, timeRowIndex, locationRowIndex, notesRowIndex, inningColumnIndexes } = grid;
   const textAt = (rowIndex, columnIndex) => (rows[rowIndex]?.[columnIndex]?.text ?? '').trim();
   const players = readPlayers(tabName, rows, grid);
-  const gameNumber = gameNumberRowIndex === -1 ? null : parsedGameNumber(textAt(gameNumberRowIndex, 1));
+  const gameId = gameNumberRowIndex === -1 ? '' : textAt(gameNumberRowIndex, 1);
+  const gameNumber = parsedGameNumber(gameId);
   const notes = textAt(notesRowIndex, 1);
   const parsedResult = resultFromNotes(notes);
   return {
     tabName,
-    label: lineupLabel(tabName, gameNumber, textAt(dateRowIndex, 1)),
+    label: lineupLabel(tabName, gameId, textAt(dateRowIndex, 1)),
     gameNumber,
     played: parsedResult !== null,
     result: parsedResult === null ? null : { ...parsedResult, text: describeResult(parsedResult) },
@@ -63,22 +64,22 @@ function parsedGameNumber(cellText) {
   return /^\d+$/.test(cellText) ? Number(cellText) : null;
 }
 
-function lineupLabel(tabName, gameNumber, date) {
-  if (gameNumber === null) return tabName.replace(/ Lineup$/i, '');
-  return date === '' ? `Game ${gameNumber}` : `Game ${gameNumber} (${date})`;
+function lineupLabel(tabName, gameId, date) {
+  if (gameId === '') return tabName.replace(/ Lineup$/i, '');
+  return date === '' ? `Game ${gameId}` : `Game ${gameId} (${date})`;
 }
 
 export function orderedLineups(lineups) {
-  const firstTabByGameNumber = new Map();
+  const firstTabByGameId = new Map();
   const problems = [];
   const distinctLineups = lineups.filter((lineup) => {
-    if (lineup.gameNumber === null) return true;
-    const firstTab = firstTabByGameNumber.get(lineup.gameNumber);
+    if (lineup.gameId === '') return true;
+    const firstTab = firstTabByGameId.get(lineup.gameId);
     if (firstTab === undefined) {
-      firstTabByGameNumber.set(lineup.gameNumber, lineup.tabName);
+      firstTabByGameId.set(lineup.gameId, lineup.tabName);
       return true;
     }
-    problems.push(`Tabs "${firstTab}" and "${lineup.tabName}" are both Game ${lineup.gameNumber}, so "${lineup.tabName}" is hidden. Captain: change the Game # on one of them`);
+    problems.push(`Tabs "${firstTab}" and "${lineup.tabName}" are both Game ${lineup.gameId}, so "${lineup.tabName}" is hidden. Captain: change the Game # on one of them`);
     return false;
   });
   if (distinctLineups.some((lineup) => lineup.gameNumber === null)) return { lineups: distinctLineups, problems };

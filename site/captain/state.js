@@ -25,8 +25,8 @@ export const captain = {
   rosterError: null,
   scheduleRows: null,
   scheduleError: null,
-  openGameNumber: null,
-  draftGameNumber: null,
+  openGameId: null,
+  draftGameId: null,
   panelStale: false,
   undoStack: [],
 };

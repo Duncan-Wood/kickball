@@ -79,9 +79,9 @@ function rowsOf(rows) {
   return rows.map((cells) => ({ values: cells }));
 }
 
-function sheet(sheetId, title, rows, frozenRowCount = 0, frozenColumnCount = 0) {
+function sheet(sheetId, title, rows, { frozenRowCount = 0, frozenColumnCount = 0, hidden = false } = {}) {
   return {
-    properties: { sheetId, title, gridProperties: { frozenRowCount, frozenColumnCount } },
+    properties: { sheetId, title, hidden, gridProperties: { frozenRowCount, frozenColumnCount } },
     rowData: rowsOf(rows),
   };
 }
@@ -102,14 +102,14 @@ function startRows() {
   const step = (title, instructions) => [textCell(title, { ...boldFormat, ...wrapped }), textCell(instructions, wrapped)];
   const swatch = (label, meaning, fill, textColor) => [textCell(label, { backgroundColor: fill, textFormat: { bold: true, foregroundColor: textColor }, horizontalAlignment: 'CENTER' }), textCell(meaning, wrapped)];
   return [
-    [textCell('Start here', headerFormat), textCell('Five minutes to a team link', headerFormat)],
-    step('1. Roster', 'Type your players on the Roster tab, one per row, over the examples. Under Prefers and Won\'t play, list positions separated by commas, like SS, 2B. Subs go on the roster too.'),
-    step('2. Schedule', 'On the Schedule tab, fill in each game\'s date, time, location and opponent. You can paste the whole season in at once. After a game, add the result to Notes, like W, 12-0.'),
-    step('3. Lineup', 'On Game 1 Lineup, pick each player\'s name in column A. The order is the kicking order. Pick a position for each inning, and set the RSVP column as replies come in. You can also do all of this, and start the next game, from Captain tools on the team page.'),
-    step('4. Share', 'Your team link is on the Team Config tab, in the Share link row. Send it to your players. They see the lineups and nothing else in this sheet. Roster, Schedule, Positions, Team Config and this tab stay private.'),
-    step('Lineup tabs', 'In Captain tools on the team page, open Games and choose Set up lineups to make a tab for every game on the Schedule. The team page opens on the next game by date. Or right-click the New game (copy me) tab and choose Duplicate. Rename the copy so it ends with Lineup, like Game 2 Lineup, and type its number in the Game # cell. Players only see tabs whose names end with Lineup.'),
+    [textCell('Start here', headerFormat), textCell('The team page does the work. This sheet is where it keeps everything.', headerFormat)],
+    step('1. Players', 'Type your players on the Roster tab, or add them from Captain tools on the team page (Team, then Roster). Pronouns and notes are optional and only you see them.'),
+    step('2. Season', 'Fill in each game on the Schedule tab, or open Games in Captain tools. You can paste the whole season in at once. A playoff or makeup game can use a Game # like P1. After a game, add the result, like W, 12-0.'),
+    step('3. Lineups', 'In Captain tools, open Games and choose Set up lineups to make a tab for every game. Each one starts with your whole roster. Mark who is coming, then set the positions and the kicking order. The team page opens on the next game by date.'),
+    step('4. Share', 'Send your players the team link. Captain tools, then Team, shows it with a Copy button. They see the lineups and nothing else in this sheet.'),
+    step('Add a co-captain', 'Use the Share button at the top right of Google Sheets to give an assistant captain edit access. Then have them open the team link with #captain on the end. Players never need access.'),
+    step('Edit by hand', 'Everything Captain tools does is saved in these tabs, so you can change them yourself any time. Positions, Team Config and New game (copy me) are hidden because the page manages them. To see them, choose View, then Hidden sheets. To add a game by hand, duplicate New game (copy me), end the copy\'s name with Lineup, and change its Game # because a copy keeps the old one.'),
     step('Retire a game', 'Start a tab\'s name with OLD to hide it from players.'),
-    step('Add a co-captain', 'Use the Share button at the top right of Google Sheets to give an assistant captain edit access. Players never need access. Then have them open the team link with #captain on the end. That shows the Captain tools link at the bottom of the page.'),
     [],
     [textCell('What the colors mean', headerFormat), textCell('', headerFormat)],
     swatch('SS', 'Green: a position the player prefers.', PREFERS_FILL, PREFERS_TEXT),
@@ -343,13 +343,13 @@ export function teamSheetDefinition(teamName, seasonLabel) {
   return {
     properties: { title: `${teamName} Kickball Lineup` },
     sheets: [
-      sheet(START_SHEET_ID, 'Start here', startRows(), 1),
-      sheet(ROSTER_SHEET_ID, ROSTER_TAB_NAME, rosterRows(), 1),
-      sheet(SCHEDULE_SHEET_ID, SCHEDULE_TAB_NAME, scheduleRows(), 1),
-      sheet(GAME_SHEET_ID, 'Game 1 Lineup', gameRows(), 0, 1),
-      sheet(NEW_GAME_SHEET_ID, NEW_GAME_TAB_NAME, gameRows(true), 0, 1),
-      sheet(POSITIONS_SHEET_ID, 'Positions', positionsRows(), 1),
-      sheet(CONFIG_SHEET_ID, 'Team Config', configRows(teamName, seasonLabel), 1),
+      sheet(START_SHEET_ID, 'Start here', startRows(), { frozenRowCount: 1 }),
+      sheet(ROSTER_SHEET_ID, ROSTER_TAB_NAME, rosterRows(), { frozenRowCount: 1 }),
+      sheet(SCHEDULE_SHEET_ID, SCHEDULE_TAB_NAME, scheduleRows(), { frozenRowCount: 1 }),
+      sheet(GAME_SHEET_ID, 'Game 1 Lineup', gameRows(), { frozenColumnCount: 1 }),
+      sheet(NEW_GAME_SHEET_ID, NEW_GAME_TAB_NAME, gameRows(true), { frozenColumnCount: 1, hidden: true }),
+      sheet(POSITIONS_SHEET_ID, 'Positions', positionsRows(), { frozenRowCount: 1, hidden: true }),
+      sheet(CONFIG_SHEET_ID, 'Team Config', configRows(teamName, seasonLabel), { frozenRowCount: 1, hidden: true }),
     ],
   };
 }

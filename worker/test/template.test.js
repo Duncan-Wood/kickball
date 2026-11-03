@@ -76,3 +76,10 @@ test('both game tabs freeze the name column and warn when a formula cell is type
     });
   });
 });
+
+test('the tabs the page manages are hidden and the tabs a captain uses are not', () => {
+  const hiddenByTitle = Object.fromEntries(teamSheetDefinition('Test Team', 'Fall 2026').sheets.map(({ properties }) => [properties.title, properties.hidden]));
+  assert.deepEqual(Object.keys(hiddenByTitle).filter((title) => hiddenByTitle[title]).sort(), ['New game (copy me)', 'Positions', 'Team Config']);
+  assert.equal(hiddenByTitle['Start here'], false);
+  assert.equal(hiddenByTitle.Roster, false);
+});
