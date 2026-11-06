@@ -2,6 +2,8 @@
 
 A lineup page for a kickball team. The captain keeps the lineup in a Google Sheet, and players open one link on their phone to see who plays where in each inning, the kicking order, a whole-game table and season totals. Captains and co-captains can also edit the lineup from the same page. There is nothing to install.
 
+It is free, needs no player accounts, and keeps all data in the captain's own Google Sheet. Most team apps cover scheduling and chat, or scoring, and the few that plan fielding are mostly paid. See [release readiness](docs/release-readiness.md) for how it compares, its strengths and weaknesses, and what is left before a wider release.
+
 Screenshots use made-up players.
 
 | Field | Whole game | Season |
@@ -26,7 +28,7 @@ Screenshots use made-up players.
 2. Enter your team name and season, then choose **Create my team sheet**. To keep a sheet you already have, choose **Use a sheet I already have** and pick it. The app adds a `Team Config` tab to it. Read [the guide](site/existing-sheet.html) first, because the sheet has to follow the layout below.
 3. Send the team link to your players.
 
-Nothing is installed in the sheet and there is no script to paste or deploy. The app asks Google for one permission, `drive.file`. It lets the app see only the sheet it created or the one you picked, never the rest of your Drive.
+Players need no app, account or sign-in. Nothing is installed in the sheet and there is no script to paste or deploy. The app asks Google for one permission, `drive.file`. It lets the app see only the sheet it created or the one you picked, never the rest of your Drive.
 
 The `Team Config` tab has eight settings, which a captain can also change from **Team** in Captain tools: team name, season label, icon, main color, second color, stripe (Blend or Rainbow), font and the suggestion box. The color cells take their fill color: click the box, then the paint bucket in the toolbar. White is a valid value. Everything else (page background, text, borders, highlights) is worked out from the two colors. The `Roster` and `Schedule` tabs feed the game tabs and are never sent to players.
 
@@ -85,6 +87,8 @@ npx wrangler deploy
 
 Deploy the Worker before the site. The page asks for API version 5 and shows "out of date" against an older Worker.
 
+A fork needs its own Worker URL, Google client id and Picker API key in `site/settings.js`, and its own origin in `ALLOWED_ORIGINS` in `wrangler.toml`.
+
 ## What the sheet needs
 
 | Convention | Used for |
@@ -104,7 +108,11 @@ Deploy the Worker before the site. The page asks for API version 5 and shows "ou
 
 ## Known limits
 
-- The field always has the 11 positions above, and the template has 5 innings.
+- The field always has the 11 positions above, and the template has 5 innings and 8 schedule rows.
+- Each uncached sheet read uses two Google Sheets calls, and Google allows 300 read requests a minute per project, so the number of teams watched at the same moment is limited.
+- Anyone with the team link sees the lineups, including game notes. Stop sharing is the only way to revoke it.
+- Players cannot reply to RSVPs themselves. The captain enters them.
+- The page has no dark mode, and the field is not yet reachable by keyboard.
 - A game counts toward season totals once its result is entered, so a rained-out game never counts.
 - Date and time appear exactly as the lineup tab displays them.
 - A sheet where positions run down the side and names fill the cells is not read. Players go in rows and positions are codes.
