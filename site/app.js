@@ -4,7 +4,7 @@ const FIELD_SPOTS = {
   P: [200, 266], C: [200, 382],
 };
 const INFIELD_POSITIONS = ['P', 'C', '1B', '2B', '3B', 'SS'];
-const MINIMUM_API_VERSION = 5;
+const MINIMUM_API_VERSION = 6;
 const REFRESH_SECONDS = 10;
 const TEAM_CODE_PATTERN = /^[a-z0-9]{12}$/;
 const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
@@ -416,7 +416,7 @@ function start(data) {
 async function reloadLineups(tabNameToSelect) {
   const data = await apiGet();
   lineups = data.lineups;
-  showUpdated(Date.now());
+  showUpdated(Date.parse(data.readAt));
   showProblems(data.problems ?? []);
   saveLineups();
   populateGameOptions();
@@ -446,9 +446,9 @@ function scheduleRefresh() {
 async function refresh() {
   refreshInFlight = true;
   const startedAt = Date.now();
-  let freshLineup;
+  let fresh;
   try {
-    freshLineup = (await apiGet({ tab: selectedLineup.tabName })).lineup;
+    fresh = await apiGet({ tab: selectedLineup.tabName });
   } catch (error) {
     refreshInFlight = false;
     failedRefreshes += 1;
@@ -462,7 +462,7 @@ async function refresh() {
     scheduleRefresh();
     return;
   }
-  applyRefresh(freshLineup);
+  applyRefresh(fresh.lineup, Date.parse(fresh.readAt));
 }
 
 function showUpdated(timestamp) {
@@ -471,8 +471,8 @@ function showUpdated(timestamp) {
   document.getElementById('updated').textContent = 'Updated ' + time;
 }
 
-function applyRefresh(freshLineup) {
-  showUpdated(Date.now());
+function applyRefresh(freshLineup, readAt) {
+  showUpdated(readAt);
   const index = lineups.findIndex((lineup) => lineup.tabName === freshLineup.tabName);
   const changed = JSON.stringify(lineups[index]) !== JSON.stringify(freshLineup);
   lineups[index] = freshLineup;
@@ -597,7 +597,7 @@ async function loadLineups() {
     return;
   }
   start(data);
-  showUpdated(Date.now());
+  showUpdated(Date.parse(data.readAt));
   saveLineups();
 }
 
