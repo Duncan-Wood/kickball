@@ -1,10 +1,12 @@
 import { accessTokenFromRefreshToken, ConnectionExpiredError, exchangeAuthorizationCode } from './google.js';
 import { appendComment, COMMENTS_PER_HOUR, validatedComment } from './comments.js';
-import { readTeamSheet, SheetGoneError } from './sheetsReader.js';
+import { RateLimitedError, readTeamSheet, SheetGoneError } from './sheetsReader.js';
 import { decryptToken, encryptToken, newTeamSlug } from './tokens.js';
 
-const API_VERSION = 5;
-const READ_CACHE_SECONDS = 5;
+const API_VERSION = 6;
+const FRESH_READ_SECONDS = 15;
+const STALE_READ_SECONDS = 3600;
+const RATE_LIMIT_COOLDOWN_SECONDS = 60;
 const TEAM_ROUTE = /^\/api\/team\/([a-z0-9]{12})(\/comment)?$/;
 const CAPTAIN_ROUTE = /^\/api\/team\/([a-z0-9]{12})\/captain$/;
 const DRIVE_FILES_ADDRESS = 'https://www.googleapis.com/drive/v3/files';
@@ -38,14 +40,48 @@ async function forgetTeamIfSheetGone(slug, error, environment) {
   throw error;
 }
 
+const readsInFlight = new Map();
+
+function cacheKey(kind, slug) {
+  return new Request(`https://cache.invalid/${kind}/${slug}`);
+}
+
+async function cachedJson(key) {
+  const hit = await caches.default.match(key);
+  return hit === undefined ? undefined : hit.json();
+}
+
+function cacheJson(context, key, value, seconds) {
+  context.waitUntil(caches.default.put(key, new Response(JSON.stringify(value), { headers: { 'Cache-Control': `max-age=${seconds}` } })));
+}
+
+async function readFromGoogle(slug, environment, context) {
+  const lastGood = await cachedJson(cacheKey('stale', slug));
+  if (await cachedJson(cacheKey('cooldown', slug)) !== undefined) {
+    if (lastGood === undefined) throw new RateLimitedError();
+    return lastGood;
+  }
+  try {
+    const { spreadsheetId, accessToken } = await loadTeam(slug, environment);
+    const payload = { ...(await readTeamSheet(accessToken, spreadsheetId)), readAt: new Date().toISOString() };
+    cacheJson(context, cacheKey('team', slug), payload, FRESH_READ_SECONDS);
+    cacheJson(context, cacheKey('stale', slug), payload, STALE_READ_SECONDS);
+    return payload;
+  } catch (error) {
+    if (!(error instanceof RateLimitedError)) return forgetTeamIfSheetGone(slug, error, environment);
+    cacheJson(context, cacheKey('cooldown', slug), true, RATE_LIMIT_COOLDOWN_SECONDS);
+    if (lastGood === undefined) throw error;
+    return lastGood;
+  }
+}
+
 async function teamPayload(slug, environment, context) {
-  const cacheKey = new Request(`https://cache.invalid/team/${slug}`);
-  const cached = await caches.default.match(cacheKey);
-  if (cached !== undefined) return cached.json();
-  const { spreadsheetId, accessToken } = await loadTeam(slug, environment);
-  const payload = await readTeamSheet(accessToken, spreadsheetId).catch((error) => forgetTeamIfSheetGone(slug, error, environment));
-  context.waitUntil(caches.default.put(cacheKey, new Response(JSON.stringify(payload), { headers: { 'Cache-Control': `max-age=${READ_CACHE_SECONDS}` } })));
-  return payload;
+  const fresh = await cachedJson(cacheKey('team', slug));
+  if (fresh !== undefined) return fresh;
+  if (!readsInFlight.has(slug)) {
+    readsInFlight.set(slug, readFromGoogle(slug, environment, context).finally(() => readsInFlight.delete(slug)));
+  }
+  return readsInFlight.get(slug);
 }
 
 async function allowComment(slug) {
@@ -133,7 +169,7 @@ async function handleTeam(request, slug, isComment, environment, context) {
     if (requestedTab === null) return payload;
     const lineup = payload.lineups.find((candidate) => candidate.tabName === requestedTab);
     if (lineup === undefined) throw new Error(`Tab "${requestedTab}" is no longer a current lineup tab`);
-    return { lineup };
+    return { lineup, readAt: payload.readAt };
   }
   const { action, tab, text } = await request.json();
   if (action !== 'comment') throw new Error(`Unknown action "${action}"`);

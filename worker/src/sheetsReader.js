@@ -7,9 +7,16 @@ const CELL_FIELDS = 'formattedValue,effectiveValue.numberValue,effectiveFormat(t
 
 export class SheetGoneError extends Error {}
 
+export class RateLimitedError extends Error {
+  constructor() {
+    super('Google is limiting reads of this sheet right now. The page will catch up in a minute');
+  }
+}
+
 async function sheetsGet(accessToken, path) {
   const response = await fetch(`${SHEETS_ADDRESS}/${path}`, { headers: { Authorization: `Bearer ${accessToken}` } });
   if (response.status === 404) throw new SheetGoneError('This team\'s sheet was deleted from Google Drive. Ask your captain to set the team up again');
+  if (response.status === 429) throw new RateLimitedError();
   if (!response.ok) throw new Error(`Google could not read the sheet (${response.status}). The captain may need to reconnect it`);
   return response.json();
 }
