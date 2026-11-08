@@ -109,7 +109,27 @@ function applyConfig(settings) {
   seasonTag.textContent = settings.seasonLabel;
   seasonTag.hidden = settings.seasonLabel === '';
   applyIcon(settings.icon);
+  document.getElementById('theme-color').content = settings.theme.primary;
   document.getElementById('comment-toggle').hidden = !settings.suggestionBox;
+}
+
+let teamManifestAddress = null;
+
+function applyTeamManifest(settings) {
+  const icon = (file, size, purpose) => ({ src: new URL('icons/' + file, location.href).href, sizes: size + 'x' + size, type: 'image/png', purpose });
+  const manifest = {
+    name: settings.teamName,
+    short_name: Array.from(settings.teamName).slice(0, 12).join(''),
+    start_url: location.pathname + location.search,
+    scope: new URL('./', location.href).pathname,
+    display: 'standalone',
+    background_color: settings.theme.background,
+    theme_color: settings.theme.primary,
+    icons: [icon('icon-192.png', 192, 'any'), icon('icon-512.png', 512, 'any'), icon('icon-maskable-512.png', 512, 'maskable')],
+  };
+  if (teamManifestAddress !== null) URL.revokeObjectURL(teamManifestAddress);
+  teamManifestAddress = URL.createObjectURL(new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' }));
+  document.getElementById('manifest').href = teamManifestAddress;
 }
 
 function applyStripe(stripe) {
@@ -388,6 +408,7 @@ function populateGameOptions() {
 function start(data) {
   config = data.config;
   applyConfig(config);
+  applyTeamManifest(config);
   lineups = data.lineups;
   document.getElementById('status').textContent = 'No current tabs ending in "Lineup" were found.';
   if (lineups.length === 0) return;
@@ -626,6 +647,7 @@ window.fieldView = {
   saveConfig(settings) {
     config = settings;
     applyConfig(settings);
+    applyTeamManifest(settings);
     saveLineups();
   },
   changed() {

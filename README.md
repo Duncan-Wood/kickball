@@ -16,6 +16,7 @@ Screenshots use made-up players.
 - Kicking order and the players sitting each inning
 - Whole-game table with innings played per player
 - Season totals: innings played, sat, infield and outfield, across games already played
+- Can be added to a phone's home screen. A team's page installs under the team's name with its main color, and opens straight to that team. Sharing the site's address shows a preview card
 - Refreshes every 10 seconds while the page is in view, so edits in the sheet show up on their own, and shows when the lineup was last updated
 - Shows load and update errors in a red box at the top, retries a failed first load on its own, and keeps the last good lineup on the device
 - Captain tools: move players, reorder the kicking order, record RSVPs, add and remove players, edit the roster, enter results, set up the whole season and change the team's look, all from the team page
