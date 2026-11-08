@@ -108,3 +108,7 @@ Deploy the Worker before the site. The page asks for API version 5 and shows "ou
 - A game counts toward season totals once its result is entered, so a rained-out game never counts.
 - Date and time appear exactly as the lineup tab displays them.
 - A sheet where positions run down the side and names fill the cells is not read. Players go in rows and positions are codes.
+
+## License and contact
+
+MIT, see [LICENSE](LICENSE). The hosted page's [terms](site/terms.html) and [privacy policy](site/privacy.html) are in `site/`. Report problems on [GitHub issues](https://github.com/Duncan-Wood/kickball/issues).
