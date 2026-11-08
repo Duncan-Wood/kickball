@@ -1,14 +1,39 @@
 import { headcount } from './edits.js';
-import { bindFieldEditing, fieldingPanel, followViewedInning, installFieldingEvents, renderDock, resetEditingState } from './captain/fielding.js';
+import { bindFieldEditing, fieldingPanel, followViewedInning, installFieldingEvents, keyboardIsInUse, renderDock, resetEditingState, restoreKeyboardFocus } from './captain/fielding.js';
 import { gamesPanel } from './captain/gamesPanel.js';
 import { teamPanel } from './captain/teamPanel.js';
 import { chooseArea } from './captain/navigation.js';
 import { kickingPanel, playersPanel } from './captain/people.js';
 import { SIGN_IN_SCRIPT, loadScript } from './captain/sheetApi.js';
 import { captainToolsOffered, startCaptainMode, stopCaptainMode } from './captain/session.js';
-import { AREAS, captain, element } from './captain/state.js';
+import { ADD_FOCUS_KEY, AREAS, captain, element } from './captain/state.js';
 import { undoLatest, updateUndoButton } from './captain/status.js';
 import { node } from './captain/dom.js';
+
+let pendingRefocusKey = null;
+
+function controlKey(control) {
+  return control.dataset.focusKey ?? control.textContent.trim();
+}
+
+function focusedControlKey(panel) {
+  const focused = document.activeElement;
+  if (!keyboardIsInUse() || !panel.contains(focused)) return null;
+  if (focused.closest('.game-editor') === null) return controlKey(focused);
+  const openSummary = panel.querySelector('.game-card.open .game-summary');
+  return openSummary === null ? `field:${focused.name}` : controlKey(openSummary);
+}
+
+function refocusPanel(panel, key) {
+  const keyed = key.startsWith('field:')
+    ? panel.querySelector(`[name="${key.slice('field:'.length)}"]`)
+    : panel.querySelector('.game-editor input, .game-editor select')
+      ?? [...panel.querySelectorAll('button')].find((candidate) => controlKey(candidate) === key);
+  const target = keyed ?? panel.querySelector(`[data-focus-key="${ADD_FOCUS_KEY}"]`);
+  if (target === undefined || target === null) return false;
+  target.focus();
+  return true;
+}
 
 function renderPanel(lineup, inField) {
   const panel = element('captain-panel');
@@ -23,7 +48,9 @@ function renderPanel(lineup, inField) {
     if (panel.dataset.area === captain.area && !captain.panelStale) return;
     captain.panelStale = false;
     panel.dataset.area = captain.area;
+    const keyToRefocus = focusedControlKey(panel) ?? pendingRefocusKey;
     panel.replaceChildren(...formPanels[captain.area]());
+    pendingRefocusKey = keyToRefocus !== null && !refocusPanel(panel, keyToRefocus) ? keyToRefocus : null;
     return;
   }
   panel.dataset.area = captain.area;
@@ -62,6 +89,7 @@ function afterRender() {
   renderPanel(lineup, inField);
   if (isFielding && inField) bindFieldEditing();
   renderDock(lineup, inField);
+  restoreKeyboardFocus();
 }
 
 element('captain-toggle').addEventListener('pointerdown', () => loadScript(SIGN_IN_SCRIPT));
@@ -70,6 +98,7 @@ element('captain-done').addEventListener('click', stopCaptainMode);
 element('captain-undo').addEventListener('click', undoLatest);
 AREAS.forEach((area) => element(`area-${area}`).addEventListener('click', () => chooseArea(area)));
 installFieldingEvents();
+document.addEventListener('pointerdown', () => { pendingRefocusKey = null; });
 window.addEventListener('hashchange', () => {
   if (window.fieldView.currentLineup() !== null) window.fieldView.rerender();
 });

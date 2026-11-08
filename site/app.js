@@ -152,8 +152,14 @@ function svgElement(tag, attributes, text) {
 function drawChip(position, playerNames, openIsProblem) {
   const [x, y] = FIELD_SPOTS[position];
   const isProblem = playerNames.length > 1 || (playerNames.length === 0 && openIsProblem);
-  const chip = svgElement('g', { class: isProblem ? 'chip problem' : playerNames.length === 0 ? 'chip open' : 'chip', 'data-edit-kind': 'spot', 'data-position': position });
   const name = playerNames.length === 0 ? 'open' : playerNames.join(' + ');
+  const chip = svgElement('g', {
+    class: isProblem ? 'chip problem' : playerNames.length === 0 ? 'chip open' : 'chip',
+    'data-edit-kind': 'spot',
+    'data-position': position,
+    role: 'img',
+    'aria-label': `${position}: ${name}${isProblem ? ', needs attention' : ''}`,
+  });
   chip.appendChild(svgElement('rect', { class: 'chip-box', x: x - CHIP_WIDTH / 2, y: y - 6, width: CHIP_WIDTH, height: 22, rx: 5 }));
   chip.appendChild(svgElement('rect', { class: 'chip-label-box', x: x - 15, y: y - 18, width: 30, height: 13, rx: 4 }));
   chip.appendChild(svgElement('text', { class: 'chip-label', x, y: y - 8.5 }, position));
@@ -346,7 +352,9 @@ function render() {
   window.captainTools?.afterRender();
   document.querySelectorAll('#innings button').forEach((button) => {
     const matchesInning = mode !== 'inning' || Number(button.dataset.inningIndex) === selectedInningIndex;
-    button.classList.toggle('selected', button.dataset.mode === mode && matchesInning);
+    const isSelected = button.dataset.mode === mode && matchesInning;
+    button.classList.toggle('selected', isSelected);
+    button.setAttribute('aria-pressed', String(isSelected));
   });
 }
 

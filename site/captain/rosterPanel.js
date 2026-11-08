@@ -2,7 +2,7 @@ import { positionsIn, positionsText } from '../edits.js';
 import { POSITION_CODES } from '../template.js';
 import { button, formField, node } from './dom.js';
 import { removeRosterPlayer, saveRosterPlayer } from './roster.js';
-import { captain } from './state.js';
+import { ADD_FOCUS_KEY, captain } from './state.js';
 import { saveEdit } from './status.js';
 
 const HINT = 'Everyone on the team. Removing someone here does not remove them from games already set up.';
@@ -75,6 +75,7 @@ function playerCard(player) {
     window.fieldView.rerender();
   });
   summary.setAttribute('aria-expanded', String(isOpen));
+  summary.dataset.focusKey = `player:${player.sheetRow}`;
   const details = [player.prefers === '' ? '' : `Prefers ${player.prefers}`, player.avoids === '' ? '' : `Won't play ${player.avoids}`, player.pronouns].filter((detail) => detail !== '').join(' · ');
   const text = node('span', 'game-text');
   text.append(node('strong', undefined, player.name), ...(details === '' ? [] : [node('span', 'game-meta', details)]));
@@ -96,11 +97,13 @@ export function rosterPanel() {
     card.append(rosterEditor(null));
     parts.push(card);
   } else {
-    parts.push(button('Add a player', 'panel-action', () => {
+    const addPlayer = button('Add a player', 'panel-action', () => {
       captain.openRosterRow = NEW_PLAYER_KEY;
       captain.panelStale = true;
       window.fieldView.rerender();
-    }));
+    });
+    addPlayer.dataset.focusKey = ADD_FOCUS_KEY;
+    parts.push(addPlayer);
   }
   return parts;
 }

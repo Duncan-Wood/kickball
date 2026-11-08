@@ -21,6 +21,8 @@ const HINTS = {
 
 let suppressClicksUntil = 0;
 let dragState = null;
+let keyboardNavigating = false;
+let lastEditableKey = null;
 
 function editedInnings() {
   return [...captain.editInnings].sort((first, second) => first - second);
@@ -168,7 +170,9 @@ function decorate() {
     const target = describeTarget(editable);
     if (target === null) return;
     const isDragged = captain.selectedRow !== null && target.kind !== 'bench' && sourceRowFor(target, lineup, inningIndex) === captain.selectedRow;
-    editable.classList.toggle('edit-selected', targetIsFocused(target) || isDragged);
+    const isSelected = targetIsFocused(target) || isDragged;
+    editable.classList.toggle('edit-selected', isSelected);
+    editable.setAttribute('aria-pressed', String(isSelected));
   });
 }
 
@@ -303,17 +307,56 @@ export function followViewedInning() {
   captain.focus = null;
 }
 
+function editableKey(editable) {
+  return editable.dataset.position ?? `row:${editable.dataset.row}`;
+}
+
+function editableForKey(key) {
+  if (key === null) return null;
+  return key.startsWith('row:')
+    ? document.querySelector(`#bench li[data-row="${key.slice(4)}"]`)
+    : document.querySelector(`#chips .chip[data-position="${key}"]`);
+}
+
 export function bindFieldEditing() {
   editableElements().forEach((editable) => {
     editable.addEventListener('click', () => handleTap(editable));
     editable.addEventListener('pointerdown', (event) => startDrag(event, editable));
+    editable.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      keyboardNavigating = true;
+      handleTap(editable);
+    });
+    editable.setAttribute('role', 'button');
+    editable.setAttribute('tabindex', '0');
   });
   decorate();
 }
 
+export function keyboardIsInUse() {
+  return keyboardNavigating;
+}
+
+export function restoreKeyboardFocus() {
+  if (!keyboardNavigating || document.activeElement !== document.body) return;
+  const dock = element('captain-dock');
+  const placingSittingPlayer = captain.focus !== null && captain.focus.kind === 'player';
+  const next = placingSittingPlayer
+    ? document.querySelector('#chips .chip')
+    : dock.querySelector('.pick-chip') ?? dock.querySelector('button');
+  (next ?? editableForKey(lastEditableKey))?.focus();
+}
+
 export function installFieldingEvents() {
   document.addEventListener('keydown', (event) => {
+    keyboardNavigating = true;
     if (event.key === 'Escape' && captain.focus !== null) clearFocus();
+  });
+  document.addEventListener('pointerdown', () => { keyboardNavigating = false; });
+  document.addEventListener('focusin', (event) => {
+    const editable = event.target.closest?.('#chips .chip, #bench li');
+    if (editable) lastEditableKey = editableKey(editable);
   });
   document.addEventListener('pointermove', moveDrag);
   document.addEventListener('pointerup', endDrag);
