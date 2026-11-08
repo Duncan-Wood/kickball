@@ -99,6 +99,9 @@ element('captain-undo').addEventListener('click', undoLatest);
 AREAS.forEach((area) => element(`area-${area}`).addEventListener('click', () => chooseArea(area)));
 installFieldingEvents();
 document.addEventListener('pointerdown', () => { pendingRefocusKey = null; });
+element('captain-panel').addEventListener('keydown', (event) => {
+  if (event.key === 'Enter' && event.target.tagName === 'SELECT') event.preventDefault();
+});
 window.addEventListener('hashchange', () => {
   if (window.fieldView.currentLineup() !== null) window.fieldView.rerender();
 });
