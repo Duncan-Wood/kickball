@@ -1,5 +1,6 @@
 export const AREAS = ['fielding', 'kicking', 'players', 'games', 'team'];
 export const RSVP_ANSWERS = ['Yes', 'Maybe', 'No'];
+export const ADD_FOCUS_KEY = 'add';
 
 export const element = (id) => document.getElementById(id);
 

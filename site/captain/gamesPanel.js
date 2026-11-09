@@ -3,7 +3,7 @@ import { describeResult, notesFromResult, resultFromNotes } from '../result.js';
 import { button, formField, node, selectField } from './dom.js';
 import { chooseArea } from './navigation.js';
 import { createGameTabs, saveGameDetails, scheduledGames } from './schedule.js';
-import { captain } from './state.js';
+import { ADD_FOCUS_KEY, captain } from './state.js';
 import { saveEdit } from './status.js';
 
 const HINT = 'Fill in the season here, then set up a lineup tab for every game at once.';
@@ -108,6 +108,7 @@ function gameCard(game) {
     window.fieldView.rerender();
   });
   summary.setAttribute('aria-expanded', String(isOpen));
+  summary.dataset.focusKey = `game:${game.id}`;
   const result = resultFromNotes(game.notes);
   const details = [result === null ? game.notes : describeResult(result), game.date, game.time, game.location].filter((detail) => detail !== '').join(' · ');
   const text = node('span', 'game-text');
@@ -127,12 +128,14 @@ export function gamesPanel() {
   const list = node('div', 'game-list');
   list.append(...[...games, ...draft].map(gameCard));
   const parts = [node('p', 'captain-hint', HINT), list];
-  parts.push(button('Add a game', 'panel-action', () => {
+  const addGame = button('Add a game', 'panel-action', () => {
     captain.draftGameId = nextGameId(games, window.fieldView.allLineups());
     captain.openGameId = captain.draftGameId;
     captain.panelStale = true;
     window.fieldView.rerender();
-  }));
+  });
+  addGame.dataset.focusKey = ADD_FOCUS_KEY;
+  parts.push(addGame);
   if (needsLineup.length > 0) {
     const noun = needsLineup.length === 1 ? 'lineup' : 'lineups';
     parts.push(button(`Set up ${needsLineup.length} ${noun}`, 'panel-action primary', () => saveEdit(async () => {
