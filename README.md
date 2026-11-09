@@ -62,7 +62,7 @@ Under the team page, **Captain tools** lets anyone who can edit the sheet change
 
 1. `worker/` is a Cloudflare Worker. It holds an encrypted refresh token for each connected sheet and reads that one sheet through the Google Sheets API.
 2. It returns only the lineup tabs (names ending in "lineup" in any capitalization, not starting with "OLD") and the `Team Config` settings. Roster notes, comments and every other tab stay in the sheet.
-3. Reads are cached for 5 seconds, so many players refreshing do not each hit Google.
+3. Reads are cached for 15 seconds, and players loading at the same moment share one read of the sheet. If Google limits reads, the page keeps showing the last good lineup with the time it was read, and the Worker waits a minute before asking again.
 4. Suggestions from the page are appended to a `Comments` tab in the captain's sheet, limited to 60 per hour.
 5. `site/` is the static page on GitHub Pages. `start.html` is the setup flow and `index.html?team=<code>` is the player view. Captain tools run in the browser and edit the sheet with the signed-in captain's own Google account, not through the Worker.
 6. If the sheet is deleted, the Worker forgets the team and the link says so. The setup page drops the team from its list, and Stop sharing still works.
@@ -83,7 +83,7 @@ npx wrangler deploy
 
 `wrangler.toml` holds the KV namespace id, the Google client id and the allowed site origins. `TOKEN_ENCRYPTION_KEY` is 32 random bytes in base64. The Google project needs the Sheets, Drive and Picker APIs, a Web OAuth client and a Picker API key, all in `site/settings.js`.
 
-Deploy the Worker before the site. The page asks for API version 5 and shows "out of date" against an older Worker.
+Deploy the Worker before the site. The page asks for API version 6 and shows "out of date" against an older Worker.
 
 ## What the sheet needs
 
