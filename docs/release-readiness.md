@@ -1,6 +1,6 @@
 # Release readiness
 
-Status as of 2026-11-06. Built from a read of the code, not from a run of every flow.
+Status as of 2026-11-08. Built from a read of the code and tests against a throwaway team, not a run of every flow. Items marked with a PR number are written and tested but not merged yet.
 
 ## What the app is
 
@@ -46,11 +46,11 @@ About 5,200 lines of code across `site/` and `worker/`, with 96 Worker-side test
 
 Blockers are in the MVP below. The rest are post-MVP.
 
-1. **Google Sheets quota.** An uncached read costs 2 Sheets calls, up to about 24 a minute per team being watched. Google allows [300 read requests a minute per project and 60 per user](https://developers.google.com/workspace/sheets/api/limits), so around 12 teams viewed at once can start returning 429 errors.
-2. **No contact, license or terms.** The privacy page names the author but gives no way to reach them.
-3. **Thin automated coverage.** The Worker's routing, CORS, comment limit and token encryption have no tests, and neither does any browser code.
-4. **Accessibility.** The field chips are not keyboard reachable, focus styles exist only in captain tools, status messages are not announced, and there is no dark mode.
-5. **Not installable.** There is a service worker but no manifest, home-screen icon or share preview.
+1. **Google Sheets quota.** An uncached read costs 2 Sheets calls, up to about 24 a minute per team being watched. Google allows [300 read requests a minute per project and 60 per user](https://developers.google.com/workspace/sheets/api/limits), so around 12 teams viewed at once can start returning 429 errors. [PR #24](https://github.com/Duncan-Wood/kickball/pull/24) raises the cache to 15 seconds, shares one read between simultaneous requests and serves the last good lineup on a 429, which should allow around 37 teams at once.
+2. **No contact, license or terms.** The privacy page named the author but gave no way to reach them. [PR #25](https://github.com/Duncan-Wood/kickball/pull/25) adds an MIT license, a terms page and contact details.
+3. **Thin automated coverage.** The Worker's routing, CORS, comment limit and token encryption had no tests. [PR #26](https://github.com/Duncan-Wood/kickball/pull/26) adds 20. No browser code has automated tests.
+4. **Accessibility.** The field was not keyboard reachable, focus styles existed only in captain tools and status messages were not announced. [PR #27](https://github.com/Duncan-Wood/kickball/pull/27) fixes those and was tested with real key presses. Still open: no dark mode, no real screen reader pass, and the kicking-order numbers fall below the contrast target in some team colors.
+5. **Not installable.** There was a service worker but no manifest, home-screen icon or share preview. [PR #28](https://github.com/Duncan-Wood/kickball/pull/28) adds them, with a per-team manifest so an installed team opens to that team. It has not been tried on a real phone.
 6. **Fixed shape.** 11 positions, 5 innings and 8 schedule rows. Leagues with other rules need the sheet edited by hand.
 7. **Link is the secret.** Anyone with the team link sees the lineups, including game notes. The only revocation is Stop sharing.
 8. **Captain enters RSVPs.** Players cannot answer for themselves.
@@ -79,13 +79,14 @@ What this supports, and no more:
 
 The smallest release that is safe to share beyond Duncan's own teams.
 
-- [ ] Sheets reads hardened: longer edge cache, one combined read, serve the last good copy on a 429
-- [ ] Contact link, `LICENSE` and a short terms page
+- [ ] Sheets reads hardened: longer edge cache, shared reads, last good copy on a 429 ([PR #24](https://github.com/Duncan-Wood/kickball/pull/24))
+- [ ] Contact link, `LICENSE` and a short terms page ([PR #25](https://github.com/Duncan-Wood/kickball/pull/25))
 - [ ] Google branding verification retried and the result recorded (due on or after 2026-10-22)
-- [ ] Worker tests for routing, CORS, the comment limit and token encryption
-- [ ] Keyboard access and focus styles on the field, announced status messages
-- [ ] Manifest, home-screen icon, share preview and a 404 page
+- [ ] Worker tests for routing, CORS, the comment limit and token encryption ([PR #26](https://github.com/Duncan-Wood/kickball/pull/26))
+- [ ] Keyboard access and focus styles on the field and Captain tools, announced status messages ([PR #27](https://github.com/Duncan-Wood/kickball/pull/27))
+- [ ] Manifest, home-screen icon, share preview and a 404 page ([PR #28](https://github.com/Duncan-Wood/kickball/pull/28))
 - [ ] A new-sheet run from the template, with the stray test sheets deleted from Drive
+- [ ] An install on a real iPhone and Android phone, and a look at a shared link's preview
 - [ ] A real game weekend run with a captain who did not build the app
 
 ## After the MVP
