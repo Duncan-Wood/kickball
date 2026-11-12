@@ -196,6 +196,8 @@ html:not(.has-team) body { background: #f6f1ea; color: #1c2a3a; }
 .game-summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-height: 56px; padding: 8px 14px; border: 0; background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
 .game-text { display: flex; flex-direction: column; gap: 2px; font-size: 16px; }
 .game-meta { font-size: 13px; color: var(--muted); }
+.roster-card .game-summary { min-height: 44px; padding: 6px 12px; }
+.roster-card .game-text { flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
 .game-state { flex: none; padding: 3px 9px; border-radius: 999px; background: var(--tint); color: var(--muted); font-size: 12px; font-weight: 600; }
 .game-state.ready { background: var(--primary); color: #fff; }
 .game-editor { padding: 0 14px 14px; border-top: 1px solid var(--border-soft); }
@@ -204,6 +206,7 @@ html:not(.has-team) body { background: #f6f1ea; color: #1c2a3a; }
 .game-actions { display: flex; gap: 8px; }
 .game-actions .panel-action { margin-top: 14px; }
 .captain-active .chip, .captain-active #bench li { cursor: pointer; }
+.captain-active svg, .captain-active #bench, .captain-active #kicking-order { -webkit-user-select: none; user-select: none; }
 .captain-active .chip .chip-box { stroke: var(--primary); stroke-width: 1.8; }
 .captain-active .chip.problem .chip-box { stroke: #b3261e; }
 .captain-active #bench li { outline: 1.5px solid var(--primary); }

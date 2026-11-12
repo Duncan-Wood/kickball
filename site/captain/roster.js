@@ -1,4 +1,4 @@
-import { cellAddress, firstBlankRosterRow, rosterNameProblem, rosterPlayerFromRow, rowsWithName } from '../edits.js';
+import { cellAddress, firstBlankRosterRow, rosterNameProblem, rosterNamesAreNumbers, rosterPlayerFromRow, rowsWithName } from '../edits.js';
 import { ROSTER_TAB_NAME } from '../template.js';
 import { columnValues, confirmSheetStillMatches, refreshTabs, sheetRows, writeValues } from './sheetApi.js';
 import { captain } from './state.js';
@@ -11,6 +11,9 @@ const BLANK_PLAYER = { name: '', prefers: '', avoids: '', notes: '', pronouns: '
 
 export async function fetchRoster() {
   const rows = await sheetRows(`${ROSTER_TAB_NAME}!A${ROSTER_FIRST_ROW}:${ROSTER_LAST_COLUMN_LETTER}`);
+  if (rosterNamesAreNumbers(rows)) {
+    throw new Error(`The ${ROSTER_TAB_NAME} tab has numbers in column A. Put each player's name in column A, then Prefers, Won't play, Notes and Pronouns in columns B to E, so this page can read and edit it`);
+  }
   return rows.map((cells, offset) => rosterPlayerFromRow(cells, offset + ROSTER_FIRST_ROW)).filter((player) => player.name !== '');
 }
 

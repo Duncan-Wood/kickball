@@ -4,7 +4,7 @@ import { fetchRosterNames } from './roster.js';
 import { columnValues, refreshTabs, sheetRows, sheetsRequest, writeValues } from './sheetApi.js';
 import { captain } from './state.js';
 
-const NEW_GAME_LOOKUP_ATTEMPTS = 4;
+const NEW_GAME_LOOKUP_ATTEMPTS = 10;
 const NEW_GAME_LOOKUP_WAIT_MILLISECONDS = 2000;
 const GAME_NUMBER_LABEL = 'Game #:';
 const GAME_DETAIL_FIRST_COLUMN_INDEX = 1;
@@ -31,13 +31,30 @@ function waitMilliseconds(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
-async function reloadUntilPresent(tabNames) {
+async function reloadUntil(isDone, failureMessage) {
   for (let attempt = 1; attempt <= NEW_GAME_LOOKUP_ATTEMPTS; attempt += 1) {
-    const lineups = await window.fieldView.reloadLineups();
-    if (tabNames.every((tabName) => lineups.some((lineup) => lineup.tabName === tabName))) return;
+    if (isDone(await window.fieldView.reloadLineups())) return;
     await waitMilliseconds(NEW_GAME_LOOKUP_WAIT_MILLISECONDS);
   }
-  throw new Error('The lineup tabs were created, but this page has not picked them up yet. Reload the page in a few seconds');
+  throw new Error(failureMessage);
+}
+
+function reloadUntilPresent(tabNames) {
+  return reloadUntil((lineups) => tabNames.every((tabName) => lineups.some((lineup) => lineup.tabName === tabName)), 'The lineup tabs were created, but this page has not picked them up yet. Reload the page in a few seconds');
+}
+
+function reloadUntilGone(tabNames) {
+  return reloadUntil((lineups) => tabNames.every((tabName) => !lineups.some((lineup) => lineup.tabName === tabName)), 'The lineup tabs were removed, but this page has not picked that up yet. Reload the page in a few seconds');
+}
+
+async function removeGameTabs(sheetIds, tabNames) {
+  await sheetsRequest(':batchUpdate', {
+    method: 'POST',
+    body: JSON.stringify({ requests: sheetIds.map((sheetId) => ({ deleteSheet: { sheetId } })) }),
+  });
+  await reloadUntilGone(tabNames);
+  await refreshTabs();
+  captain.panelStale = true;
 }
 
 export async function createGameTabs(gameIds) {
@@ -65,17 +82,27 @@ export async function createGameTabs(gameIds) {
   await writeValues(tabNames.flatMap((tabName) => rosterNames.map((name, index) => ({ range: cellAddress(tabName, 0, playerRows[index]), values: [[name]] }))), 'RAW');
   await reloadUntilPresent(tabNames);
   await refreshTabs();
+  return () => removeGameTabs(replies.map(({ duplicateSheet }) => duplicateSheet.properties.sheetId), tabNames);
 }
 
 export async function saveGameDetails(game, values, initialValues) {
   const scheduledIds = await columnValues(`${SCHEDULE_TAB_NAME}!A:A`);
   const existingIndex = scheduledIds.indexOf(game.id);
   const row = existingIndex === -1 ? scheduledIds.length + 1 : existingIndex + 1;
-  const changedDetails = GAME_DETAIL_FIELDS
-    .filter((field) => values[field] !== initialValues[field])
-    .map((field) => ({ range: cellAddress(SCHEDULE_TAB_NAME, GAME_DETAIL_FIRST_COLUMN_INDEX + GAME_DETAIL_FIELDS.indexOf(field), row), values: [[values[field]]] }));
-  await writeValues([{ range: cellAddress(SCHEDULE_TAB_NAME, 0, row), values: [[game.id]] }, ...changedDetails]);
+  const changedFields = GAME_DETAIL_FIELDS.filter((field) => values[field] !== initialValues[field]);
+  const detailCell = (field) => cellAddress(SCHEDULE_TAB_NAME, GAME_DETAIL_FIRST_COLUMN_INDEX + GAME_DETAIL_FIELDS.indexOf(field), row);
+  await writeValues([
+    { range: cellAddress(SCHEDULE_TAB_NAME, 0, row), values: [[game.id]] },
+    ...changedFields.map((field) => ({ range: detailCell(field), values: [[values[field]]] })),
+  ]);
   captain.openGameId = null;
   captain.draftGameId = null;
   await loadSchedule();
+  return async () => {
+    await writeValues([
+      ...(existingIndex === -1 ? [{ range: cellAddress(SCHEDULE_TAB_NAME, 0, row), values: [['']] }] : []),
+      ...changedFields.map((field) => ({ range: detailCell(field), values: [[initialValues[field]]] })),
+    ]);
+    await loadSchedule();
+  };
 }

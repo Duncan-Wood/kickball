@@ -77,8 +77,9 @@ function gameEditor(game) {
     }));
   } else if (game.row !== null) {
     actions.append(button('Set up lineup', 'panel-action', () => saveEdit(async () => {
-      await createGameTabs([game.id]);
+      const undo = await createGameTabs([game.id]);
       captain.panelStale = true;
+      return undo;
     }, `Set up Game ${game.id}`)));
   }
   actions.append(button('Cancel', 'panel-action', closeEditor));
@@ -139,8 +140,9 @@ export function gamesPanel() {
   if (needsLineup.length > 0) {
     const noun = needsLineup.length === 1 ? 'lineup' : 'lineups';
     parts.push(button(`Set up ${needsLineup.length} ${noun}`, 'panel-action primary', () => saveEdit(async () => {
-      await createGameTabs(needsLineup.map((game) => game.id));
+      const undo = await createGameTabs(needsLineup.map((game) => game.id));
       captain.panelStale = true;
+      return undo;
     }, `Set up ${needsLineup.length} ${noun}`)));
   }
   return parts;

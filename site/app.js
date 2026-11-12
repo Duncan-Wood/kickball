@@ -30,7 +30,7 @@ const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
 const CHIP_WIDTH = 78;
 const COMMENT_TOGGLE_TEXT = 'Anonymous suggestion box';
 const COMMENT_CONFIRMATION_MILLISECONDS = 4000;
-const WRITE_SETTLE_MILLISECONDS = 7000;
+const WRITE_SETTLE_MILLISECONDS = 16000;
 const teamCode = new URLSearchParams(location.search).get('team');
 
 let config = null;
