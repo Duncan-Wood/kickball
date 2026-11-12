@@ -81,12 +81,11 @@ The smallest release that is safe to share beyond Duncan's own teams.
 
 - [ ] Sheets reads hardened: longer edge cache, shared reads, last good copy on a 429 ([PR #24](https://github.com/Duncan-Wood/kickball/pull/24))
 - [ ] Contact link, `LICENSE` and a short terms page ([PR #25](https://github.com/Duncan-Wood/kickball/pull/25))
-- [ ] Google branding verification retried and the result recorded (due on or after 2026-10-22)
 - [ ] Worker tests for routing, CORS, the comment limit and token encryption ([PR #26](https://github.com/Duncan-Wood/kickball/pull/26))
 - [ ] Keyboard access and focus styles on the field and Captain tools, announced status messages ([PR #27](https://github.com/Duncan-Wood/kickball/pull/27))
 - [ ] Manifest, home-screen icon, share preview and a 404 page ([PR #28](https://github.com/Duncan-Wood/kickball/pull/28))
 - [ ] A new-sheet run from the template, with the stray test sheets deleted from Drive
-- [ ] An install on a real iPhone and Android phone, and a look at a shared link's preview
+- [ ] An install on a real Android phone
 - [ ] A real game weekend run with a captain who did not build the app
 
 ## After the MVP
