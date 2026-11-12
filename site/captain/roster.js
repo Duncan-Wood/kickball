@@ -6,7 +6,7 @@ import { captain } from './state.js';
 const ROSTER_FIRST_ROW = 2;
 const ROSTER_LAST_COLUMN_LETTER = 'E';
 const PRONOUNS_COLUMN_INDEX = 4;
-const PRONOUNS_HEADER = 'Pronouns (optional)';
+const PRONOUNS_HEADER = 'Pronouns';
 const BLANK_PLAYER = { name: '', prefers: '', avoids: '', notes: '', pronouns: '' };
 
 export async function fetchRoster() {
@@ -74,6 +74,30 @@ export async function saveRosterPlayer(values, previous) {
   }
   await writeRosterRow(previous.sheetRow, previous.name, values, previous.name === values.name ? null : previous.name);
   return () => saveRosterPlayer(fieldsOf(previous), { sheetRow: previous.sheetRow, name: values.name });
+}
+
+async function blankRosterRows(rows, names) {
+  await confirmSheetStillMatches(rows.map((row, index) => ({ address: cellAddress(ROSTER_TAB_NAME, 0, row), expected: names[index] })));
+  await writeValues(rows.map((row) => ({ range: `${cellAddress(ROSTER_TAB_NAME, 0, row)}:${ROSTER_LAST_COLUMN_LETTER}${row}`, values: [['', '', '', '', '']] })), 'RAW');
+  await refreshRoster();
+}
+
+export async function addRosterPlayers(names) {
+  const roster = await fetchRoster();
+  names.forEach((name, index) => {
+    const problem = rosterNameProblem(name, [...roster, ...names.slice(0, index).map((earlier) => ({ name: earlier, sheetRow: null }))], null);
+    if (problem !== null) throw new Error(problem);
+  });
+  const firstRow = firstBlankRosterRow(await columnValues(`${ROSTER_TAB_NAME}!A${ROSTER_FIRST_ROW}:A`));
+  const rows = names.map((name, index) => firstRow + index);
+  await confirmSheetStillMatches(rows.map((row) => ({ address: cellAddress(ROSTER_TAB_NAME, 0, row), expected: '' })));
+  const pronounsHeader = (await columnValues(`${ROSTER_TAB_NAME}!E1:E1`))[0] ?? '';
+  await writeValues([
+    ...rows.map((row, index) => ({ range: `${cellAddress(ROSTER_TAB_NAME, 0, row)}:${ROSTER_LAST_COLUMN_LETTER}${row}`, values: [[names[index], '', '', '', '']] })),
+    ...(pronounsHeader === '' ? [{ range: cellAddress(ROSTER_TAB_NAME, PRONOUNS_COLUMN_INDEX, 1), values: [[PRONOUNS_HEADER]] }] : []),
+  ], 'RAW');
+  await refreshRoster();
+  return () => blankRosterRows(rows, names);
 }
 
 export async function removeRosterPlayer(player) {

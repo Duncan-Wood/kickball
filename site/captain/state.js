@@ -1,4 +1,4 @@
-export const AREAS = ['fielding', 'kicking', 'players', 'games', 'team'];
+export const AREAS = ['start', 'fielding', 'kicking', 'players', 'games', 'team'];
 export const RSVP_ANSWERS = ['Yes', 'Maybe', 'No'];
 export const ADD_FOCUS_KEY = 'add';
 
@@ -28,6 +28,8 @@ export const captain = {
   scheduleError: null,
   openGameId: null,
   draftGameId: null,
+  seasonFormOpen: false,
+  addingSeveral: false,
   panelStale: false,
   undoStack: [],
 };

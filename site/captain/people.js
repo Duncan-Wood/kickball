@@ -7,8 +7,8 @@ import { saveEdit } from './status.js';
 
 export const MINIMUM_PLAYERS = 8;
 const HINTS = {
-  kicking: 'Tap a kicker, then tap the spot in the order they should take.',
-  players: 'Tell the lineup who is coming, or add and remove players for this game.',
+  kicking: 'Tap a kicker, then the spot they should take.',
+  players: 'Mark who is coming.',
   playersWithoutRsvp: 'This sheet has no RSVP column, so players who are out are struck through in the sheet. You can still add players from the roster here.',
 };
 

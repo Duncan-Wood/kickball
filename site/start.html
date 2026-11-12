@@ -18,6 +18,7 @@
   label { display: block; margin: 10px 0 4px; font-weight: 600; font-size: 14px; }
   input { width: 100%; padding: 8px 10px; font: inherit; border: 1px solid #d3c7b8; border-radius: 8px; }
   button { margin-top: 12px; padding: 10px 16px; font: inherit; font-weight: 600; color: #fff; background: #2b6cb0; border: 0; border-radius: 8px; cursor: pointer; }
+  a.button { display: inline-block; margin-top: 4px; padding: 12px 20px; font-weight: 600; color: #fff; background: #2b6cb0; border-radius: 8px; text-decoration: none; }
   button.secondary { color: #2b6cb0; background: #fff; border: 1px solid #2b6cb0; }
   button:disabled { opacity: 0.5; cursor: default; }
   .error { margin: 12px 0; padding: 10px; color: #7a1d1d; background: #fde8e8; border: 1px solid #f3b4b4; border-radius: 8px; }
@@ -28,8 +29,6 @@
   li:first-child { border-top: 0; }
   li .links { margin-top: 4px; font-size: 14px; }
   .problem { margin-top: 4px; font-size: 14px; color: #7a1d1d; }
-  details.existing-sheet { margin-top: 14px; }
-  details.existing-sheet summary { cursor: pointer; color: #2b6cb0; font-weight: 600; font-size: 14px; }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -46,7 +45,7 @@
 
   <section class="card" id="step-sign-in">
     <strong>Sign in with Google</strong>
-    <p class="small">The app can only see the one sheet it creates or that you pick. It cannot see anything else in your Drive. Players never sign in. Already set up a team? Sign in again to find it. See the <a href="privacy.html">privacy policy</a> and <a href="terms.html">terms</a>.</p>
+    <p class="small">The app can only see the sheet it creates. It cannot see anything else in your Drive. Players never sign in. Already set up a team? Sign in again to find it. See the <a href="privacy.html">privacy policy</a> and <a href="terms.html">terms</a>.</p>
     <button type="button" id="sign-in">Sign in with Google</button>
   </section>
 
@@ -58,24 +57,18 @@
     <label for="season-label">Season</label>
     <input id="season-label" maxlength="60" placeholder="Fall 2026" required>
     <button type="button" id="create-sheet">Create my team sheet</button>
-    <details class="existing-sheet">
-      <summary>Already have a lineup sheet?</summary>
-      <p class="small">It has to match the template layout. Read the <a href="existing-sheet.html">guide to using an existing sheet</a> first. Creating a new team sheet and pasting your roster into it is usually quicker.</p>
-      <button type="button" class="secondary" id="pick-sheet">Use a sheet I already have</button>
-    </details>
   </section>
 
   <section class="card" id="step-done" hidden>
     <strong>You're set</strong>
-    <p>Send this link to your team:</p>
+    <p><a class="button" id="open-team" href="#">Open Captain tools</a></p>
+    <p>Send this link to your players:</p>
     <div class="link-box" id="team-link"></div>
-    <p><a id="open-team" href="#">Open the field view</a> · <a id="open-sheet" href="#" target="_blank" rel="noopener">Open your sheet</a></p>
-    <p class="small">Open the field view to set up your season and edit lineups with Captain tools at the bottom of the page. You can also edit the sheet directly, and the link updates by itself within about 30 seconds. To let an assistant captain edit, share the sheet with them using the Share button in Google Sheets, then have them open the team link with #captain on the end.</p>
+    <p class="small"><a id="open-sheet" href="#" target="_blank" rel="noopener">Open your sheet</a></p>
   </section>
 </main>
 <script src="settings.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="https://apis.google.com/js/api.js" async defer></script>
 <script type="module" src="start.js"></script>
 </body>
 </html>

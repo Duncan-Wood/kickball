@@ -418,14 +418,7 @@ function start(data) {
   applyConfig(config);
   applyTeamManifest(config);
   lineups = data.lineups;
-  document.getElementById('status').textContent = 'No current tabs ending in "Lineup" were found.';
-  if (lineups.length === 0) return;
   const game = document.getElementById('game');
-  populateGameOptions();
-  const startingLineup = lineups.find((lineup) => lineup.tabName === data.activeTabName)
-    || lineups.find((lineup) => !lineup.played)
-    || lineups[lineups.length - 1];
-  game.value = startingLineup.tabName;
   game.addEventListener('change', () => {
     selectLineup(game.value);
     resetCommentToggle();
@@ -437,9 +430,30 @@ function start(data) {
   showProblems(data.problems ?? []);
   document.getElementById('status').hidden = true;
   document.getElementById('view').hidden = false;
-  selectLineup(startingLineup.tabName);
+  if (lineups.length === 0) showEmptySeason();
+  else showSeason(startingTabName(data));
   document.addEventListener('visibilitychange', scheduleRefresh);
   scheduleRefresh();
+}
+
+function startingTabName(data) {
+  return (lineups.find((lineup) => lineup.tabName === data.activeTabName)
+    || lineups.find((lineup) => !lineup.played)
+    || lineups[lineups.length - 1]).tabName;
+}
+
+function showSeason(tabName) {
+  document.getElementById('view').classList.remove('empty-season');
+  document.getElementById('empty-season-note').hidden = true;
+  populateGameOptions();
+  showLineup(tabName);
+}
+
+function showEmptySeason() {
+  selectedLineup = null;
+  document.getElementById('view').classList.add('empty-season');
+  document.getElementById('empty-season-note').hidden = false;
+  window.captainTools?.afterRender();
 }
 
 async function reloadLineups(tabNameToSelect) {
@@ -448,9 +462,12 @@ async function reloadLineups(tabNameToSelect) {
   showUpdated(Date.parse(data.readAt));
   showProblems(data.problems ?? []);
   saveLineups();
-  populateGameOptions();
-  const lineupToSelect = lineups.find((lineup) => lineup.tabName === tabNameToSelect) ?? lineups.find((lineup) => lineup.tabName === selectedLineup.tabName) ?? lineups[0];
-  showLineup(lineupToSelect.tabName);
+  if (lineups.length === 0) {
+    showEmptySeason();
+    return lineups;
+  }
+  const lineupToSelect = lineups.find((lineup) => lineup.tabName === tabNameToSelect) ?? lineups.find((lineup) => lineup.tabName === selectedLineup?.tabName) ?? lineups[0];
+  showSeason(lineupToSelect.tabName);
   return lineups;
 }
 
@@ -475,9 +492,10 @@ function scheduleRefresh() {
 async function refresh() {
   refreshInFlight = true;
   const startedAt = Date.now();
+  const watchingWholeTeam = selectedLineup === null;
   let fresh;
   try {
-    fresh = await apiGet({ tab: selectedLineup.tabName });
+    fresh = await apiGet(watchingWholeTeam ? undefined : { tab: selectedLineup.tabName });
   } catch (error) {
     refreshInFlight = false;
     failedRefreshes += 1;
@@ -491,7 +509,19 @@ async function refresh() {
     scheduleRefresh();
     return;
   }
-  applyRefresh(fresh.lineup, Date.parse(fresh.readAt));
+  if (watchingWholeTeam) applyWholeTeam(fresh);
+  else applyRefresh(fresh.lineup, Date.parse(fresh.readAt));
+}
+
+function applyWholeTeam(data) {
+  showUpdated(Date.parse(data.readAt));
+  clearFailure();
+  if (data.lineups.length > 0) {
+    lineups = data.lineups;
+    saveLineups();
+    showSeason(startingTabName(data));
+  }
+  scheduleRefresh();
 }
 
 function showUpdated(timestamp) {
@@ -649,7 +679,7 @@ window.fieldView = {
   selectInning,
   currentInningIndex: () => selectedInningIndex,
   inFieldMode: () => mode === 'inning',
-  rerender: () => render(),
+  rerender: () => (selectedLineup === null ? window.captainTools?.afterRender() : render()),
   currentConfig: () => config,
   previewConfig: (settings) => applyConfig(settings),
   saveConfig(settings) {

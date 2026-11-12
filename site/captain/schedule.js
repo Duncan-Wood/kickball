@@ -1,7 +1,7 @@
-import { blankPlayerRows, cellAddress, scheduleGames } from '../edits.js';
+import { blankPlayerRows, cellAddress, nextGameId, scheduleGames, seasonDates, seasonProblem } from '../edits.js';
 import { NEW_GAME_TAB_NAME, ROSTER_TAB_NAME, SCHEDULE_TAB_NAME } from '../template.js';
 import { fetchRosterNames } from './roster.js';
-import { columnValues, refreshTabs, sheetRows, sheetsRequest, writeValues } from './sheetApi.js';
+import { columnValues, confirmSheetStillMatches, refreshTabs, sheetRows, sheetsRequest, writeValues } from './sheetApi.js';
 import { captain } from './state.js';
 
 const NEW_GAME_LOOKUP_ATTEMPTS = 10;
@@ -103,6 +103,27 @@ export async function saveGameDetails(game, values, initialValues) {
       ...(existingIndex === -1 ? [{ range: cellAddress(SCHEDULE_TAB_NAME, 0, row), values: [['']] }] : []),
       ...changedFields.map((field) => ({ range: detailCell(field), values: [[initialValues[field]]] })),
     ]);
+    await loadSchedule();
+  };
+}
+
+const SEASON_COLUMN_LETTER = 'D';
+
+export async function addSeasonGames({ firstDate, count, time, location }) {
+  const problem = seasonProblem(firstDate, count);
+  if (problem !== null) throw new Error(problem);
+  const firstId = Number(nextGameId(scheduledGames(), window.fieldView.allLineups()));
+  const firstRow = (await columnValues(`${SCHEDULE_TAB_NAME}!A:A`)).length + 1;
+  const rows = Array.from({ length: count }, (unused, index) => firstRow + index);
+  await confirmSheetStillMatches(rows.map((row) => ({ address: cellAddress(SCHEDULE_TAB_NAME, 0, row), expected: '' })));
+  const dates = seasonDates(firstDate, count);
+  await writeValues(rows.map((row, index) => ({
+    range: `${cellAddress(SCHEDULE_TAB_NAME, 0, row)}:${SEASON_COLUMN_LETTER}${row}`,
+    values: [[String(firstId + index), dates[index], time, location]],
+  })));
+  await loadSchedule();
+  return async () => {
+    await writeValues(rows.map((row) => ({ range: `${cellAddress(SCHEDULE_TAB_NAME, 0, row)}:${SEASON_COLUMN_LETTER}${row}`, values: [['', '', '', '']] })));
     await loadSchedule();
   };
 }

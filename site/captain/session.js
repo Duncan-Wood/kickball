@@ -1,6 +1,8 @@
 import { NEW_GAME_TAB_NAME, SCHEDULE_TAB_NAME } from '../template.js';
 import { CONFIG_TAB_NAME } from '../teamSettings.js';
 import { resetEditingState } from './fielding.js';
+import { loadRoster } from './roster.js';
+import { loadSchedule } from './schedule.js';
 import { askWorkerForAccess, currentAccessToken, pickSheet, refreshTabs, requestAccessToken } from './sheetApi.js';
 import { captain, element } from './state.js';
 import { setStatus } from './status.js';
@@ -42,7 +44,7 @@ export async function startCaptainMode() {
   toggle.disabled = true;
   try {
     const lineup = window.fieldView.currentLineup();
-    if (lineup === null || lineup.editable !== true || lineup.players.some((player) => player.sheetRow === undefined)) {
+    if (lineup !== null && (lineup.editable !== true || lineup.players.some((player) => player.sheetRow === undefined))) {
       throw new Error('This lineup cannot be edited from here yet. Reload the page and try again. Sheets that number the kicking order in column B are edited in the sheet');
     }
     captain.spreadsheetId = await confirmEditorAccess();
@@ -59,11 +61,18 @@ export async function startCaptainMode() {
       scheduleError: null,
       openGameId: null,
       draftGameId: null,
+      seasonFormOpen: false,
+      addingSeveral: false,
       undoStack: [],
       active: true,
-      area: 'fielding',
+      area: lineup === null ? 'start' : 'fielding',
     });
-    resetEditingState(lineup);
+    if (lineup === null) {
+      loadRoster();
+      loadSchedule();
+    } else {
+      resetEditingState(lineup);
+    }
     rememberCaptainDevice();
     window.fieldView.rerender();
   } catch (error) {

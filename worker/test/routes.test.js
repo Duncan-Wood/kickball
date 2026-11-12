@@ -33,6 +33,7 @@ test('a team code nobody connected is refused without calling Google', async () 
     const body = await answer(new Request('https://worker.test/api/team/zzzzzzzzzzzz'), environment);
     assert.equal(body.ok, false);
     assert.match(body.error, /not recognized/);
+    assert.equal(body.unknown, true);
     assert.equal(calls.length, 0);
   });
 });

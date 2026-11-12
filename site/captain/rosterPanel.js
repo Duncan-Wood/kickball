@@ -1,11 +1,11 @@
-import { positionsIn, positionsText } from '../edits.js';
+import { namesFromLines, positionsIn, positionsText } from '../edits.js';
 import { POSITION_CODES } from '../template.js';
 import { button, formField, node } from './dom.js';
-import { removeRosterPlayer, saveRosterPlayer } from './roster.js';
+import { addRosterPlayers, removeRosterPlayer, saveRosterPlayer } from './roster.js';
 import { ADD_FOCUS_KEY, captain } from './state.js';
-import { saveEdit } from './status.js';
+import { saveEdit, setStatus } from './status.js';
 
-const HINT = 'Everyone on the team. Removing someone here does not remove them from games already set up.';
+const HINT = 'Removing someone here keeps them in games already set up.';
 const NEW_PLAYER_KEY = 'new';
 
 function closeEditor() {
@@ -66,6 +66,37 @@ function rosterEditor(player) {
   return form;
 }
 
+function closeSeveral() {
+  captain.addingSeveral = false;
+  captain.panelStale = true;
+  window.fieldView.rerender();
+}
+
+function addSeveralForm() {
+  const form = node('form', 'game-editor');
+  const label = node('label', undefined, 'One name per line');
+  const names = node('textarea');
+  names.name = 'names';
+  names.rows = 8;
+  label.append(names);
+  const actions = node('div', 'game-actions');
+  const save = node('button', 'panel-action primary', 'Add');
+  save.type = 'submit';
+  actions.append(save, button('Cancel', 'panel-action', closeSeveral));
+  form.append(label, actions);
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    if (captain.saving) return;
+    const added = namesFromLines(names.value);
+    if (added.length === 0) {
+      setStatus('Enter at least one name', { isError: true });
+      return;
+    }
+    saveEdit(() => addRosterPlayers(added), `Added ${added.length} ${added.length === 1 ? 'player' : 'players'}`).then((saved) => saved && closeSeveral());
+  });
+  return form;
+}
+
 function playerCard(player) {
   const isOpen = captain.openRosterRow === player.sheetRow;
   const card = node('div', isOpen ? 'game-card roster-card open' : 'game-card roster-card');
@@ -92,7 +123,9 @@ export function rosterPanel() {
   list.append(...captain.rosterPlayers.map(playerCard));
   const adding = captain.openRosterRow === NEW_PLAYER_KEY;
   const parts = [node('p', 'captain-hint', HINT), list];
-  if (adding) {
+  if (captain.addingSeveral) {
+    parts.push(addSeveralForm());
+  } else if (adding) {
     const card = node('div', 'game-card open');
     card.append(rosterEditor(null));
     parts.push(card);
@@ -103,7 +136,12 @@ export function rosterPanel() {
       window.fieldView.rerender();
     });
     addPlayer.dataset.focusKey = ADD_FOCUS_KEY;
-    parts.push(addPlayer);
+    parts.push(addPlayer, button('Add several', 'panel-action', () => {
+      captain.addingSeveral = true;
+      captain.openRosterRow = null;
+      captain.panelStale = true;
+      window.fieldView.rerender();
+    }));
   }
   return parts;
 }
