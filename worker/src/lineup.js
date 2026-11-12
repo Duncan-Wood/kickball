@@ -148,10 +148,12 @@ function isoDateOf(serialDate) {
   return new Date(Date.UTC(1899, 11, 30) + Math.floor(serialDate) * 86400000).toISOString().slice(0, 10);
 }
 
+const playedRank = (lineup) => (lineup.played ? 1 : 0);
+
 export function defaultLineupTabName(lineups, today) {
   const dated = lineups.filter((lineup) => lineup.isoDate !== '');
-  const upcoming = dated.filter((lineup) => lineup.isoDate >= today).sort((first, second) => first.isoDate.localeCompare(second.isoDate));
+  const upcoming = dated.filter((lineup) => lineup.isoDate >= today).sort((first, second) => first.isoDate.localeCompare(second.isoDate) || playedRank(first) - playedRank(second));
   if (upcoming.length > 0) return upcoming[0].tabName;
-  const latest = dated.sort((first, second) => second.isoDate.localeCompare(first.isoDate));
-  return latest.length > 0 ? latest[0].tabName : undefined;
+  const latestFirst = [...dated].reverse().sort((first, second) => second.isoDate.localeCompare(first.isoDate) || playedRank(first) - playedRank(second));
+  return latestFirst.length > 0 ? latestFirst[0].tabName : undefined;
 }
