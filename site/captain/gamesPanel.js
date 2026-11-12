@@ -2,7 +2,7 @@ import { gameIdProblem, isoDateFromDisplayed, isoTimeFromDisplayed, nextGameId }
 import { describeResult, notesFromResult, resultFromNotes } from '../result.js';
 import { button, formField, node, selectField } from './dom.js';
 import { chooseArea } from './navigation.js';
-import { addSeasonGames, createGameTabs, saveGameDetails, scheduledGames } from './schedule.js';
+import { addSeasonGames, allScheduledGames, archiveGame, createGameTabs, saveGameDetails, scheduledGames } from './schedule.js';
 import { ADD_FOCUS_KEY, captain } from './state.js';
 import { saveEdit } from './status.js';
 
@@ -82,6 +82,9 @@ function gameEditor(game) {
       return undo;
     }, `Set up Game ${game.id}`)));
   }
+  if (game.row !== null) {
+    actions.append(button('Archive', 'panel-action', () => saveEdit(() => archiveGame(game), `Archived Game ${game.id}`).then((saved) => saved && closeEditor())));
+  }
   actions.append(button('Cancel', 'panel-action', closeEditor));
   form.append(actions);
   form.addEventListener('submit', (event) => {
@@ -91,7 +94,7 @@ function gameEditor(game) {
     const savedGame = game.row === null ? { ...game, id: fields.get('gameId').trim() } : game;
     saveEdit(() => {
       if (game.row === null) {
-        const problem = gameIdProblem(savedGame.id, scheduledGames().map((scheduled) => scheduled.id));
+        const problem = gameIdProblem(savedGame.id, allScheduledGames().map((scheduled) => scheduled.id));
         if (problem !== null) throw new Error(problem);
       }
       return saveGameDetails(savedGame, submittedDetails(fields), initialValues);
@@ -176,7 +179,7 @@ export function gamesPanel() {
     return parts;
   }
   const addGame = button('Add a game', 'panel-action', () => {
-    captain.draftGameId = nextGameId(games, window.fieldView.allLineups());
+    captain.draftGameId = nextGameId(allScheduledGames(), window.fieldView.allLineups());
     captain.openGameId = captain.draftGameId;
     captain.panelStale = true;
     window.fieldView.rerender();

@@ -210,7 +210,7 @@ export function scheduleGames(scheduleRows, lineups) {
     const id = text(0);
     if (id === '') return [];
     const lineup = lineups.find((candidate) => candidate.gameId === id);
-    const game = { id, row: index + 2, date: text(1), time: text(2), location: text(3), opponent: text(4), notes: text(5), tabName: lineup?.tabName ?? null };
+    const game = { id, row: index + 2, date: text(1), time: text(2), location: text(3), opponent: text(4), notes: text(5), archived: text(6).toLowerCase() === 'yes', tabName: lineup?.tabName ?? null };
     return [game.date, game.time, game.location, game.opponent].some((value) => value !== '') || lineup !== undefined ? [game] : [];
   });
 }
