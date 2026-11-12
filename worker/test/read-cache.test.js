@@ -41,6 +41,7 @@ async function withGoogle(sheetsHandler, work) {
   globalThis.caches = edgeCache;
   globalThis.fetch = async (address) => {
     if (String(address).includes('oauth2')) return Response.json({ access_token: 'access' });
+    if (String(address).includes('googleapis.com/drive')) return Response.json({ trashed: false });
     sheetsCalls.push(String(address));
     return sheetsHandler(sheetsCalls.length);
   };

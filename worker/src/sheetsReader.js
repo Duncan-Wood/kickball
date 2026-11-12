@@ -3,6 +3,8 @@ import { readConfig } from './config.js';
 import { defaultLineupTabName, isCurrentLineupTab, orderedLineups, readLineup } from './lineup.js';
 
 const SHEETS_ADDRESS = 'https://sheets.googleapis.com/v4/spreadsheets';
+const DRIVE_FILES_ADDRESS = 'https://www.googleapis.com/drive/v3/files';
+const SHEET_GONE_MESSAGE = 'This team\'s sheet was deleted from Google Drive. Ask your captain to set the team up again';
 const CELL_FIELDS = 'formattedValue,effectiveValue.numberValue,effectiveFormat(textFormat.strikethrough,backgroundColor)';
 
 export class SheetGoneError extends Error {}
@@ -15,7 +17,7 @@ export class RateLimitedError extends Error {
 
 async function sheetsGet(accessToken, path) {
   const response = await fetch(`${SHEETS_ADDRESS}/${path}`, { headers: { Authorization: `Bearer ${accessToken}` } });
-  if (response.status === 404) throw new SheetGoneError('This team\'s sheet was deleted from Google Drive. Ask your captain to set the team up again');
+  if (response.status === 404) throw new SheetGoneError(SHEET_GONE_MESSAGE);
   if (response.status === 429) throw new RateLimitedError();
   if (!response.ok) throw new Error(`Google could not read the sheet (${response.status}). The captain may need to reconnect it`);
   return response.json();
@@ -44,8 +46,17 @@ function quotedRange(tabName) {
   return `'${tabName.replaceAll("'", "''")}'`;
 }
 
+async function throwIfTrashed(accessToken, spreadsheetId) {
+  const response = await fetch(`${DRIVE_FILES_ADDRESS}/${spreadsheetId}?fields=trashed&supportsAllDrives=true`, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (response.status === 404) throw new SheetGoneError(SHEET_GONE_MESSAGE);
+  if (response.ok && (await response.json()).trashed === true) throw new SheetGoneError(SHEET_GONE_MESSAGE);
+}
+
 export async function readTeamSheet(accessToken, spreadsheetId, now = new Date()) {
-  const overview = await sheetsGet(accessToken, `${spreadsheetId}?fields=properties.timeZone,sheets.properties.title`);
+  const [overview] = await Promise.all([
+    sheetsGet(accessToken, `${spreadsheetId}?fields=properties.timeZone,sheets.properties.title`),
+    throwIfTrashed(accessToken, spreadsheetId),
+  ]);
   const tabNames = overview.sheets.map((sheet) => sheet.properties.title);
   const wantedTabNames = tabNames.filter((tabName) => isCurrentLineupTab(tabName) || tabName === CONFIG_TAB_NAME);
   const query = new URLSearchParams({ includeGridData: 'true', fields: `sheets(properties.title,data.rowData.values(${CELL_FIELDS}))` });

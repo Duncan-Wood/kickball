@@ -68,7 +68,7 @@ Under the team page, **Captain tools** lets anyone who can edit the sheet change
 3. Reads are cached for 15 seconds, and players loading at the same moment share one read of the sheet. If Google limits reads, the page keeps showing the last good lineup with the time it was read, and the Worker waits a minute before asking again.
 4. Suggestions from the page are appended to a `Comments` tab in the captain's sheet, limited to 60 per hour.
 5. `site/` is the static page on GitHub Pages. `start.html` is the setup flow and `index.html?team=<code>` is the player view. Captain tools run in the browser and edit the sheet with the signed-in captain's own Google account, not through the Worker.
-6. If the sheet is deleted, the Worker forgets the team and the link says so. The setup page drops the team from its list, and Stop sharing still works.
+6. If the sheet is deleted or moved to the trash, the Worker forgets the team and the link says so. The setup page drops the team from its list, and Stop sharing still works.
 7. Team codes are random, so the link is the only thing protecting the lineup view. Anyone with the link can see the lineups, and nothing else.
 8. The team's sheet depends on the creator's Google connection. If it expires, the page shows a reconnect link for the captain who created the team.
 
