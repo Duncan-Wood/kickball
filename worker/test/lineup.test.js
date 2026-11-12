@@ -211,6 +211,17 @@ test('the default game is the next one by date, otherwise the latest, regardless
   assert.equal(defaultLineupTabName([game('Undated Lineup', '')], '2026-11-08'), undefined);
 });
 
+test('two games on one date open on the one without a result, and the later tab once both have results', () => {
+  const game = (tabName, played) => ({ tabName, isoDate: '2026-11-12', played });
+  const semifinal = game('Semifinal Lineup', false);
+  const finals = game('Finals Lineup', false);
+  assert.equal(defaultLineupTabName([semifinal, finals], '2026-11-12'), 'Semifinal Lineup');
+  assert.equal(defaultLineupTabName([game('Semifinal Lineup', true), finals], '2026-11-12'), 'Finals Lineup');
+  assert.equal(defaultLineupTabName([game('Semifinal Lineup', true), finals], '2026-11-13'), 'Finals Lineup');
+  assert.equal(defaultLineupTabName([semifinal, game('Finals Lineup', true)], '2026-11-13'), 'Semifinal Lineup');
+  assert.equal(defaultLineupTabName([game('Semifinal Lineup', true), game('Finals Lineup', true)], '2026-11-13'), 'Finals Lineup');
+});
+
 test('a game with a recorded result counts as played and anything else does not', () => {
   const rows = lineupRows([rowOf('Chad S', '', 'SS', 'P')]);
   const withResult = readLineup('Game 2 Lineup', rows);
