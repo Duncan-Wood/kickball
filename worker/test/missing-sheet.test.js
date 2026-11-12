@@ -77,3 +77,44 @@ test('reconnecting a deleted sheet removes the team record and fails', async () 
   assert.equal(body.gone, true);
   assert.equal(environment.TEAMS.data.has(`team:${SLUG}`), false);
 });
+
+test('a sheet moved to the trash counts as deleted, even though Google still reads it', async () => {
+  const environment = await environmentWithTeam();
+  const originalFetch = globalThis.fetch;
+  const originalCaches = globalThis.caches;
+  globalThis.caches = { default: { match: async () => undefined, put: async () => {} } };
+  globalThis.fetch = async (address) => {
+    if (String(address).includes('oauth2')) return Response.json({ access_token: 'access' });
+    if (String(address).includes('googleapis.com/drive')) return Response.json({ trashed: true });
+    return Response.json({ properties: { timeZone: 'America/New_York' }, sheets: [] });
+  };
+  try {
+    const body = await (await worker.fetch(teamRequest(), environment, noContext)).json();
+    assert.equal(body.ok, false);
+    assert.equal(body.gone, true);
+    assert.equal(environment.TEAMS.data.has(`team:${SLUG}`), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+    globalThis.caches = originalCaches;
+  }
+});
+
+test('a sheet that is not in the trash still reads normally', async () => {
+  const environment = await environmentWithTeam();
+  const originalFetch = globalThis.fetch;
+  const originalCaches = globalThis.caches;
+  globalThis.caches = { default: { match: async () => undefined, put: async () => {} } };
+  globalThis.fetch = async (address) => {
+    if (String(address).includes('oauth2')) return Response.json({ access_token: 'access' });
+    if (String(address).includes('googleapis.com/drive')) return Response.json({ trashed: false });
+    return Response.json({ properties: { timeZone: 'America/New_York' }, sheets: [] });
+  };
+  try {
+    const body = await (await worker.fetch(teamRequest(), environment, noContext)).json();
+    assert.equal(body.ok, true);
+    assert.equal(environment.TEAMS.data.has(`team:${SLUG}`), true);
+  } finally {
+    globalThis.fetch = originalFetch;
+    globalThis.caches = originalCaches;
+  }
+});
