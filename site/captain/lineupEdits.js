@@ -4,6 +4,10 @@ import { RSVP_ANSWERS } from './state.js';
 
 const RSVP_COLUMN_INDEX = 1;
 
+function currentVersionOf(lineup) {
+  return window.fieldView.allLineups().find((candidate) => candidate.tabName === lineup.tabName) ?? lineup;
+}
+
 function nameExpectations(lineup, sheetRows) {
   return [...new Set(sheetRows)].map((sheetRow) => ({ address: cellAddress(lineup.tabName, 0, sheetRow), expected: lineupPlayer(lineup, sheetRow).name }));
 }
@@ -25,7 +29,8 @@ function rowWrites(lineup, { sheetRow, name, rsvp, positions }) {
   ];
 }
 
-export async function saveFielding(lineup, changes) {
+export async function saveFielding(lineupWhenEditing, changes) {
+  const lineup = currentVersionOf(lineupWhenEditing);
   const reversal = changes.map(({ sheetRow, inningIndex }) => ({ sheetRow, inningIndex, value: lineupPlayer(lineup, sheetRow).positions[inningIndex] }));
   await confirmSheetStillMatches([
     ...nameExpectations(lineup, changes.map(({ sheetRow }) => sheetRow)),
@@ -36,7 +41,8 @@ export async function saveFielding(lineup, changes) {
   return () => saveFielding(lineup, reversal);
 }
 
-export async function saveKickingMove(lineup, move, sourceRow, targetRow) {
+export async function saveKickingMove(lineupWhenEditing, move, sourceRow, targetRow) {
+  const lineup = currentVersionOf(lineupWhenEditing);
   await confirmSheetStillMatches(nameExpectations(lineup, [sourceRow, targetRow]));
   const sheetId = await sheetIdFor(lineup.tabName);
   await sheetsRequest(':batchUpdate', {
@@ -50,7 +56,8 @@ export async function saveKickingMove(lineup, move, sourceRow, targetRow) {
   return () => saveKickingMove(lineup, inverseKickingMove(move), move.finalRow, move.fromRow);
 }
 
-async function saveRsvpWithPositions(lineup, sheetRow, answer, positionsAfter) {
+async function saveRsvpWithPositions(lineupWhenEditing, sheetRow, answer, positionsAfter) {
+  const lineup = currentVersionOf(lineupWhenEditing);
   const player = lineupPlayer(lineup, sheetRow);
   const previousAnswer = RSVP_ANSWERS.find((candidate) => candidate.toLowerCase() === player.rsvp) ?? '';
   const previousPositions = player.positions;
@@ -68,12 +75,14 @@ async function saveRsvpWithPositions(lineup, sheetRow, answer, positionsAfter) {
   return () => saveRsvpWithPositions(lineup, sheetRow, previousAnswer, previousPositions);
 }
 
-export async function saveRsvp(lineup, sheetRow, answer) {
+export async function saveRsvp(lineupWhenEditing, sheetRow, answer) {
+  const lineup = currentVersionOf(lineupWhenEditing);
   const { positions } = lineupPlayer(lineup, sheetRow);
   return saveRsvpWithPositions(lineup, sheetRow, answer, answer === 'No' ? positions.map(() => '') : positions);
 }
 
-export async function saveRemovedPlayers(lineup, sheetRows) {
+export async function saveRemovedPlayers(lineupWhenEditing, sheetRows) {
+  const lineup = currentVersionOf(lineupWhenEditing);
   const removed = sheetRows.map((sheetRow) => lineupPlayer(lineup, sheetRow));
   await confirmSheetStillMatches(removed.flatMap((player) => rowExpectations(lineup, player)));
   const blankRow = (player) => rowWrites(lineup, { ...player, name: '', rsvp: '', positions: player.positions.map(() => '') });
@@ -82,13 +91,15 @@ export async function saveRemovedPlayers(lineup, sheetRows) {
   return () => saveRestoredPlayers(lineup, removed);
 }
 
-async function saveRestoredPlayers(lineup, restoredPlayers) {
+async function saveRestoredPlayers(lineupWhenEditing, restoredPlayers) {
+  const lineup = currentVersionOf(lineupWhenEditing);
   await confirmSheetStillMatches(restoredPlayers.map(({ sheetRow }) => ({ address: cellAddress(lineup.tabName, 0, sheetRow), expected: '' })));
   await writeValues(restoredPlayers.flatMap((player) => rowWrites(lineup, player)), 'RAW');
   Object.assign(lineup, applyRestoredPlayers(lineup, restoredPlayers));
 }
 
-export async function saveAddedPlayers(lineup, names) {
+export async function saveAddedPlayers(lineupWhenEditing, names) {
+  const lineup = currentVersionOf(lineupWhenEditing);
   const additions = playersToAdd(lineup.spareRows, names, lineup.players);
   await confirmSheetStillMatches(additions.map(({ sheetRow }) => ({ address: cellAddress(lineup.tabName, 0, sheetRow), expected: '' })));
   await writeValues(additions.map(({ name, sheetRow }) => ({ range: cellAddress(lineup.tabName, 0, sheetRow), values: [[name]] })), 'RAW');

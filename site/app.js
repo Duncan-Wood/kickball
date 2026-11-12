@@ -537,7 +537,10 @@ function applyRefresh(freshLineup, readAt) {
   lineups[index] = freshLineup;
   clearFailure();
   if (changed) saveLineups();
-  if (changed && selectedLineup.tabName === freshLineup.tabName) selectLineup(freshLineup.tabName);
+  if (selectedLineup.tabName === freshLineup.tabName) {
+    if (changed) selectLineup(freshLineup.tabName);
+    else selectedLineup = freshLineup;
+  }
   scheduleRefresh();
 }
 
@@ -692,7 +695,7 @@ window.fieldView = {
     lastWriteAt = Date.now();
     showUpdated(lastWriteAt);
     saveLineups();
-    render();
+    window.fieldView.rerender();
   },
   refreshNow() {
     if (!refreshInFlight) refresh();
