@@ -68,7 +68,7 @@ function rosterEditor(player) {
 
 function playerCard(player) {
   const isOpen = captain.openRosterRow === player.sheetRow;
-  const card = node('div', isOpen ? 'game-card open' : 'game-card');
+  const card = node('div', isOpen ? 'game-card roster-card open' : 'game-card roster-card');
   const summary = button('', 'game-summary', () => {
     captain.openRosterRow = isOpen ? null : player.sheetRow;
     captain.panelStale = true;
@@ -76,9 +76,9 @@ function playerCard(player) {
   });
   summary.setAttribute('aria-expanded', String(isOpen));
   summary.dataset.focusKey = `player:${player.sheetRow}`;
-  const details = [player.prefers === '' ? '' : `Prefers ${player.prefers}`, player.avoids === '' ? '' : `Won't play ${player.avoids}`, player.pronouns].filter((detail) => detail !== '').join(' · ');
+  const details = [player.prefers === '' ? '' : `Prefers ${player.prefers}`, player.avoids === '' ? '' : `Won't play ${player.avoids}`].filter((detail) => detail !== '').join(' · ');
   const text = node('span', 'game-text');
-  text.append(node('strong', undefined, player.name), ...(details === '' ? [] : [node('span', 'game-meta', details)]));
+  text.append(node('strong', undefined, player.name), ...(player.pronouns === '' ? [] : [node('span', 'game-meta', `(${player.pronouns})`)]), ...(details === '' ? [] : [node('span', 'game-meta', details)]));
   summary.append(text);
   card.append(summary);
   if (isOpen) card.append(rosterEditor(player));

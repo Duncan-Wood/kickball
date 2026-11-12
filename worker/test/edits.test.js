@@ -279,3 +279,11 @@ test('rows to rename are found in every game whatever the capitalization', () =>
   const lineups = [{ tabName: 'Game 1 Lineup', players: [{ name: 'Amy B', sheetRow: 9 }] }, { tabName: 'Game 2 Lineup', players: [{ name: 'amy b', sheetRow: 11 }, { name: 'Pat', sheetRow: 12 }] }];
   assert.deepEqual(rowsWithName(lineups, 'Amy B').map(({ lineup, sheetRow }) => [lineup.tabName, sheetRow]), [['Game 1 Lineup', 9], ['Game 2 Lineup', 11]]);
 });
+
+test('a roster whose first column holds numbers is recognised, and a normal roster is not', async () => {
+  const { rosterNamesAreNumbers } = await import('../../site/edits.js');
+  assert.equal(rosterNamesAreNumbers([['1', 'Amy B'], ['2', 'Abe Bashir'], ['3', 'Mac B'], ['sdfa', 'RF']]), true);
+  assert.equal(rosterNamesAreNumbers([['Amy B', 'SS'], ['Abe Bashir', ''], ['Mac B', '1B']]), false);
+  assert.equal(rosterNamesAreNumbers([['1'], ['2']]), false);
+  assert.equal(rosterNamesAreNumbers([]), false);
+});

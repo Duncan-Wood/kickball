@@ -233,6 +233,11 @@ export function blankPlayerRows(columnA) {
   return columnA.slice(headerIndex + 1, endIndex).map((text, offset) => ({ text, sheetRow: headerIndex + 2 + offset })).filter(({ text }) => text === '').map(({ sheetRow }) => sheetRow);
 }
 
+export function rosterNamesAreNumbers(rows) {
+  const firstColumn = rows.map((cells) => (cells[0] ?? '').trim()).filter((text) => text !== '');
+  return firstColumn.length >= 3 && firstColumn.filter((text) => /^\d+$/.test(text)).length * 2 >= firstColumn.length;
+}
+
 export function rosterPlayerFromRow(cells, sheetRow) {
   const text = (columnIndex) => (cells[columnIndex] ?? '').trim();
   return { sheetRow, name: text(0), prefers: text(1), avoids: text(2), notes: text(3), pronouns: text(4) };

@@ -9,7 +9,7 @@ export const MINIMUM_PLAYERS = 8;
 const HINTS = {
   kicking: 'Tap a kicker, then tap the spot in the order they should take.',
   players: 'Tell the lineup who is coming, or add and remove players for this game.',
-  playersWithoutRsvp: 'This sheet marks players who are out with strikethrough. Change that in the sheet.',
+  playersWithoutRsvp: 'This sheet has no RSVP column, so players who are out are struck through in the sheet. You can still add players from the roster here.',
 };
 
 function moveKicker(sourceRow, targetRow) {
@@ -52,7 +52,7 @@ function headcountLine(lineup) {
   const isShort = count.playing < MINIMUM_PLAYERS;
   const line = node('p', isShort ? 'headcount short' : 'headcount');
   const breakdown = [[count.yes, 'yes'], [count.maybe, 'maybe'], [count.waiting, 'no reply'], [count.out, 'out']]
-    .filter(([amount]) => amount > 0)
+    .filter(([amount, label]) => amount > 0 && (lineup.usesRsvp || label === 'out'))
     .map(([amount, label]) => `${amount} ${label}`)
     .join(', ');
   line.append(node('strong', undefined, `${count.playing} playing`), node('span', 'headcount-detail', breakdown));
@@ -65,9 +65,14 @@ function rosterSection(lineup) {
   if (captain.rosterNames === null) return [node('p', 'captain-hint', 'Loading the roster…')];
   const names = rosterNamesToAdd(captain.rosterNames, lineup.players);
   if (names.length === 0) return [node('p', 'captain-hint', `Everyone on the ${ROSTER_TAB_NAME} tab is in this game.`)];
+  const room = lineup.spareRows.length;
+  if (room === 0) return [node('p', 'captain-hint', `${names.length} on the ${ROSTER_TAB_NAME} tab ${names.length === 1 ? 'is' : 'are'} not in this game, and the grid has no empty rows. Add rows to the grid in the sheet to bring them in.`)];
   const chips = node('div', 'roster-chips');
   chips.append(...names.map((name) => button(name, 'roster-chip', () => saveEdit(() => saveAddedPlayers(lineup, [name]), `Added ${name}`))));
-  return [chips, ...(names.length > 1 ? [button(`Add all ${names.length}`, 'panel-action', () => saveEdit(() => saveAddedPlayers(lineup, names), `Added ${names.length} players`))] : [])];
+  const rest = [];
+  if (names.length > 1 && names.length <= room) rest.push(button(`Add all ${names.length}`, 'panel-action', () => saveEdit(() => saveAddedPlayers(lineup, names), `Added ${names.length} players`)));
+  if (names.length > room) rest.push(node('p', 'captain-hint', `The grid has ${room} empty ${room === 1 ? 'row' : 'rows'}. Add rows in the sheet to fit everyone.`));
+  return [chips, ...rest];
 }
 
 function playerRow(lineup, player) {
