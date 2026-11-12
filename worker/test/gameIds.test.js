@@ -44,3 +44,9 @@ test('every lineup the reader returns carries its Game # text, so tabs are not m
   assert.equal(visible.length, 4);
   assert.deepEqual(problems, []);
 });
+
+test('a game marked Yes in the Archived column is flagged, and any other value is not', () => {
+  const rows = [['Game #', 'Date', 'Time', 'Location', 'Opponent', 'Notes', 'Archived'], ['1', '10/1/26', '', '', 'Rowdies', '', 'Yes'], ['2', '10/8/26', '', '', 'Sliders', '', ''], ['3', '10/15/26', '', '', 'Bunts', '', 'no']];
+  const games = scheduleGames(rows, []);
+  assert.deepEqual(games.map((game) => [game.id, game.archived]), [['1', true], ['2', false], ['3', false]]);
+});
