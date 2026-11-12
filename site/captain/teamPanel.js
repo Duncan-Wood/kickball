@@ -6,7 +6,7 @@ import { captain } from './state.js';
 import { saveEdit, setStatus } from './status.js';
 
 const VIEWS = [['settings', 'Settings'], ['roster', 'Roster']];
-const HINT = 'Changes show on the page right away. Save writes them to the Team Config tab.';
+const HINT = 'Changes preview here. Save to keep them.';
 const CHOICES = {
   stripe: STRIPE_STYLES.map((style) => [style, style]),
   font: FONTS.map((font) => [font, font]),
@@ -32,15 +32,23 @@ function previewIfValid(values) {
   if (!hasProblem) window.fieldView.previewConfig(configFromSettings(settingsWithDefaults(values)));
 }
 
-function shareLinkRow() {
-  const link = `${location.origin}${location.pathname}?team=${window.fieldView.teamCode}`;
+function linkRow(labelText, name, link) {
   const row = node('div', 'share-link game-editor');
-  const field = formField('Share link', 'text', 'shareLink', link);
+  const field = formField(labelText, 'text', name, link);
   field.querySelector('input').readOnly = true;
   row.append(field, button('Copy', 'panel-action', () => {
     navigator.clipboard.writeText(link).then(() => setStatus('Link copied'), () => setStatus('Could not copy. Select the link and copy it', { isError: true }));
   }));
   return row;
+}
+
+function shareLinkRows() {
+  const link = `${location.origin}${location.pathname}?team=${window.fieldView.teamCode}`;
+  return [
+    linkRow('Link for players', 'shareLink', link),
+    linkRow('Link for co-captains', 'captainLink', `${link}#captain`),
+    node('p', 'captain-hint', 'Share the sheet with a co-captain first, then send them this link.'),
+  ];
 }
 
 function settingsPanel() {
@@ -63,7 +71,7 @@ function settingsPanel() {
     const values = valuesFrom(form);
     saveEdit(() => saveTeamSettings(values, savedValues), 'Team settings saved');
   });
-  return [node('p', 'captain-hint', HINT), form, shareLinkRow()];
+  return [node('p', 'captain-hint', HINT), form, ...shareLinkRows()];
 }
 
 function viewToggle() {

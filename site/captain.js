@@ -1,6 +1,7 @@
 import { headcount } from './edits.js';
 import { bindFieldEditing, fieldingPanel, followViewedInning, installFieldingEvents, keyboardIsInUse, renderDock, resetEditingState, restoreKeyboardFocus } from './captain/fielding.js';
 import { gamesPanel } from './captain/gamesPanel.js';
+import { getStartedPanel, gettingStartedIsOpen } from './captain/getStarted.js';
 import { teamPanel } from './captain/teamPanel.js';
 import { chooseArea } from './captain/navigation.js';
 import { kickingPanel, playersPanel } from './captain/people.js';
@@ -37,13 +38,13 @@ function refocusPanel(panel, key) {
 
 function renderPanel(lineup, inField) {
   const panel = element('captain-panel');
-  panel.hidden = !captain.active || lineup === null;
+  panel.hidden = !captain.active || (lineup === null && !['start', 'games', 'team'].includes(captain.area));
   if (panel.hidden) {
     panel.replaceChildren();
     delete panel.dataset.area;
     return;
   }
-  const formPanels = { games: gamesPanel, team: teamPanel };
+  const formPanels = { start: getStartedPanel, games: gamesPanel, team: teamPanel };
   if (captain.area in formPanels) {
     if (panel.dataset.area === captain.area && !captain.panelStale) return;
     captain.panelStale = false;
@@ -61,6 +62,8 @@ function renderPanel(lineup, inField) {
 
 function renderAreaButtons(lineup) {
   AREAS.forEach((area) => element(`area-${area}`).setAttribute('aria-pressed', String(captain.area === area)));
+  element('area-start').hidden = !(gettingStartedIsOpen() || captain.area === 'start');
+  ['fielding', 'kicking', 'players'].forEach((area) => { element(`area-${area}`).hidden = lineup === null; });
   element('area-games').hidden = !captain.canManageGames;
   element('area-team').hidden = !captain.canEditTeam;
   const playersButton = element('area-players');
@@ -80,6 +83,7 @@ function afterRender() {
     return;
   }
   const lineup = window.fieldView.currentLineup();
+  if (lineup === null && ['fielding', 'kicking', 'players'].includes(captain.area)) captain.area = 'start';
   if (lineup !== null && captain.tabName !== lineup.tabName) resetEditingState(lineup);
   else if (lineup !== null) followViewedInning();
   const selectedRowIsGone = lineup === null || (captain.selectedRow !== null && !lineup.players.some((player) => player.sheetRow === captain.selectedRow));
@@ -102,8 +106,6 @@ document.addEventListener('pointerdown', () => { pendingRefocusKey = null; });
 element('captain-panel').addEventListener('keydown', (event) => {
   if (event.key === 'Enter' && event.target.tagName === 'SELECT') event.preventDefault();
 });
-window.addEventListener('hashchange', () => {
-  if (window.fieldView.currentLineup() !== null) window.fieldView.rerender();
-});
+window.addEventListener('hashchange', () => window.fieldView.rerender());
 window.captainTools = { afterRender };
-if (window.fieldView.currentLineup() !== null) window.fieldView.rerender();
+window.fieldView.rerender();

@@ -14,7 +14,7 @@ const INNING_PRESETS = [
   { preset: 'all', label: 'All' },
 ];
 const HINTS = {
-  fielding: 'Tap a position or a sitting player to edit.',
+  fielding: 'Tap a position, then pick a player.',
   elsewhere: 'Pick an inning above to edit the field.',
   empty: 'Nobody is in this game yet. Add players on the Players tab first.',
 };

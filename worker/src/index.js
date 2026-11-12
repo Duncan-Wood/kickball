@@ -11,6 +11,8 @@ const TEAM_ROUTE = /^\/api\/team\/([a-z0-9]{12})(\/comment)?$/;
 const CAPTAIN_ROUTE = /^\/api\/team\/([a-z0-9]{12})\/captain$/;
 const DRIVE_FILES_ADDRESS = 'https://www.googleapis.com/drive/v3/files';
 
+class UnknownTeamError extends Error {}
+
 function corsHeaders(request, environment) {
   const allowedOrigins = environment.ALLOWED_ORIGINS.split(',');
   const requestOrigin = request.headers.get('Origin');
@@ -30,7 +32,7 @@ function jsonResponse(body, status, request, environment) {
 
 async function loadTeam(slug, environment) {
   const stored = await environment.TEAMS.get(`team:${slug}`, 'json');
-  if (stored === null) throw new Error('This team link is not recognized. Ask your captain for a new one');
+  if (stored === null) throw new UnknownTeamError('This team link is not recognized. Ask your captain for a new one');
   const refreshToken = await decryptToken(stored.refreshToken, environment.TOKEN_ENCRYPTION_KEY);
   return { spreadsheetId: stored.spreadsheetId, accessToken: await accessTokenFromRefreshToken(refreshToken, environment) };
 }
@@ -203,7 +205,7 @@ export default {
       return jsonResponse({ ok: false, error: 'Not found' }, 404, request, environment);
     } catch (error) {
       console.error(pathname, error);
-      return jsonResponse({ ok: false, error: error.message, ...(error instanceof ConnectionExpiredError && { reconnect: true }), ...(error instanceof SheetGoneError && { gone: true }) }, 200, request, environment);
+      return jsonResponse({ ok: false, error: error.message, ...(error instanceof ConnectionExpiredError && { reconnect: true }), ...(error instanceof SheetGoneError && { gone: true }), ...(error instanceof UnknownTeamError && { unknown: true }) }, 200, request, environment);
     }
   },
 };

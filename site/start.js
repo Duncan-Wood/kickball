@@ -1,7 +1,7 @@
 import { findTeams } from './teams.js';
-import { addTeamConfigTab, createTeamSheet, saveShareLink } from './template.js';
+import { createTeamSheet, saveTeamLinks } from './template.js';
 
-const { workerAddress, googleClientId, googleApiKey, googleProjectNumber } = window.KICKBALL;
+const { workerAddress, googleClientId } = window.KICKBALL;
 const DRIVE_FILE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 const SHEET_ADDRESS_PREFIX = 'https://docs.google.com/spreadsheets/d/';
 
@@ -46,24 +46,6 @@ async function signIn() {
       callback: (response) => (response.error ? reject(new Error(`Google sign-in was not completed (${response.error})`)) : resolve(response.code)),
       error_callback: (error) => reject(new Error(`Google sign-in was not completed (${error.type})`)),
     }).requestCode();
-  });
-}
-
-async function pickSpreadsheet() {
-  await whenLoaded(() => window.gapi);
-  await new Promise((resolve) => gapi.load('picker', resolve));
-  return new Promise((resolve, reject) => {
-    new google.picker.PickerBuilder()
-      .setAppId(googleProjectNumber)
-      .setDeveloperKey(googleApiKey)
-      .setOAuthToken(accessToken)
-      .addView(new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS).setMode(google.picker.DocsViewMode.LIST))
-      .setCallback((data) => {
-        if (data.action === google.picker.Action.PICKED) resolve(data.docs[0].id);
-        if (data.action === google.picker.Action.CANCEL) reject(new Error('No sheet was picked'));
-      })
-      .build()
-      .setVisible(true);
   });
 }
 
@@ -113,7 +95,7 @@ async function showTeamProblem(team, item) {
   const response = await fetch(`${workerAddress}/api/team/${team.slug}`);
   const data = await response.json();
   if (data.ok) return;
-  if (data.gone) {
+  if (data.gone || data.unknown) {
     forgetTeam(team.slug);
     item.remove();
     element('step-saved').hidden = savedTeams().length === 0;
@@ -164,7 +146,7 @@ function teamAddress(slug) {
 
 async function finish(spreadsheetId) {
   const { slug } = await postToWorker('/api/connect', { pendingId, spreadsheetId });
-  await saveShareLink(accessToken, spreadsheetId, teamAddress(slug));
+  await saveTeamLinks(accessToken, spreadsheetId, teamAddress(slug));
   rememberTeam({ slug, spreadsheetId, teamName: element('team-name').value.trim(), seasonLabel: element('season-label').value.trim() });
   showTeamLink(slug, spreadsheetId);
 }
@@ -179,14 +161,12 @@ function showTeamLink(slug, spreadsheetId) {
   element('step-done').hidden = false;
 }
 
-const teamDetailsButtons = ['create-sheet', 'pick-sheet'];
-
 function teamDetailsFilledIn() {
   return element('team-name').value.trim() !== '' && element('season-label').value.trim() !== '';
 }
 
 function updateTeamDetailsButtons() {
-  teamDetailsButtons.forEach((id) => { element(id).disabled = !teamDetailsFilledIn(); });
+  element('create-sheet').disabled = !teamDetailsFilledIn();
 }
 
 async function runStep(button, work) {
@@ -215,7 +195,7 @@ async function stopSharing(team, link) {
     await establishSignIn();
     const { sheetGone } = await postToWorker('/api/disconnect', { pendingId, slug: team.slug });
     pendingId = null;
-    if (!sheetGone) await saveShareLink(accessToken, team.spreadsheetId, '');
+    if (!sheetGone) await saveTeamLinks(accessToken, team.spreadsheetId, '');
     forgetTeam(team.slug);
     showSavedTeams();
   });
@@ -237,12 +217,6 @@ element('sign-in').addEventListener('click', (event) => runStep(event.target, as
 
 element('create-sheet').addEventListener('click', (event) => runStep(event.target, async () => {
   const { spreadsheetId } = await createTeamSheet(accessToken, element('team-name').value.trim(), element('season-label').value.trim(), Intl.DateTimeFormat().resolvedOptions().timeZone);
-  await finish(spreadsheetId);
-}));
-
-element('pick-sheet').addEventListener('click', (event) => runStep(event.target, async () => {
-  const spreadsheetId = await pickSpreadsheet();
-  await addTeamConfigTab(accessToken, spreadsheetId, element('team-name').value.trim(), element('season-label').value.trim());
   await finish(spreadsheetId);
 }));
 

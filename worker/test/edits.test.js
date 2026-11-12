@@ -287,3 +287,16 @@ test('a roster whose first column holds numbers is recognised, and a normal rost
   assert.equal(rosterNamesAreNumbers([['1'], ['2']]), false);
   assert.equal(rosterNamesAreNumbers([]), false);
 });
+
+test('a season is one game a week from the first date, across month and year ends', async () => {
+  const { seasonDates, seasonProblem, namesFromLines } = await import('../../site/edits.js');
+  assert.deepEqual(seasonDates('2026-12-17', 3), ['2026-12-17', '2026-12-24', '2026-12-31']);
+  assert.deepEqual(seasonDates('2026-12-31', 2), ['2026-12-31', '2027-01-07']);
+  assert.equal(seasonProblem('2026-12-17', 8), null);
+  assert.match(seasonProblem('', 8), /first game/);
+  assert.match(seasonProblem('2026-12-17', 0), /1 to 30/);
+  assert.match(seasonProblem('2026-12-17', 31), /1 to 30/);
+  assert.match(seasonProblem('2026-12-17', 2.5), /1 to 30/);
+  assert.deepEqual(namesFromLines('  Amy B \r\n\r\nAbe Bashir\namy b\n'), ['Amy B', 'Abe Bashir']);
+  assert.deepEqual(namesFromLines('\n  \n'), []);
+});

@@ -259,3 +259,14 @@ a:focus-visible, button:focus-visible, select:focus-visible, textarea:focus-visi
 .share-link { display: flex; gap: 8px; align-items: end; }
 .share-link label { flex: 1; margin: 0; }
 .share-link .panel-action { width: auto; margin: 0; padding: 9px 14px; }
+
+.empty-season-note { margin: 24px 2px; font-size: 17px; color: var(--muted); }
+.empty-season-note[hidden] { display: none; }
+#view.empty-season .controls, #view.empty-season .subtitle, #view.empty-season .game-details, #view.empty-season #field, #view.empty-season #summary, #view.empty-season .problems, #view.empty-season .bench, #view.empty-season #comment-toggle { display: none; }
+.check-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: #fff; }
+.check-row + .check-row { margin-top: 8px; }
+.check-mark { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border: 2px solid var(--border); border-radius: 50%; font-size: 14px; font-weight: 700; color: var(--muted); }
+.check-row.done .check-mark { border-color: var(--primary); background: var(--primary); color: #fff; }
+.check-text { flex: 1; display: flex; flex-direction: column; gap: 2px; font-size: 16px; }
+.check-row .panel-action { width: auto; margin: 0; padding: 9px 14px; }
+.check-row .panel-action:disabled { opacity: 0.45; cursor: default; }

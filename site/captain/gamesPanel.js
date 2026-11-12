@@ -2,11 +2,11 @@ import { gameIdProblem, isoDateFromDisplayed, isoTimeFromDisplayed, nextGameId }
 import { describeResult, notesFromResult, resultFromNotes } from '../result.js';
 import { button, formField, node, selectField } from './dom.js';
 import { chooseArea } from './navigation.js';
-import { createGameTabs, saveGameDetails, scheduledGames } from './schedule.js';
+import { addSeasonGames, createGameTabs, saveGameDetails, scheduledGames } from './schedule.js';
 import { ADD_FOCUS_KEY, captain } from './state.js';
 import { saveEdit } from './status.js';
 
-const HINT = 'Fill in the season here, then set up a lineup tab for every game at once.';
+const HINT = 'Add your games, then set up their lineups.';
 const OUTCOME_CHOICES = [['', 'Not played yet'], ['W', 'Won'], ['L', 'Lost'], ['T', 'Tied']];
 
 function closeEditor() {
@@ -100,6 +100,48 @@ function gameEditor(game) {
   return form;
 }
 
+export function setUpLineups(games) {
+  const noun = games.length === 1 ? 'lineup' : 'lineups';
+  return saveEdit(async () => {
+    const undo = await createGameTabs(games.map((game) => game.id));
+    captain.panelStale = true;
+    return undo;
+  }, `Set up ${games.length} ${noun}`);
+}
+
+function closeSeasonForm() {
+  captain.seasonFormOpen = false;
+  captain.panelStale = true;
+  window.fieldView.rerender();
+}
+
+function seasonForm() {
+  const form = node('form', 'game-editor');
+  const count = formField('Number of games', 'number', 'count', '8');
+  count.querySelector('input').min = '1';
+  count.querySelector('input').max = '30';
+  count.querySelector('input').inputMode = 'numeric';
+  form.append(
+    formField('First game', 'date', 'firstDate', ''),
+    count,
+    formField('Time', 'time', 'time', '19:00'),
+    formField('Location', 'text', 'location', ''),
+  );
+  const actions = node('div', 'game-actions');
+  const save = node('button', 'panel-action primary', 'Add games');
+  save.type = 'submit';
+  actions.append(save, button('Cancel', 'panel-action', closeSeasonForm));
+  form.append(actions);
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    if (captain.saving) return;
+    const fields = new FormData(form);
+    const gameCount = Number(fields.get('count'));
+    saveEdit(() => addSeasonGames({ firstDate: fields.get('firstDate'), count: gameCount, time: fields.get('time'), location: fields.get('location').trim() }), `Added ${gameCount} games`).then((saved) => saved && closeSeasonForm());
+  });
+  return form;
+}
+
 function gameCard(game) {
   const isOpen = captain.openGameId === game.id;
   const card = node('div', isOpen ? 'game-card open' : 'game-card');
@@ -129,6 +171,10 @@ export function gamesPanel() {
   const list = node('div', 'game-list');
   list.append(...[...games, ...draft].map(gameCard));
   const parts = [node('p', 'captain-hint', HINT), list];
+  if (captain.seasonFormOpen) {
+    parts.push(seasonForm());
+    return parts;
+  }
   const addGame = button('Add a game', 'panel-action', () => {
     captain.draftGameId = nextGameId(games, window.fieldView.allLineups());
     captain.openGameId = captain.draftGameId;
@@ -137,13 +183,16 @@ export function gamesPanel() {
   });
   addGame.dataset.focusKey = ADD_FOCUS_KEY;
   parts.push(addGame);
+  if (games.length === 0) {
+    parts.push(button('Add a season', 'panel-action primary', () => {
+      captain.seasonFormOpen = true;
+      captain.panelStale = true;
+      window.fieldView.rerender();
+    }));
+  }
   if (needsLineup.length > 0) {
     const noun = needsLineup.length === 1 ? 'lineup' : 'lineups';
-    parts.push(button(`Set up ${needsLineup.length} ${noun}`, 'panel-action primary', () => saveEdit(async () => {
-      const undo = await createGameTabs(needsLineup.map((game) => game.id));
-      captain.panelStale = true;
-      return undo;
-    }, `Set up ${needsLineup.length} ${noun}`)));
+    parts.push(button(`Set up ${needsLineup.length} ${noun}`, 'panel-action primary', () => setUpLineups(needsLineup)));
   }
   return parts;
 }

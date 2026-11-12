@@ -269,3 +269,19 @@ export function rowsWithName(lineups, name) {
     .filter((player) => player.name.toLowerCase() === name.toLowerCase())
     .map((player) => ({ lineup, sheetRow: player.sheetRow })));
 }
+
+export function seasonDates(firstDate, count) {
+  const [year, month, day] = firstDate.split('-').map(Number);
+  return Array.from({ length: count }, (unused, index) => new Date(Date.UTC(year, month - 1, day + index * 7)).toISOString().slice(0, 10));
+}
+
+export function seasonProblem(firstDate, count) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(firstDate)) return 'Pick the date of the first game';
+  if (!Number.isInteger(count) || count < 1 || count > 30) return 'Enter a number of games from 1 to 30';
+  return null;
+}
+
+export function namesFromLines(text) {
+  const names = text.split(/\r?\n/).map((line) => line.trim()).filter((line) => line !== '');
+  return names.filter((name, index) => names.findIndex((other) => other.toLowerCase() === name.toLowerCase()) === index);
+}

@@ -26,17 +26,17 @@ Screenshots use made-up players.
 ## Set up a team
 
 1. Open the setup page (`start.html` on the site) and choose **Sign in with Google**.
-2. Enter your team name and season, then choose **Create my team sheet**. To keep a sheet you already have, choose **Use a sheet I already have** and pick it. The app adds a `Team Config` tab to it. Read [the guide](site/existing-sheet.html) first, because the sheet has to follow the layout below.
-3. Send the team link to your players.
+2. Enter your team name and season, then choose **Create my team sheet**.
+3. Choose **Open Captain tools** to add players and games, and send the team link to your players.
 
-Players need no app, account or sign-in. Nothing is installed in the sheet and there is no script to paste or deploy. The app asks Google for one permission, `drive.file`. It lets the app see only the sheet it created or the one you picked, never the rest of your Drive.
+Players need no app, account or sign-in. Nothing is installed in the sheet and there is no script to paste or deploy. The app asks Google for one permission, `drive.file`. It lets the app see only the sheet it created, never the rest of your Drive.
 
 The `Team Config` tab has eight settings, which a captain can also change from **Team** in Captain tools: team name, season label, icon, main color, second color, stripe (Blend or Rainbow), font and the suggestion box. The color cells take their fill color: click the box, then the paint bucket in the toolbar. White is a valid value. Everything else (page background, text, borders, highlights) is worked out from the two colors. The `Roster` and `Schedule` tabs feed the game tabs and are never sent to players.
 
 ## The team sheet
 
 - `Schedule` holds each game's date, time, location, opponent and result once. A game tab looks its details up by the number in its `Game #:` cell. A playoff or makeup game can use text like `P1` in place of a number.
-- `Start here` is the first tab: how the sheet and the team page fit together, and what the colors mean. It is never sent to players. A new sheet hides the tabs the page manages (`Positions`, `Team Config` and `New game (copy me)`), so only Start here, Roster, Schedule and the game tabs show. View, then Hidden sheets, brings them back.
+- `Start here` is the first tab. It holds the team link for players and the Captain link for you and any co-captain, as plain text to copy. A new sheet starts empty and hides the tabs the page manages (`Positions`, `Team Config` and `New game (copy me)`). View, then Hidden sheets, brings them back.
 - To add games, use **Games** in Captain tools, or duplicate the `New game (copy me)` tab, rename the copy so it ends with `Lineup`, and type its number in the `Game #:` cell. A copy keeps the old number until you change it, and the page hides a tab whose number another tab already uses. The blank tab is ignored until it is renamed.
 - The lookup cells in a game tab show a red corner flag if someone types over their formula. The warning is a validation rule, so it carries over when a tab is duplicated.
 - `Roster` can be edited from **Team** in Captain tools, and holds each player's name, the positions they prefer and the positions they won't play, private notes and an optional pronouns column. Subs go on the roster like anyone else and are added to a game's grid when they play.
@@ -109,7 +109,7 @@ A fork needs its own Worker URL, Google client id and Picker API key in `site/se
 
 ## Known limits
 
-- The field always has the 11 positions above, and the template has 5 innings and 8 schedule rows.
+- The field always has the 11 positions above, and the template has 5 innings.
 - Each uncached sheet read uses two Google Sheets calls, and Google allows 300 read requests a minute per project, so the number of teams watched at the same moment is limited.
 - Anyone with the team link sees the lineups, including game notes. Stop sharing is the only way to revoke it.
 - Players cannot reply to RSVPs themselves. The captain enters them.
