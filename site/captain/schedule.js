@@ -1,20 +1,20 @@
 import { blankPlayerRows, cellAddress, nextGameId, scheduleGames, seasonDates, seasonProblem } from '../edits.js';
 import { NEW_GAME_TAB_NAME, ROSTER_TAB_NAME, SCHEDULE_TAB_NAME } from '../template.js';
 import { fetchRosterNames } from './roster.js';
-import { columnValues, confirmSheetStillMatches, refreshTabs, sheetIdFor, sheetRows, sheetsRequest, writeValues } from './sheetApi.js';
+import { columnValues, confirmSheetStillMatches, refreshTabs, sheetRows, sheetsRequest, writeValues } from './sheetApi.js';
 import { captain } from './state.js';
 
 const NEW_GAME_LOOKUP_ATTEMPTS = 10;
 const NEW_GAME_LOOKUP_WAIT_MILLISECONDS = 2000;
 const GAME_NUMBER_LABEL = 'Game #:';
 const GAME_DETAIL_FIRST_COLUMN_INDEX = 1;
-const GAME_DETAIL_FIELDS = ['date', 'time', 'location', 'opponent', 'notes'];
+const GAME_DETAIL_FIELDS = ['date', 'time', 'location', 'opponent', 'label', 'result'];
 const TEMPLATE_LABEL_ROWS = 80;
 
 export async function loadSchedule() {
   captain.scheduleError = null;
   try {
-    captain.scheduleRows = await sheetRows(`${SCHEDULE_TAB_NAME}!A:G`);
+    captain.scheduleRows = await sheetRows(`${SCHEDULE_TAB_NAME}!A:H`);
   } catch (error) {
     captain.scheduleRows = null;
     captain.scheduleError = error.message;
@@ -132,43 +132,23 @@ export async function addSeasonGames({ firstDate, count, time, location }) {
   };
 }
 
-const ARCHIVE_COLUMN_INDEX = 6;
+const ARCHIVE_COLUMN_INDEX = 7;
 const ARCHIVE_HEADER = 'Archived';
-const ARCHIVE_PREFIX = 'OLD ';
-
-async function renameTab(sheetId, title) {
-  await sheetsRequest(':batchUpdate', {
-    method: 'POST',
-    body: JSON.stringify({ requests: [{ updateSheetProperties: { properties: { sheetId, title }, fields: 'title' } }] }),
-  });
-}
 
 async function setArchived(game, archived) {
   const flag = { range: cellAddress(SCHEDULE_TAB_NAME, ARCHIVE_COLUMN_INDEX, game.row), values: [[archived ? 'Yes' : '']] };
-  const header = (await columnValues(`${SCHEDULE_TAB_NAME}!G1:G1`))[0] ?? '';
+  const header = (await columnValues(`${SCHEDULE_TAB_NAME}!H1:H1`))[0] ?? '';
   await writeValues([flag, ...(header === '' ? [{ range: cellAddress(SCHEDULE_TAB_NAME, ARCHIVE_COLUMN_INDEX, 1), values: [[ARCHIVE_HEADER]] }] : [])], 'RAW');
 }
 
 export async function archiveGame(game) {
-  await refreshTabs();
   const { tabName } = game;
-  const archivedName = tabName === null ? null : `${ARCHIVE_PREFIX}${tabName}`;
-  if (archivedName !== null && captain.tabs.has(archivedName)) throw new Error(`The sheet already has a tab named "${archivedName}". Rename or delete it first`);
-  const sheetId = tabName === null ? null : await sheetIdFor(tabName);
   await setArchived(game, true);
-  if (tabName !== null) {
-    await renameTab(sheetId, archivedName);
-    await reloadUntilGone([tabName]);
-  }
-  await refreshTabs();
+  if (tabName !== null) await reloadUntilGone([tabName]);
   await loadSchedule();
   return async () => {
     await setArchived(game, false);
-    if (tabName !== null) {
-      await renameTab(sheetId, tabName);
-      await reloadUntilPresent([tabName]);
-    }
-    await refreshTabs();
+    if (tabName !== null) await reloadUntilPresent([tabName]);
     await loadSchedule();
   };
 }

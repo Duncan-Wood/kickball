@@ -1,23 +1,24 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { notesFromResult, resultFromNotes } from '../../site/result.js';
+import { describeResult, resultFromText } from '../../site/result.js';
 
-test('notes that follow the result format are read as a result', () => {
-  assert.deepEqual(resultFromNotes('W, 12-0'), { outcome: 'W', ourRuns: 12, theirRuns: 0 });
-  assert.deepEqual(resultFromNotes('l 3 - 5'), { outcome: 'L', ourRuns: 3, theirRuns: 5 });
-  assert.deepEqual(resultFromNotes('T, 5-5'), { outcome: 'T', ourRuns: 5, theirRuns: 5 });
-  assert.equal(resultFromNotes('Rained out'), null);
-  assert.equal(resultFromNotes(''), null);
+test('free text that contains a win, loss or tie with both scores is read as a result', () => {
+  assert.deepEqual(resultFromText('W, 12-0'), { outcome: 'W', ourRuns: 12, theirRuns: 0 });
+  assert.deepEqual(resultFromText('l 3 - 5'), { outcome: 'L', ourRuns: 3, theirRuns: 5 });
+  assert.deepEqual(resultFromText('T, 5-5'), { outcome: 'T', ourRuns: 5, theirRuns: 5 });
+  assert.deepEqual(resultFromText('Won 9-5'), { outcome: 'W', ourRuns: 9, theirRuns: 5 });
+  assert.deepEqual(resultFromText('Lost 2-4 in extra innings'), { outcome: 'L', ourRuns: 2, theirRuns: 4 });
+  assert.deepEqual(resultFromText('Playoff semifinal W, 9-5'), { outcome: 'W', ourRuns: 9, theirRuns: 5 });
 });
 
-test('a result is written in the format the reader understands', () => {
-  assert.equal(notesFromResult({ outcome: 'W', ourRuns: 12, theirRuns: 0 }), 'W, 12-0');
-  assert.deepEqual(resultFromNotes(notesFromResult({ outcome: 'T', ourRuns: 4, theirRuns: 4 })), { outcome: 'T', ourRuns: 4, theirRuns: 4 });
+test('text without an outcome and both scores is not a result', () => {
+  assert.equal(resultFromText('Rained out'), null);
+  assert.equal(resultFromText('Won'), null);
+  assert.equal(resultFromText('9-5'), null);
+  assert.equal(resultFromText(''), null);
 });
 
-test('a result whose scores disagree with its outcome is refused', () => {
-  assert.throws(() => notesFromResult({ outcome: 'W', ourRuns: 3, theirRuns: 3 }), /win needs more runs/);
-  assert.throws(() => notesFromResult({ outcome: 'L', ourRuns: 5, theirRuns: 3 }), /loss needs fewer runs/);
-  assert.throws(() => notesFromResult({ outcome: 'T', ourRuns: 5, theirRuns: 3 }), /tie needs the same runs/);
-  assert.throws(() => notesFromResult({ outcome: 'W', ourRuns: Number.NaN, theirRuns: 1 }), /whole numbers/);
+test('a result is described in words', () => {
+  assert.equal(describeResult({ outcome: 'W', ourRuns: 12, theirRuns: 0 }), 'Won 12-0');
+  assert.equal(describeResult({ outcome: 'T', ourRuns: 4, theirRuns: 4 }), 'Tied 4-4');
 });

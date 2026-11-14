@@ -1,6 +1,7 @@
 import { CONFIG_TAB_NAME } from '../../site/teamSettings.js';
 import { readConfig } from './config.js';
-import { defaultLineupTabName, isCurrentLineupTab, orderedLineups, readLineup } from './lineup.js';
+import { SCHEDULE_TAB_NAME } from '../../site/template.js';
+import { archivedGameIds, defaultLineupTabName, isCurrentLineupTab, orderedLineups, readLineup } from './lineup.js';
 
 const SHEETS_ADDRESS = 'https://sheets.googleapis.com/v4/spreadsheets';
 const DRIVE_FILES_ADDRESS = 'https://www.googleapis.com/drive/v3/files';
@@ -58,14 +59,16 @@ export async function readTeamSheet(accessToken, spreadsheetId, now = new Date()
     throwIfTrashed(accessToken, spreadsheetId),
   ]);
   const tabNames = overview.sheets.map((sheet) => sheet.properties.title);
-  const wantedTabNames = tabNames.filter((tabName) => isCurrentLineupTab(tabName) || tabName === CONFIG_TAB_NAME);
+  const wantedTabNames = tabNames.filter((tabName) => isCurrentLineupTab(tabName) || tabName === CONFIG_TAB_NAME || tabName === SCHEDULE_TAB_NAME);
   const query = new URLSearchParams({ includeGridData: 'true', fields: `sheets(properties.title,data.rowData.values(${CELL_FIELDS}))` });
   wantedTabNames.forEach((tabName) => query.append('ranges', quotedRange(tabName)));
   const detail = await sheetsGet(accessToken, `${spreadsheetId}?${query}`);
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: overview.properties.timeZone }).format(now);
   const rowsByTab = new Map(detail.sheets.map((sheet) => [sheet.properties.title, normalizedRows(sheet)]));
+  const archived = archivedGameIds(rowsByTab.get(SCHEDULE_TAB_NAME) ?? []);
   const { lineups, problems } = orderedLineups(tabNames
     .filter(isCurrentLineupTab)
-    .map((tabName) => readLineup(tabName, rowsByTab.get(tabName))));
+    .map((tabName) => readLineup(tabName, rowsByTab.get(tabName)))
+    .filter((lineup) => !archived.has(lineup.gameId)));
   return { config: readConfig(rowsByTab.get(CONFIG_TAB_NAME) ?? null), lineups, problems, activeTabName: defaultLineupTabName(lineups, today) };
 }

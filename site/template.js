@@ -111,13 +111,14 @@ function scheduleRows() {
     textCell('Time', headerFormat),
     textCell('Location', headerFormat),
     textCell('Opponent', headerFormat),
-    textCell('Notes', headerFormat, 'After the game, add the result like W, 12-0'),
+    textCell('Label', headerFormat, 'Shown instead of "Game 7", like Semifinal'),
+    textCell('Result', headerFormat, 'After the game, like Won 9-5'),
     textCell('Archived', headerFormat, 'Yes hides the game from the page'),
   ]];
 }
 
 function scheduleLookup(columnNumber, format = {}) {
-  return formulaCell(`=IFERROR(VLOOKUP($B$1,Schedule!$A:$F,${columnNumber},FALSE),"")`, { horizontalAlignment: 'LEFT', ...format });
+  return formulaCell(`=IFERROR(VLOOKUP($B$1,Schedule!$A:$H,${columnNumber},FALSE),"")`, { horizontalAlignment: 'LEFT', ...format });
 }
 
 function playerLookup(rowNumber, columnNumber) {
@@ -141,7 +142,8 @@ function gameRows() {
     [textCell('Time:', boldFormat), scheduleLookup(3, { numberFormat: TIME_FORMAT })],
     [textCell('Location:', boldFormat), scheduleLookup(4)],
     [textCell('Opponent:', boldFormat), scheduleLookup(5)],
-    [textCell('Notes:', boldFormat), scheduleLookup(6)],
+    [textCell('Label:', boldFormat), scheduleLookup(6)],
+    [textCell('Result:', boldFormat), scheduleLookup(7)],
   ];
   const inningHeaders = Array.from({ length: INNING_COUNT }, (unused, index) => numberCell(index + 1, centeredHeaderFormat));
   const rsvpNote = 'Yes, Maybe or No. Gray means no reply yet';
@@ -157,7 +159,7 @@ function gameRows() {
     emptyCell(),
     ...Array.from({ length: INNING_COUNT }, (unused, index) => formulaCell(openSpotsFormula(GAME_FIRST_INNING_COLUMN_INDEX + index), { textFormat: { bold: true, foregroundColor: AVOIDS_TEXT }, horizontalAlignment: 'CENTER', wrapStrategy: 'WRAP' })),
   ];
-  return [...details, [], header, ...players, openSpots];
+  return [...details, header, ...players, openSpots];
 }
 
 function positionsRows() {
@@ -256,7 +258,7 @@ function gameTabRequests(sheetId) {
     columnWidth(sheetId, 0, 160), columnWidth(sheetId, 1, 80),
     ...Array.from({ length: INNING_COUNT }, (unused, index) => columnWidth(sheetId, GAME_FIRST_INNING_COLUMN_INDEX + index, 70)),
     columnWidth(sheetId, GAME_PREFERS_COLUMN_INDEX, 150), columnWidth(sheetId, GAME_AVOIDS_COLUMN_INDEX, 150),
-    formulaCellWarning(sheetId, 1, 6, 1, 2, 'Filled in from the Schedule tab. Typing here replaces the formula'),
+    formulaCellWarning(sheetId, 1, 7, 1, 2, 'Filled in from the Schedule tab. Typing here replaces the formula'),
     formulaCellWarning(sheetId, GAME_FIRST_PLAYER_ROW_INDEX, playersEnd, GAME_PREFERS_COLUMN_INDEX, GAME_AVOIDS_COLUMN_INDEX + 1, 'Filled in from the Roster tab. Typing here replaces the formula'),
     formulaCellWarning(sheetId, GAME_OPEN_SPOTS_ROW_INDEX, GAME_OPEN_SPOTS_ROW_INDEX + 1, GAME_FIRST_INNING_COLUMN_INDEX, GAME_PREFERS_COLUMN_INDEX, 'Worked out from the lineup above. Typing here replaces the formula'),
     ...gameConditionalFormats(sheetId),
@@ -279,7 +281,7 @@ export function formattingRequests() {
     columnFormat(SCHEDULE_SHEET_ID, SCHEDULE_FIRST_ROW_INDEX, scheduleEndRow, 1, { numberFormat: DATE_FORMAT, horizontalAlignment: 'LEFT' }, NUMBER_AND_ALIGNMENT_FIELDS),
     columnFormat(SCHEDULE_SHEET_ID, SCHEDULE_FIRST_ROW_INDEX, scheduleEndRow, 2, { numberFormat: TIME_FORMAT, horizontalAlignment: 'LEFT' }, NUMBER_AND_ALIGNMENT_FIELDS),
     columnWidth(ROSTER_SHEET_ID, 0, 160), columnWidth(ROSTER_SHEET_ID, 1, 160), columnWidth(ROSTER_SHEET_ID, 2, 160), columnWidth(ROSTER_SHEET_ID, 3, 380), columnWidth(ROSTER_SHEET_ID, 4, 140), columnWidth(ROSTER_SHEET_ID, 5, 100),
-    columnWidth(SCHEDULE_SHEET_ID, 1, 90), columnWidth(SCHEDULE_SHEET_ID, 3, 220), columnWidth(SCHEDULE_SHEET_ID, 4, 200), columnWidth(SCHEDULE_SHEET_ID, 5, 320), columnWidth(SCHEDULE_SHEET_ID, 6, 90),
+    columnWidth(SCHEDULE_SHEET_ID, 1, 90), columnWidth(SCHEDULE_SHEET_ID, 3, 220), columnWidth(SCHEDULE_SHEET_ID, 4, 200), columnWidth(SCHEDULE_SHEET_ID, 5, 160), columnWidth(SCHEDULE_SHEET_ID, 6, 260), columnWidth(SCHEDULE_SHEET_ID, 7, 90),
     columnWidth(POSITIONS_SHEET_ID, 0, 200),
     columnWidth(START_SHEET_ID, 0, 150), columnWidth(START_SHEET_ID, 1, 620),
     ...gameTabRequests(NEW_GAME_SHEET_ID),
