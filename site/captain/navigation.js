@@ -8,7 +8,7 @@ export function chooseArea(area) {
   captain.panelStale = true;
   captain.selectedRow = null;
   captain.focus = null;
-  if (area === 'players' || area === 'team' || area === 'start') loadRoster();
+  if (area === 'players' || area === 'team' || area === 'start' || area === 'kicking') loadRoster();
   if (area === 'games' || area === 'start') loadSchedule();
   window.fieldView.rerender();
 }

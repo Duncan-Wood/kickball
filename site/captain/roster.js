@@ -4,10 +4,11 @@ import { columnValues, confirmSheetStillMatches, refreshTabs, sheetRows, writeVa
 import { captain } from './state.js';
 
 const ROSTER_FIRST_ROW = 2;
-const ROSTER_LAST_COLUMN_LETTER = 'E';
+const ROSTER_LAST_COLUMN_LETTER = 'F';
 const PRONOUNS_COLUMN_INDEX = 4;
-const PRONOUNS_HEADER = 'Pronouns';
-const BLANK_PLAYER = { name: '', prefers: '', avoids: '', notes: '', pronouns: '' };
+const KICKING_COLUMN_INDEX = 5;
+const OPTIONAL_HEADERS = [[PRONOUNS_COLUMN_INDEX, 'Pronouns'], [KICKING_COLUMN_INDEX, 'Kicking']];
+const BLANK_PLAYER = { name: '', prefers: '', avoids: '', notes: '', pronouns: '', kicking: '' };
 
 export async function fetchRoster() {
   const rows = await sheetRows(`${ROSTER_TAB_NAME}!A${ROSTER_FIRST_ROW}:${ROSTER_LAST_COLUMN_LETTER}`);
@@ -42,8 +43,15 @@ export async function loadRoster() {
   window.fieldView.rerender();
 }
 
-function fieldsOf({ name, prefers, avoids, notes, pronouns }) {
-  return { name, prefers, avoids, notes, pronouns };
+function fieldsOf({ name, prefers, avoids, notes, pronouns, kicking }) {
+  return { name, prefers, avoids, notes, pronouns, kicking };
+}
+
+async function missingHeaderWrites() {
+  const [headerRow = []] = await sheetRows(`${ROSTER_TAB_NAME}!E1:F1`);
+  return OPTIONAL_HEADERS
+    .filter(([columnIndex]) => (headerRow[columnIndex - PRONOUNS_COLUMN_INDEX] ?? '').trim() === '')
+    .map(([columnIndex, header]) => ({ range: cellAddress(ROSTER_TAB_NAME, columnIndex, 1), values: [[header]] }));
 }
 
 async function writeRosterRow(row, expectedName, values, renamedFrom = null) {
@@ -52,10 +60,10 @@ async function writeRosterRow(row, expectedName, values, renamedFrom = null) {
     { address: cellAddress(ROSTER_TAB_NAME, 0, row), expected: expectedName },
     ...renames.map(({ lineup, sheetRow }) => ({ address: cellAddress(lineup.tabName, 0, sheetRow), expected: renamedFrom })),
   ]);
-  const pronounsHeader = values.name === '' ? PRONOUNS_HEADER : ((await columnValues(`${ROSTER_TAB_NAME}!E1:E1`))[0] ?? '');
+  const headerWrites = values.name === '' ? [] : await missingHeaderWrites();
   await writeValues([
-    { range: `${cellAddress(ROSTER_TAB_NAME, 0, row)}:${ROSTER_LAST_COLUMN_LETTER}${row}`, values: [[values.name, values.prefers, values.avoids, values.notes, values.pronouns]] },
-    ...(pronounsHeader === '' ? [{ range: cellAddress(ROSTER_TAB_NAME, PRONOUNS_COLUMN_INDEX, 1), values: [[PRONOUNS_HEADER]] }] : []),
+    { range: `${cellAddress(ROSTER_TAB_NAME, 0, row)}:${ROSTER_LAST_COLUMN_LETTER}${row}`, values: [[values.name, values.prefers, values.avoids, values.notes, values.pronouns, values.kicking]] },
+    ...headerWrites,
     ...renames.map(({ lineup, sheetRow }) => ({ range: cellAddress(lineup.tabName, 0, sheetRow), values: [[values.name]] })),
   ], 'RAW');
   renames.forEach(({ lineup, sheetRow }) => {
@@ -78,7 +86,7 @@ export async function saveRosterPlayer(values, previous) {
 
 async function blankRosterRows(rows, names) {
   await confirmSheetStillMatches(rows.map((row, index) => ({ address: cellAddress(ROSTER_TAB_NAME, 0, row), expected: names[index] })));
-  await writeValues(rows.map((row) => ({ range: `${cellAddress(ROSTER_TAB_NAME, 0, row)}:${ROSTER_LAST_COLUMN_LETTER}${row}`, values: [['', '', '', '', '']] })), 'RAW');
+  await writeValues(rows.map((row) => ({ range: `${cellAddress(ROSTER_TAB_NAME, 0, row)}:${ROSTER_LAST_COLUMN_LETTER}${row}`, values: [['', '', '', '', '', '']] })), 'RAW');
   await refreshRoster();
 }
 
@@ -91,10 +99,9 @@ export async function addRosterPlayers(names) {
   const firstRow = firstBlankRosterRow(await columnValues(`${ROSTER_TAB_NAME}!A${ROSTER_FIRST_ROW}:A`));
   const rows = names.map((name, index) => firstRow + index);
   await confirmSheetStillMatches(rows.map((row) => ({ address: cellAddress(ROSTER_TAB_NAME, 0, row), expected: '' })));
-  const pronounsHeader = (await columnValues(`${ROSTER_TAB_NAME}!E1:E1`))[0] ?? '';
   await writeValues([
-    ...rows.map((row, index) => ({ range: `${cellAddress(ROSTER_TAB_NAME, 0, row)}:${ROSTER_LAST_COLUMN_LETTER}${row}`, values: [[names[index], '', '', '', '']] })),
-    ...(pronounsHeader === '' ? [{ range: cellAddress(ROSTER_TAB_NAME, PRONOUNS_COLUMN_INDEX, 1), values: [[PRONOUNS_HEADER]] }] : []),
+    ...rows.map((row, index) => ({ range: `${cellAddress(ROSTER_TAB_NAME, 0, row)}:${ROSTER_LAST_COLUMN_LETTER}${row}`, values: [[names[index], '', '', '', '', '']] })),
+    ...(await missingHeaderWrites()),
   ], 'RAW');
   await refreshRoster();
   return () => blankRosterRows(rows, names);

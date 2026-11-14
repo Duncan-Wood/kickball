@@ -1,6 +1,7 @@
 import { CONFIG_FIELDS, FONTS, STRIPE_STYLES } from './teamSettings.js';
 const SHEETS_ADDRESS = 'https://sheets.googleapis.com/v4/spreadsheets';
 export const POSITION_CODES = ['P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'LC', 'CF', 'RC', 'RF'];
+export const KICKING_STYLES = ['Bunt', 'Power', 'Mixed'];
 export const POSITION_NAMES = ['Pitcher', 'Catcher', 'First Baseperson', 'Second Baseperson', 'Third Baseperson', 'Shortstop', 'Left Fielder', 'Left Center Fielder', 'Center Fielder', 'Right Center Fielder', 'Right Fielder'];
 const INNING_COUNT = 5;
 const LINEUP_ROW_COUNT = 22;
@@ -99,6 +100,7 @@ function rosterRows() {
     textCell("Won't play", headerFormat, 'Positions they would rather not play'),
     textCell('Notes', headerFormat),
     textCell('Pronouns', headerFormat),
+    textCell('Kicking', headerFormat, 'Bunt, Power or Mixed'),
   ]];
 }
 
@@ -273,9 +275,10 @@ export function formattingRequests() {
   const scheduleEndRow = SCHEDULE_FIRST_ROW_INDEX + SCHEDULE_FORMATTED_ROW_COUNT;
   return [
     ...configFormattingRequests(CONFIG_SHEET_ID),
+    listValidation(ROSTER_SHEET_ID, 1, ROSTER_LAST_ROW, 5, 6, KICKING_STYLES),
     columnFormat(SCHEDULE_SHEET_ID, SCHEDULE_FIRST_ROW_INDEX, scheduleEndRow, 1, { numberFormat: DATE_FORMAT, horizontalAlignment: 'LEFT' }, NUMBER_AND_ALIGNMENT_FIELDS),
     columnFormat(SCHEDULE_SHEET_ID, SCHEDULE_FIRST_ROW_INDEX, scheduleEndRow, 2, { numberFormat: TIME_FORMAT, horizontalAlignment: 'LEFT' }, NUMBER_AND_ALIGNMENT_FIELDS),
-    columnWidth(ROSTER_SHEET_ID, 0, 160), columnWidth(ROSTER_SHEET_ID, 1, 160), columnWidth(ROSTER_SHEET_ID, 2, 160), columnWidth(ROSTER_SHEET_ID, 3, 380), columnWidth(ROSTER_SHEET_ID, 4, 140),
+    columnWidth(ROSTER_SHEET_ID, 0, 160), columnWidth(ROSTER_SHEET_ID, 1, 160), columnWidth(ROSTER_SHEET_ID, 2, 160), columnWidth(ROSTER_SHEET_ID, 3, 380), columnWidth(ROSTER_SHEET_ID, 4, 140), columnWidth(ROSTER_SHEET_ID, 5, 100),
     columnWidth(SCHEDULE_SHEET_ID, 1, 90), columnWidth(SCHEDULE_SHEET_ID, 3, 220), columnWidth(SCHEDULE_SHEET_ID, 4, 200), columnWidth(SCHEDULE_SHEET_ID, 5, 320), columnWidth(SCHEDULE_SHEET_ID, 6, 90),
     columnWidth(POSITIONS_SHEET_ID, 0, 200),
     columnWidth(START_SHEET_ID, 0, 150), columnWidth(START_SHEET_ID, 1, 620),

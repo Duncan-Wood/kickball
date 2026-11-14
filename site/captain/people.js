@@ -1,4 +1,4 @@
-import { headcount, kickingMove, lineupPlayer, rosterNamesToAdd } from '../edits.js';
+import { headcount, kickingMove, kickingStyleFor, lineupPlayer, rosterNamesToAdd } from '../edits.js';
 import { ROSTER_TAB_NAME } from '../template.js';
 import { button, node } from './dom.js';
 import { saveAddedPlayers, saveKickingMove, saveRemovedPlayers, saveRsvp } from './lineupEdits.js';
@@ -38,7 +38,8 @@ export function kickingPanel(lineup) {
       }
       window.fieldView.rerender();
     });
-    row.append(node('span', 'order-slot', String(index + 1)), node('span', 'order-name', player.name));
+    const style = kickingStyleFor(captain.rosterPlayers, player.name);
+    row.append(node('span', 'order-slot', String(index + 1)), node('span', 'order-name', player.name), ...(style === '' ? [] : [node('span', 'kick-style', style)]));
     const item = node('li');
     item.append(row);
     list.append(item);

@@ -67,7 +67,7 @@ const cellTexts = (title) => templateSheet(title).rowData.map(({ values }) => va
 
 test('a new sheet has no example players or games, only headers', () => {
   assert.equal(cellTexts('Roster').length, 1);
-  assert.deepEqual(cellTexts('Roster')[0], ['Name', 'Prefers', "Won't play", 'Notes', 'Pronouns']);
+  assert.deepEqual(cellTexts('Roster')[0], ['Name', 'Prefers', "Won't play", 'Notes', 'Pronouns', 'Kicking']);
   assert.equal(cellTexts('Schedule').length, 1);
   assert.deepEqual(cellTexts('Schedule')[0], ['Game #', 'Date', 'Time', 'Location', 'Opponent', 'Notes', 'Archived']);
 });
