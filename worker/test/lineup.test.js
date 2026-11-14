@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { defaultLineupTabName, readLineup, isCurrentLineupTab, orderedLineups } from '../src/lineup.js';
+import { archivedGameIds, defaultLineupTabName, readLineup, isCurrentLineupTab, orderedLineups } from '../src/lineup.js';
 import { readConfig } from '../src/config.js';
 import { normalizedRows } from '../src/sheetsReader.js';
 
@@ -13,7 +13,8 @@ function lineupRows(playerRows) {
     rowOf('Date:', cell('10/1/26', { serialDate: 46296 }), '', ''),
     rowOf('Time:', '7:00 PM', '', ''),
     rowOf('Location:', 'Marie Reed', '', ''),
-    rowOf('Notes:', 'W, 12-0', '', ''),
+    rowOf('Label:', '', '', ''),
+    rowOf('Result:', 'W, 12-0', '', ''),
     rowOf('Name', '', '1', '2'),
     ...playerRows,
     rowOf('Acceptable', '', '', ''),
@@ -22,29 +23,27 @@ function lineupRows(playerRows) {
 
 test('only current lineup tabs are read', () => {
   assert.equal(isCurrentLineupTab('Game 2 Lineup'), true);
-  assert.equal(isCurrentLineupTab('OLD - Game 3 Lineup'), false);
   assert.equal(isCurrentLineupTab('Roster'), false);
 });
 
 test('tab names match whatever the capitalization', () => {
   assert.equal(isCurrentLineupTab('week 7 lineup'), true);
   assert.equal(isCurrentLineupTab('Week 8 LINEUP'), true);
-  assert.equal(isCurrentLineupTab('old week 6 lineup'), false);
   assert.equal(isCurrentLineupTab('Lineup ideas'), false);
 });
 
 test('a tab with only the grid labels reads with blank game details', () => {
   const rows = [rowOf('Name', '', '1', '2'), rowOf('Chad S', '', 'SS', 'P'), rowOf('Open spots', '', '', '')];
   const lineup = readLineup('week 7 lineup', rows);
-  assert.deepEqual([lineup.opponent, lineup.date, lineup.time, lineup.location, lineup.notes, lineup.played, lineup.label], ['', '', '', '', '', false, 'week 7']);
+  assert.deepEqual([lineup.opponent, lineup.date, lineup.time, lineup.location, lineup.resultText, lineup.played, lineup.label], ['', '', '', '', '', false, 'week 7']);
   assert.deepEqual(lineup.players.map((player) => player.name), ['Chad S']);
 });
 
 test('blank rows inside the grid are reported as spare rows', () => {
   const rows = lineupRows([rowOf('Chad S', '', 'SS', 'P'), rowOf('', '', '', ''), rowOf('Amy B', '', '', ''), rowOf('', '', '', '')]);
   const lineup = readLineup('Game 2 Lineup', rows);
-  assert.deepEqual(lineup.spareRows, [8, 10]);
-  assert.deepEqual(lineup.players.map((player) => player.sheetRow), [7, 9]);
+  assert.deepEqual(lineup.spareRows, [9, 11]);
+  assert.deepEqual(lineup.players.map((player) => player.sheetRow), [8, 10]);
 });
 
 test('strikethrough names are not attending and keep sheet order', () => {
@@ -227,7 +226,34 @@ test('a game with a recorded result counts as played and anything else does not'
   const withResult = readLineup('Game 2 Lineup', rows);
   assert.deepEqual(withResult.result, { outcome: 'W', ourRuns: 12, theirRuns: 0, text: 'Won 12-0' });
   assert.equal(withResult.played, true);
-  const withNote = readLineup('Game 2 Lineup', rows.map((row) => (row[0].text === 'Notes:' ? rowOf('Notes:', 'Rained out', '', '') : row)));
+  const withNote = readLineup('Game 2 Lineup', rows.map((row) => (row[0].text === 'Result:' ? rowOf('Result:', 'Rained out', '', '') : row)));
   assert.equal(withNote.result, null);
   assert.equal(withNote.played, false);
+});
+
+test('a Label row replaces the generated game name', () => {
+  const rows = lineupRows([rowOf('Chad S', '', 'SS', 'P')]).map((row) => (row[0].text === 'Label:' ? rowOf('Label:', 'Semifinal', '', '') : row));
+  assert.equal(readLineup('Game 2 Lineup', rows).label, 'Semifinal');
+});
+
+test('a tab with a Notes row instead of a Result row still reads its result', () => {
+  const rows = lineupRows([rowOf('Chad S', '', 'SS', 'P')])
+    .filter((row) => row[0].text !== 'Label:')
+    .map((row) => (row[0].text === 'Result:' ? rowOf('Notes:', 'W, 12-0', '', '') : row));
+  const lineup = readLineup('Game 2 Lineup', rows);
+  assert.equal(lineup.resultText, 'W, 12-0');
+  assert.equal(lineup.played, true);
+});
+
+test('games marked Yes in the Archived column of the Schedule are listed by Game #', () => {
+  const rows = [
+    rowOf('Game #', 'Date', 'Archived'),
+    rowOf('1', '10/1/26', 'Yes'),
+    rowOf('2', '10/8/26', ''),
+    rowOf('P1', '11/12/26', 'yes'),
+    rowOf('', '', 'Yes'),
+  ];
+  assert.deepEqual([...archivedGameIds(rows)], ['1', 'P1']);
+  assert.deepEqual([...archivedGameIds([rowOf('Game #', 'Date')])], []);
+  assert.deepEqual([...archivedGameIds([])], []);
 });

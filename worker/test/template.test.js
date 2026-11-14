@@ -69,7 +69,8 @@ test('a new sheet has no example players or games, only headers', () => {
   assert.equal(cellTexts('Roster').length, 1);
   assert.deepEqual(cellTexts('Roster')[0], ['Name', 'Prefers', "Won't play", 'Notes', 'Pronouns', 'Kicking']);
   assert.equal(cellTexts('Schedule').length, 1);
-  assert.deepEqual(cellTexts('Schedule')[0], ['Game #', 'Date', 'Time', 'Location', 'Opponent', 'Notes', 'Archived']);
+  assert.deepEqual(cellTexts('Schedule')[0], ['Game #', 'Date', 'Time', 'Location', 'Opponent', 'Label', 'Result', 'Archived']);
+  assert.deepEqual(cellTexts('New game (copy me)').slice(0, 8).map((row) => row[0]), ['Game #:', 'Date:', 'Time:', 'Location:', 'Opponent:', 'Label:', 'Result:', 'Name']);
 });
 
 test('Start here holds only the two links, with room to write them', () => {

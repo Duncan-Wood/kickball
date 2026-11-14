@@ -1,7 +1,7 @@
-import { describeResult, resultFromNotes } from '../../site/result.js';
+import { describeResult, resultFromText } from '../../site/result.js';
 
 export function isCurrentLineupTab(tabName) {
-  return /lineup$/i.test(tabName) && !/^old/i.test(tabName);
+  return /lineup$/i.test(tabName);
 }
 
 const END_OF_GRID_LABELS = ['Open spots', 'Acceptable'];
@@ -18,7 +18,8 @@ export function locateLineupGrid(tabName, rows) {
   const dateRowIndex = firstColumn.indexOf('Date:');
   const timeRowIndex = firstColumn.indexOf('Time:');
   const locationRowIndex = firstColumn.indexOf('Location:');
-  const notesRowIndex = firstColumn.indexOf('Notes:');
+  const labelRowIndex = firstColumn.indexOf('Label:');
+  const resultRowIndex = [firstColumn.indexOf('Result:'), firstColumn.indexOf('Notes:')].find((rowIndex) => rowIndex !== -1) ?? -1;
   if (headerRowIndex === -1 || acceptableRowIndex === -1) {
     throw new Error(`Tab "${tabName}" needs "Name" and "Open spots" labels in column A`);
   }
@@ -27,21 +28,21 @@ export function locateLineupGrid(tabName, rows) {
     .map((cell, columnIndex) => (columnIndex >= FIRST_INNING_COLUMN_INDEX && /^\d+$/.test(cell.text.trim()) ? columnIndex : -1))
     .filter((columnIndex) => columnIndex !== -1);
   const usesRsvp = headerCells[RSVP_COLUMN_INDEX]?.text.trim().toLowerCase() === 'rsvp';
-  return { headerRowIndex, acceptableRowIndex, gameNumberRowIndex, opponentRowIndex, dateRowIndex, timeRowIndex, locationRowIndex, notesRowIndex, inningColumnIndexes, usesRsvp };
+  return { headerRowIndex, acceptableRowIndex, gameNumberRowIndex, opponentRowIndex, dateRowIndex, timeRowIndex, locationRowIndex, labelRowIndex, resultRowIndex, inningColumnIndexes, usesRsvp };
 }
 
 export function readLineup(tabName, rows) {
   const grid = locateLineupGrid(tabName, rows);
-  const { headerRowIndex, gameNumberRowIndex, opponentRowIndex, dateRowIndex, timeRowIndex, locationRowIndex, notesRowIndex, inningColumnIndexes } = grid;
+  const { headerRowIndex, gameNumberRowIndex, opponentRowIndex, dateRowIndex, timeRowIndex, locationRowIndex, labelRowIndex, resultRowIndex, inningColumnIndexes } = grid;
   const textAt = (rowIndex, columnIndex) => (rows[rowIndex]?.[columnIndex]?.text ?? '').trim();
   const players = readPlayers(tabName, rows, grid);
   const gameId = gameNumberRowIndex === -1 ? '' : textAt(gameNumberRowIndex, 1);
   const gameNumber = parsedGameNumber(gameId);
-  const notes = textAt(notesRowIndex, 1);
-  const parsedResult = resultFromNotes(notes);
+  const resultText = textAt(resultRowIndex, 1);
+  const parsedResult = resultFromText(resultText);
   return {
     tabName,
-    label: lineupLabel(tabName, gameId, textAt(dateRowIndex, 1)),
+    label: lineupLabel(tabName, gameId, textAt(dateRowIndex, 1), textAt(labelRowIndex, 1)),
     gameId,
     gameNumber,
     played: parsedResult !== null,
@@ -51,7 +52,7 @@ export function readLineup(tabName, rows) {
     date: textAt(dateRowIndex, 1),
     time: textAt(timeRowIndex, 1),
     location: textAt(locationRowIndex, 1),
-    notes,
+    resultText,
     innings: inningColumnIndexes.map((columnIndex) => textAt(headerRowIndex, columnIndex)),
     inningColumns: inningColumnIndexes,
     editable: players.every((player) => player.kickNumber === null),
@@ -65,9 +66,20 @@ function parsedGameNumber(cellText) {
   return /^\d+$/.test(cellText) ? Number(cellText) : null;
 }
 
-function lineupLabel(tabName, gameId, date) {
+function lineupLabel(tabName, gameId, date, enteredLabel) {
+  if (enteredLabel !== '') return enteredLabel;
   if (gameId === '') return tabName.replace(/ Lineup$/i, '');
   return date === '' ? `Game ${gameId}` : `Game ${gameId} (${date})`;
+}
+
+export function archivedGameIds(scheduleRows) {
+  const header = (scheduleRows[0] ?? []).map((cell) => cell.text.trim().toLowerCase());
+  const archivedColumn = header.indexOf('archived');
+  if (archivedColumn === -1) return new Set();
+  return new Set(scheduleRows.slice(1)
+    .filter((row) => (row[archivedColumn]?.text ?? '').trim().toLowerCase() === 'yes')
+    .map((row) => (row[0]?.text ?? '').trim())
+    .filter((gameId) => gameId !== ''));
 }
 
 export function orderedLineups(lineups) {

@@ -1,13 +1,12 @@
 import { gameIdProblem, isoDateFromDisplayed, isoTimeFromDisplayed, nextGameId } from '../edits.js';
-import { describeResult, notesFromResult, resultFromNotes } from '../result.js';
-import { button, formField, node, selectField } from './dom.js';
+import { describeResult, resultFromText } from '../result.js';
+import { button, formField, node } from './dom.js';
 import { chooseArea } from './navigation.js';
 import { addSeasonGames, allScheduledGames, archiveGame, createGameTabs, saveGameDetails, scheduledGames } from './schedule.js';
 import { ADD_FOCUS_KEY, captain } from './state.js';
 import { saveEdit } from './status.js';
 
 const HINT = 'Add your games, then set up their lineups.';
-const OUTCOME_CHOICES = [['', 'Not played yet'], ['W', 'Won'], ['L', 'Lost'], ['T', 'Tied']];
 
 function closeEditor() {
   captain.openGameId = null;
@@ -16,46 +15,19 @@ function closeEditor() {
   window.fieldView.rerender();
 }
 
-function resultFields(initialResult, initialNotes) {
-  const outcome = selectField('Result', 'outcome', OUTCOME_CHOICES, initialResult?.outcome ?? '');
-  const ourRuns = formField('Your runs', 'number', 'ourRuns', initialResult?.ourRuns ?? '');
-  const theirRuns = formField('Their runs', 'number', 'theirRuns', initialResult?.theirRuns ?? '');
-  const notes = formField('Notes', 'text', 'notes', initialNotes);
-  [ourRuns, theirRuns].forEach((field) => {
-    field.querySelector('input').min = '0';
-    field.querySelector('input').inputMode = 'numeric';
-  });
-  const showMatchingFields = () => {
-    const hasOutcome = outcome.querySelector('select').value !== '';
-    ourRuns.hidden = !hasOutcome;
-    theirRuns.hidden = !hasOutcome;
-    notes.hidden = hasOutcome;
-  };
-  outcome.querySelector('select').addEventListener('change', showMatchingFields);
-  showMatchingFields();
-  return [outcome, ourRuns, theirRuns, notes];
-}
-
-function runsFrom(fieldValue) {
-  return fieldValue === '' ? Number.NaN : Number(fieldValue);
-}
-
 function submittedDetails(fields) {
-  const outcome = fields.get('outcome');
-  const notes = outcome === ''
-    ? fields.get('notes').trim()
-    : notesFromResult({ outcome, ourRuns: runsFrom(fields.get('ourRuns')), theirRuns: runsFrom(fields.get('theirRuns')) });
-  return { date: fields.get('date'), time: fields.get('time'), location: fields.get('location').trim(), opponent: fields.get('opponent').trim(), notes };
+  const text = (name) => fields.get(name).trim();
+  return { date: fields.get('date'), time: fields.get('time'), location: text('location'), opponent: text('opponent'), label: text('label'), result: text('result') };
 }
 
 function gameEditor(game) {
-  const initialResult = resultFromNotes(game.notes);
   const initialValues = {
     date: isoDateFromDisplayed(game.date),
     time: isoTimeFromDisplayed(game.time),
     location: game.location,
     opponent: game.opponent,
-    notes: game.notes,
+    label: game.label,
+    result: game.result,
   };
   const form = node('form', 'game-editor');
   if (game.row === null) form.append(formField('Game #', 'text', 'gameId', game.id));
@@ -64,7 +36,8 @@ function gameEditor(game) {
     formField('Time', 'time', 'time', initialValues.time),
     formField('Location', 'text', 'location', initialValues.location),
     formField('Opponent', 'text', 'opponent', initialValues.opponent),
-    ...resultFields(initialResult, initialResult === null ? game.notes : ''),
+    formField('Label', 'text', 'label', initialValues.label),
+    formField('Result', 'text', 'result', initialValues.result),
   );
   const actions = node('div', 'game-actions');
   const save = node('button', 'panel-action primary', 'Save');
@@ -155,10 +128,10 @@ function gameCard(game) {
   });
   summary.setAttribute('aria-expanded', String(isOpen));
   summary.dataset.focusKey = `game:${game.id}`;
-  const result = resultFromNotes(game.notes);
-  const details = [result === null ? game.notes : describeResult(result), game.date, game.time, game.location].filter((detail) => detail !== '').join(' · ');
+  const result = resultFromText(game.result);
+  const details = [result === null ? game.result : describeResult(result), game.date, game.time, game.location].filter((detail) => detail !== '').join(' · ');
   const text = node('span', 'game-text');
-  text.append(node('strong', undefined, `Game ${game.id}${game.opponent === '' ? '' : ` vs ${game.opponent}`}`), node('span', 'game-meta', details === '' ? 'No date yet' : details));
+  text.append(node('strong', undefined, `${game.label === '' ? `Game ${game.id}` : game.label}${game.opponent === '' ? '' : ` vs ${game.opponent}`}`), node('span', 'game-meta', details === '' ? 'No date yet' : details));
   summary.append(text, node('span', game.tabName === null ? 'game-state' : 'game-state ready', game.tabName === null ? 'No lineup' : 'Lineup ready'));
   card.append(summary);
   if (isOpen) card.append(gameEditor(game));
@@ -169,7 +142,7 @@ export function gamesPanel() {
   if (captain.scheduleError !== null) return [node('p', 'captain-hint', captain.scheduleError)];
   if (captain.scheduleRows === null) return [node('p', 'captain-hint', 'Loading the schedule…')];
   const games = scheduledGames();
-  const draft = captain.draftGameId === null ? [] : [{ id: captain.draftGameId, row: null, date: '', time: '', location: '', opponent: '', notes: '', tabName: null }];
+  const draft = captain.draftGameId === null ? [] : [{ id: captain.draftGameId, row: null, date: '', time: '', location: '', opponent: '', label: '', result: '', tabName: null }];
   const needsLineup = games.filter((game) => game.tabName === null && game.date !== '');
   const list = node('div', 'game-list');
   list.append(...[...games, ...draft].map(gameCard));

@@ -211,7 +211,7 @@ function summarizeInning(inningIndex) {
 }
 
 function describeResult(lineup) {
-  return lineup.result ? lineup.result.text : lineup.notes;
+  return lineup.result ? lineup.result.text : lineup.resultText;
 }
 
 function renderGameDetails() {
@@ -338,7 +338,7 @@ function seasonTotals(playedLineups) {
 function renderSeason() {
   const playedLineups = lineups.filter((lineup) => lineup.played);
   const playedGameNames = playedLineups.map((lineup) => {
-    return lineup.notes === '' ? lineup.label : lineup.label + ' ' + describeResult(lineup);
+    return lineup.resultText === '' ? lineup.label : lineup.label + ' ' + describeResult(lineup);
   });
   document.getElementById('subtitle').textContent = playedLineups.length === 0
     ? 'Season totals: no games played yet'
