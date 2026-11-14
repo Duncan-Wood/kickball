@@ -1,6 +1,6 @@
 import { namesFromLines, positionsIn, positionsText } from '../edits.js';
-import { POSITION_CODES } from '../template.js';
-import { button, formField, node } from './dom.js';
+import { KICKING_STYLES, POSITION_CODES } from '../template.js';
+import { button, formField, node, selectField } from './dom.js';
 import { addRosterPlayers, removeRosterPlayer, saveRosterPlayer } from './roster.js';
 import { ADD_FOCUS_KEY, captain } from './state.js';
 import { saveEdit, setStatus } from './status.js';
@@ -34,13 +34,14 @@ function chosenCodes(group) {
 }
 
 function rosterEditor(player) {
-  const initial = player ?? { name: '', prefers: '', avoids: '', notes: '', pronouns: '' };
+  const initial = player ?? { name: '', prefers: '', avoids: '', notes: '', pronouns: '', kicking: '' };
   const form = node('form', 'game-editor');
   const nameField = formField('Name', 'text', 'name', initial.name);
   if (player !== null) nameField.append(node('span', 'field-note', 'Changing the name also changes it in every game.'));
   const prefers = positionChips('Prefers', initial.prefers);
   const avoids = positionChips("Won't play", initial.avoids);
-  form.append(nameField, prefers, avoids, formField('Pronouns (optional)', 'text', 'pronouns', initial.pronouns), formField('Notes', 'text', 'notes', initial.notes));
+  const kicking = selectField('Kicking', 'kicking', [['', 'Not set'], ...KICKING_STYLES.map((style) => [style, style])], initial.kicking);
+  form.append(nameField, prefers, avoids, kicking, formField('Pronouns', 'text', 'pronouns', initial.pronouns), formField('Notes', 'text', 'notes', initial.notes));
   const actions = node('div', 'game-actions');
   const save = node('button', 'panel-action primary', 'Save');
   save.type = 'submit';
@@ -59,6 +60,7 @@ function rosterEditor(player) {
       prefers: positionsText(chosenCodes(prefers), initial.prefers),
       avoids: positionsText(chosenCodes(avoids), initial.avoids),
       pronouns: fields.get('pronouns').trim(),
+      kicking: fields.get('kicking'),
       notes: fields.get('notes').trim(),
     };
     saveEdit(() => saveRosterPlayer(values, player), player === null ? `Added ${values.name} to the roster` : `Saved ${values.name}`).then((saved) => saved && closeEditor());
@@ -107,7 +109,7 @@ function playerCard(player) {
   });
   summary.setAttribute('aria-expanded', String(isOpen));
   summary.dataset.focusKey = `player:${player.sheetRow}`;
-  const details = [player.prefers === '' ? '' : `Prefers ${player.prefers}`, player.avoids === '' ? '' : `Won't play ${player.avoids}`].filter((detail) => detail !== '').join(' · ');
+  const details = [player.kicking, player.prefers === '' ? '' : `Prefers ${player.prefers}`, player.avoids === '' ? '' : `Won't play ${player.avoids}`].filter((detail) => detail !== '').join(' · ');
   const text = node('span', 'game-text');
   text.append(node('strong', undefined, player.name), ...(player.pronouns === '' ? [] : [node('span', 'game-meta', `(${player.pronouns})`)]), ...(details === '' ? [] : [node('span', 'game-meta', details)]));
   summary.append(text);

@@ -1,4 +1,4 @@
-import { POSITION_CODES } from './template.js';
+import { KICKING_STYLES, POSITION_CODES } from './template.js';
 
 export function columnLetter(columnIndex) {
   let letters = '';
@@ -240,7 +240,7 @@ export function rosterNamesAreNumbers(rows) {
 
 export function rosterPlayerFromRow(cells, sheetRow) {
   const text = (columnIndex) => (cells[columnIndex] ?? '').trim();
-  return { sheetRow, name: text(0), prefers: text(1), avoids: text(2), notes: text(3), pronouns: text(4) };
+  return { sheetRow, name: text(0), prefers: text(1), avoids: text(2), notes: text(3), pronouns: text(4), kicking: text(5) };
 }
 
 export function positionsIn(text) {
@@ -284,4 +284,9 @@ export function seasonProblem(firstDate, count) {
 export function namesFromLines(text) {
   const names = text.split(/\r?\n/).map((line) => line.trim()).filter((line) => line !== '');
   return names.filter((name, index) => names.findIndex((other) => other.toLowerCase() === name.toLowerCase()) === index);
+}
+
+export function kickingStyleFor(rosterPlayers, name) {
+  const match = (rosterPlayers ?? []).find((player) => player.name.toLowerCase() === name.toLowerCase());
+  return match !== undefined && KICKING_STYLES.includes(match.kicking) ? match.kicking : '';
 }

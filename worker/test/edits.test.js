@@ -251,8 +251,8 @@ test('blank player rows are the empty rows between the header and the end label'
 });
 
 test('a roster row reads its columns and tolerates short rows', () => {
-  assert.deepEqual(rosterPlayerFromRow(['Amy B', 'SS, 2B', '', 'Subs only', 'she/her'], 4), { sheetRow: 4, name: 'Amy B', prefers: 'SS, 2B', avoids: '', notes: 'Subs only', pronouns: 'she/her' });
-  assert.deepEqual(rosterPlayerFromRow(['Amy B'], 5), { sheetRow: 5, name: 'Amy B', prefers: '', avoids: '', notes: '', pronouns: '' });
+  assert.deepEqual(rosterPlayerFromRow(['Amy B', 'SS, 2B', '', 'Subs only', 'she/her'], 4), { sheetRow: 4, name: 'Amy B', prefers: 'SS, 2B', avoids: '', notes: 'Subs only', pronouns: 'she/her', kicking: '' });
+  assert.deepEqual(rosterPlayerFromRow(['Amy B'], 5), { sheetRow: 5, name: 'Amy B', prefers: '', avoids: '', notes: '', pronouns: '', kicking: '' });
 });
 
 test('position lists keep field order and keep entries they do not recognize', () => {
@@ -299,4 +299,22 @@ test('a season is one game a week from the first date, across month and year end
   assert.match(seasonProblem('2026-12-17', 2.5), /1 to 30/);
   assert.deepEqual(namesFromLines('  Amy B \r\n\r\nAbe Bashir\namy b\n'), ['Amy B', 'Abe Bashir']);
   assert.deepEqual(namesFromLines('\n  \n'), []);
+});
+
+test('a roster row carries its kicking style, and only Bunt, Power or Mixed are shown beside a kicker', async () => {
+  const { rosterPlayerFromRow, kickingStyleFor } = await import('../../site/edits.js');
+  const roster = [
+    rosterPlayerFromRow(['Chad S', '', '', '', '', 'Power'], 12),
+    rosterPlayerFromRow(['Duncan W', '', '', '', '', 'Bunt'], 15),
+    rosterPlayerFromRow(['Amy B', '', '', '', '', 'whatever'], 2),
+    rosterPlayerFromRow(['Zach C'], 6),
+  ];
+  assert.equal(roster[0].kicking, 'Power');
+  assert.equal(roster[3].kicking, '');
+  assert.equal(kickingStyleFor(roster, 'chad s'), 'Power');
+  assert.equal(kickingStyleFor(roster, 'Duncan W'), 'Bunt');
+  assert.equal(kickingStyleFor(roster, 'Amy B'), '');
+  assert.equal(kickingStyleFor(roster, 'Zach C'), '');
+  assert.equal(kickingStyleFor(roster, 'Nobody'), '');
+  assert.equal(kickingStyleFor(null, 'Chad S'), '');
 });
