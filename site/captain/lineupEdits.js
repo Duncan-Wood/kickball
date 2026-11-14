@@ -56,29 +56,15 @@ export async function saveKickingMove(lineupWhenEditing, move, sourceRow, target
   return () => saveKickingMove(lineup, inverseKickingMove(move), move.finalRow, move.fromRow);
 }
 
-async function saveRsvpWithPositions(lineupWhenEditing, sheetRow, answer, positionsAfter) {
+export async function saveRsvp(lineupWhenEditing, sheetRow, answer) {
   const lineup = currentVersionOf(lineupWhenEditing);
   const player = lineupPlayer(lineup, sheetRow);
   const previousAnswer = RSVP_ANSWERS.find((candidate) => candidate.toLowerCase() === player.rsvp) ?? '';
-  const previousPositions = player.positions;
-  const changedInnings = positionsAfter.map((position, inningIndex) => inningIndex).filter((inningIndex) => positionsAfter[inningIndex] !== previousPositions[inningIndex]);
-  await confirmSheetStillMatches([
-    ...nameExpectations(lineup, [sheetRow]),
-    { address: cellAddress(lineup.tabName, RSVP_COLUMN_INDEX, sheetRow), expected: player.rsvp },
-    ...changedInnings.map((inningIndex) => ({ address: cellAddress(lineup.tabName, lineup.inningColumns[inningIndex], sheetRow), expected: previousPositions[inningIndex] })),
-  ]);
-  await writeValues([
-    { range: cellAddress(lineup.tabName, RSVP_COLUMN_INDEX, sheetRow), values: [[answer]] },
-    ...changedInnings.map((inningIndex) => ({ range: cellAddress(lineup.tabName, lineup.inningColumns[inningIndex], sheetRow), values: [[positionsAfter[inningIndex]]] })),
-  ]);
-  lineup.players = lineup.players.map((candidate) => (candidate.sheetRow === sheetRow ? { ...applyRsvp(candidate, answer.toLowerCase()), positions: positionsAfter } : candidate));
-  return () => saveRsvpWithPositions(lineup, sheetRow, previousAnswer, previousPositions);
-}
-
-export async function saveRsvp(lineupWhenEditing, sheetRow, answer) {
-  const lineup = currentVersionOf(lineupWhenEditing);
-  const { positions } = lineupPlayer(lineup, sheetRow);
-  return saveRsvpWithPositions(lineup, sheetRow, answer, answer === 'No' ? positions.map(() => '') : positions);
+  const address = cellAddress(lineup.tabName, RSVP_COLUMN_INDEX, sheetRow);
+  await confirmSheetStillMatches([...nameExpectations(lineup, [sheetRow]), { address, expected: player.rsvp }]);
+  await writeValues([{ range: address, values: [[answer]] }]);
+  lineup.players = lineup.players.map((candidate) => (candidate.sheetRow === sheetRow ? applyRsvp(candidate, answer.toLowerCase()) : candidate));
+  return () => saveRsvp(lineup, sheetRow, previousAnswer);
 }
 
 export async function saveRemovedPlayers(lineupWhenEditing, sheetRows) {

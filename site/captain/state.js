@@ -9,6 +9,7 @@ export const captain = {
   area: 'fielding',
   selectedRow: null,
   focus: null,
+  editMode: 'one',
   editInnings: new Set([0]),
   viewedInning: 0,
   tabName: null,
