@@ -7,6 +7,7 @@ import { saveEdit, setStatus } from './status.js';
 
 const DRAG_START_PIXELS = 8;
 const CLICK_SUPPRESSION_MILLISECONDS = 50;
+const LONG_PRESS_MILLISECONDS = 250;
 const DOCK_CLEARANCE_PIXELS = 16;
 const INNING_MODES = [
   { mode: 'one', label: 'This inning' },
@@ -22,6 +23,7 @@ const HINTS = {
 
 let suppressClicksUntil = 0;
 let dragState = null;
+let longPress = null;
 let keyboardNavigating = false;
 let lastEditableKey = null;
 
@@ -160,6 +162,47 @@ function endDrag(event) {
     return;
   }
   applyFielding(sourceRow, target);
+}
+
+function startTouchDrag(event, sourceElement) {
+  if (captain.saving || event.touches.length !== 1) return;
+  const { clientX, clientY } = event.touches[0];
+  longPress = { startX: clientX, startY: clientY, armed: false };
+  longPress.timer = setTimeout(() => {
+    longPress.armed = true;
+    dragState = { sourceElement, startX: clientX, startY: clientY, dragging: false, ghost: null };
+  }, LONG_PRESS_MILLISECONDS);
+}
+
+function moveTouchDrag(event) {
+  if (longPress === null) return;
+  const { clientX, clientY } = event.touches[0];
+  if (longPress.armed) {
+    event.preventDefault();
+    moveDrag({ clientX, clientY });
+    return;
+  }
+  if (Math.hypot(clientX - longPress.startX, clientY - longPress.startY) < DRAG_START_PIXELS) return;
+  clearTimeout(longPress.timer);
+  longPress = null;
+}
+
+function endTouchDrag(event) {
+  if (longPress === null) return;
+  clearTimeout(longPress.timer);
+  const { armed } = longPress;
+  longPress = null;
+  if (!armed) return;
+  if (event.type === 'touchcancel') {
+    dragState?.ghost?.remove();
+    dragState = null;
+    captain.selectedRow = null;
+    decorate();
+    return;
+  }
+  if (dragState?.dragging) event.preventDefault();
+  const { clientX, clientY } = event.changedTouches[0];
+  endDrag({ clientX, clientY });
 }
 
 function decorate() {
@@ -316,6 +359,7 @@ export function bindFieldEditing() {
   editableElements().forEach((editable) => {
     editable.addEventListener('click', () => handleTap(editable));
     editable.addEventListener('pointerdown', (event) => startDrag(event, editable));
+    editable.addEventListener('touchstart', (event) => startTouchDrag(event, editable), { passive: true });
     editable.addEventListener('keydown', (event) => {
       if (event.key !== 'Enter' && event.key !== ' ') return;
       event.preventDefault();
@@ -352,6 +396,9 @@ export function installFieldingEvents() {
     const editable = event.target.closest?.('#chips .chip, #bench li');
     if (editable) lastEditableKey = editableKey(editable);
   });
-  document.addEventListener('pointermove', moveDrag);
-  document.addEventListener('pointerup', endDrag);
+  document.addEventListener('pointermove', (event) => { if (event.pointerType !== 'touch') moveDrag(event); });
+  document.addEventListener('pointerup', (event) => { if (event.pointerType !== 'touch') endDrag(event); });
+  document.addEventListener('touchmove', moveTouchDrag, { passive: false });
+  document.addEventListener('touchend', endTouchDrag);
+  document.addEventListener('touchcancel', endTouchDrag);
 }
