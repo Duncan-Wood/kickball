@@ -8,10 +8,11 @@ import { saveEdit, setStatus } from './status.js';
 const DRAG_START_PIXELS = 8;
 const CLICK_SUPPRESSION_MILLISECONDS = 50;
 const DOCK_CLEARANCE_PIXELS = 16;
-const INNING_PRESETS = [
-  { preset: 'odd', label: 'Odd' },
-  { preset: 'even', label: 'Even' },
-  { preset: 'all', label: 'All' },
+const INNING_MODES = [
+  { mode: 'one', label: 'This inning' },
+  { mode: 'odd', label: 'Odd' },
+  { mode: 'even', label: 'Even' },
+  { mode: 'all', label: 'All' },
 ];
 const HINTS = {
   fielding: 'Tap a position, then pick a player.',
@@ -245,7 +246,9 @@ export function renderDock(lineup, inField) {
   if (hiddenBy > 0) window.scrollBy({ top: hiddenBy });
 }
 
-function setEditInnings(inningIndexes) {
+function setEditMode(mode, inningCount) {
+  captain.editMode = mode;
+  const inningIndexes = mode === 'one' ? [window.fieldView.currentInningIndex()] : inningsForPreset(mode, inningCount);
   captain.editInnings = new Set(inningIndexes);
   const first = Math.min(...inningIndexes);
   captain.viewedInning = first;
@@ -253,27 +256,16 @@ function setEditInnings(inningIndexes) {
   else rerender();
 }
 
-function toggleInning(inningIndex) {
-  const selected = new Set(captain.editInnings);
-  if (selected.has(inningIndex)) {
-    if (selected.size === 1) return;
-    selected.delete(inningIndex);
-  } else selected.add(inningIndex);
-  setEditInnings([...selected]);
-}
-
 function inningsRow(lineup) {
   const row = node('div', 'innings-edit');
-  row.append(node('span', 'innings-edit-label', 'Edit innings'));
-  const chips = node('div', 'innings-edit-chips');
-  chips.append(...lineup.innings.map((label, index) => {
-    const chip = button(label, 'inning-toggle', () => toggleInning(index));
-    chip.setAttribute('aria-pressed', String(captain.editInnings.has(index)));
-    return chip;
+  row.append(node('span', 'innings-edit-label', 'Apply changes to'));
+  const modes = node('div', 'innings-edit-presets');
+  modes.append(...INNING_MODES.map(({ mode, label }) => {
+    const choice = button(label, 'inning-preset', () => setEditMode(mode, lineup.innings.length));
+    choice.setAttribute('aria-pressed', String(captain.editMode === mode));
+    return choice;
   }));
-  const presets = node('div', 'innings-edit-presets');
-  presets.append(...INNING_PRESETS.map(({ preset, label }) => button(label, 'inning-preset', () => setEditInnings(inningsForPreset(preset, lineup.innings.length)))));
-  row.append(chips, presets);
+  row.append(modes);
   return row;
 }
 
@@ -296,6 +288,7 @@ export function resetEditingState(lineup) {
   captain.focus = null;
   captain.selectedRow = null;
   captain.viewedInning = window.fieldView.currentInningIndex();
+  captain.editMode = 'one';
   captain.editInnings = new Set([captain.viewedInning]);
 }
 
@@ -303,6 +296,7 @@ export function followViewedInning() {
   const inningIndex = window.fieldView.currentInningIndex();
   if (captain.viewedInning === inningIndex) return;
   captain.viewedInning = inningIndex;
+  captain.editMode = 'one';
   captain.editInnings = new Set([inningIndex]);
   captain.focus = null;
 }

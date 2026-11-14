@@ -191,13 +191,12 @@ function summarizeInning(inningIndex) {
   const playersByPosition = {};
   const bench = [];
   const problems = [];
-  selectedLineup.players.forEach((player) => {
+  selectedLineup.players.filter((player) => player.attending).forEach((player) => {
     const position = player.positions[inningIndex];
     if (position === '') {
-      if (player.attending) bench.push(player);
+      bench.push(player);
       return;
     }
-    if (!player.attending) problems.push(player.name + ' is not attending but is at ' + position);
     playersByPosition[position] = (playersByPosition[position] || []).concat(player.name);
   });
   Object.keys(FIELD_SPOTS).forEach((position) => {

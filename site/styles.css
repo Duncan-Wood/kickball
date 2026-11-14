@@ -166,10 +166,9 @@ html:not(.has-team) body { background: #f6f1ea; color: #1c2a3a; }
 .captain-subheading { margin: 16px 2px 8px; font-size: 14px; font-weight: 600; color: var(--ink); }
 .innings-edit { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0 0 6px; }
 .innings-edit-label { font-size: 13px; color: var(--muted); }
-.innings-edit-chips, .innings-edit-presets { display: flex; gap: 4px; }
+.innings-edit-presets { display: flex; gap: 4px; }
 .inning-toggle, .inning-preset { min-width: 38px; min-height: 38px; padding: 0 10px; border: 1px solid var(--primary); border-radius: 10px; background: #fff; color: var(--primary); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
-.inning-toggle[aria-pressed="true"] { background: var(--primary); color: #fff; }
-.inning-preset { border-color: var(--border); color: var(--muted); font-weight: 500; }
+.inning-toggle[aria-pressed="true"], .inning-preset[aria-pressed="true"] { background: var(--primary); color: #fff; }
 .innings-edit-caption { margin: 0 0 8px; padding: 6px 10px; border-left: 4px solid var(--accent); border-radius: 6px; background: var(--tint); font-size: 13px; color: var(--ink); }
 .order-list { margin: 0; padding: 0; overflow: hidden; list-style: none; border: 1px solid var(--border); border-radius: 12px; background: #fff; }
 .order-list li + li { border-top: 1px solid var(--border-soft); }
