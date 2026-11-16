@@ -64,12 +64,12 @@ async function read(environment) {
   return body;
 }
 
-test('simultaneous requests for one team share a single Google read', async () => {
+test('simultaneous requests for one team each make their own Google read', async () => {
   const environment = await environmentWithTeam();
   await withGoogle(() => Response.json(sheetAnswer([])), async ({ sheetsCalls }) => {
     const bodies = await Promise.all([read(environment), read(environment), read(environment)]);
     assert.ok(bodies.every((body) => body.ok === true));
-    assert.equal(sheetsCalls.length, 2);
+    assert.equal(sheetsCalls.length, 6);
   });
 });
 

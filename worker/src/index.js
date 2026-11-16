@@ -42,8 +42,6 @@ async function forgetTeamIfSheetGone(slug, error, environment) {
   throw error;
 }
 
-const readsInFlight = new Map();
-
 function cacheKey(kind, slug) {
   return new Request(`https://cache.invalid/${kind}/${slug}`);
 }
@@ -80,10 +78,7 @@ async function readFromGoogle(slug, environment, context) {
 async function teamPayload(slug, environment, context) {
   const fresh = await cachedJson(cacheKey('team', slug));
   if (fresh !== undefined) return fresh;
-  if (!readsInFlight.has(slug)) {
-    readsInFlight.set(slug, readFromGoogle(slug, environment, context).finally(() => readsInFlight.delete(slug)));
-  }
-  return readsInFlight.get(slug);
+  return readFromGoogle(slug, environment, context);
 }
 
 async function allowComment(slug) {
