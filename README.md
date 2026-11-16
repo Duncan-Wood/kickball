@@ -13,7 +13,7 @@ Screenshots use made-up players.
 ## Features
 
 - Pick a game and an inning to see who plays each of the 11 positions
-- A position given to two players is flagged in red. An open position is flagged only while someone is sitting, so a team of 8 to 10 sees plain "open" chips instead of errors
+- Players see an unfilled position as a plain "open" chip. Lineup problems show only in Captain tools: a position given to two players is flagged in red, and so is an open position while someone is sitting
 - Game date, time, location, opponent and final score
 - Kicking order and the players sitting each inning
 - Whole-game table with innings played per player
