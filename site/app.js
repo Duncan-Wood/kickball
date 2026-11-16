@@ -55,9 +55,9 @@ async function readApiResponse(response) {
   try {
     data = await response.json();
   } catch (parseError) {
-    throw new Error('That link did not answer with lineup data. Check that the share link is complete.');
+    throw new Error('That link did not answer with lineup data. Check that the team link is complete.');
   }
-  if (typeof data.apiVersion !== 'number') throw new Error('That link did not answer like a lineup script.');
+  if (typeof data.apiVersion !== 'number') throw new Error('The lineup service sent an answer this page cannot read.');
   if (data.apiVersion < MINIMUM_API_VERSION) throw new Error('The lineup service is behind this page. Try again in a few minutes.');
   if (!data.ok) {
     const failure = new Error(data.error);
@@ -71,7 +71,7 @@ async function fetchFromScript(address, options) {
   try {
     return await fetch(address, options);
   } catch (networkError) {
-    throw new Error('Could not reach the lineups. Check your connection, and that the share link is complete and still works.');
+    throw new Error('Could not reach the lineups. Check your connection, and that the team link is complete and still works.');
   }
 }
 
