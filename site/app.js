@@ -195,6 +195,7 @@ function summarizeInning(inningIndex) {
   const playersByPosition = {};
   const bench = [];
   const problems = [];
+  const openPositions = [];
   selectedLineup.players.filter((player) => player.attending).forEach((player) => {
     const position = player.positions[inningIndex];
     if (position === '') {
@@ -205,13 +206,13 @@ function summarizeInning(inningIndex) {
   });
   Object.keys(FIELD_SPOTS).forEach((position) => {
     const names = playersByPosition[position] || [];
-    if (names.length === 0 && bench.length > 0) problems.push(position + ' is open');
+    if (names.length === 0 && bench.length > 0) openPositions.push(position);
     if (names.length > 1) problems.push(position + ' has ' + names.join(' and '));
   });
   Object.keys(playersByPosition).filter((position) => !FIELD_SPOTS[position]).forEach((position) => {
     problems.push('"' + position + '" is not a field position (' + playersByPosition[position].join(', ') + ')');
   });
-  return { playersByPosition, bench, problems, openIsProblem: bench.length > 0 };
+  return { playersByPosition, bench, problems, openPositions, openIsProblem: bench.length > 0 };
 }
 
 function describeResult(lineup) {
@@ -302,7 +303,8 @@ function renderWholeGame() {
 
   const inningsByProblem = new Map();
   selectedLineup.innings.forEach((inning, inningIndex) => {
-    summarizeInning(inningIndex).problems.forEach((problem) => {
+    const summary = summarizeInning(inningIndex);
+    [...summary.openPositions.map((position) => position + ' is open'), ...summary.problems].forEach((problem) => {
       inningsByProblem.set(problem, (inningsByProblem.get(problem) || []).concat(inning));
     });
   });

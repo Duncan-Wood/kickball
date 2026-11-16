@@ -315,7 +315,7 @@ function inningsRow(lineup) {
 export function fieldingPanel(lineup, inField) {
   if (!inField) return [node('p', 'captain-hint', HINTS.elsewhere)];
   if (!lineup.players.some((player) => player.attending)) return [node('p', 'captain-hint', HINTS.empty)];
-  const parts = [node('p', 'captain-hint', HINTS.fielding)];
+  const parts = captain.undoStack.length === 0 ? [node('p', 'captain-hint', HINTS.fielding)] : [];
   if (lineup.innings.length < 2) return parts;
   parts.push(inningsRow(lineup));
   if (captain.editInnings.size > 1) {

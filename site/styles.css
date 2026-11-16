@@ -235,6 +235,7 @@ a:focus-visible, button:focus-visible, select:focus-visible, textarea:focus-visi
 .updated { margin: 12px 0 0; color: var(--muted); font-size: 12px; text-align: center; }
 .updated:empty { display: none; }
 .captain-list .updated { display: none; }
+.captain-active .subtitle, .captain-active .game-details, .captain-list .subtitle, .captain-list .game-details { display: none; }
 .headcount { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 0 0 10px; padding: 8px 12px; border: 1px solid var(--border-soft); border-radius: 10px; background: #fff; font-size: 14px; }
 .headcount strong { font-size: 16px; }
 .headcount-detail { color: var(--muted); }
