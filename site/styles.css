@@ -29,11 +29,12 @@ select {
   background: #fff;
   color: var(--ink);
 }
-.innings { display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.innings { display: flex; flex: 1 1 100%; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
 .innings button {
+  flex: 1 1 44px;
   font-size: 15px;
   font-weight: 600;
-  width: 40px;
+  min-height: 44px;
   padding: 8px 0;
   border: 0;
   border-left: 1px solid var(--border);
@@ -42,7 +43,7 @@ select {
   cursor: pointer;
 }
 .innings button:first-child { border-left: 0; }
-.innings button.wide { width: auto; padding: 8px 12px; }
+.innings button.wide { flex: 0 0 auto; padding: 8px 12px; }
 .innings button.selected { background: var(--primary); color: #fff; }
 .subtitle { margin: 10px 2px 6px; font-size: 14px; color: var(--muted); }
 .game-details { margin: -2px 2px 8px; font-size: 14px; font-weight: 500; }
