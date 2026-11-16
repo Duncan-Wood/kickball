@@ -31,10 +31,10 @@ test('two tabs with the same playoff id hide the later one with a named problem'
 
 test('every lineup the reader returns carries its Game # text, so tabs are not mistaken for duplicates', async () => {
   const { readLineup } = await import('../src/lineup.js');
-  const cell = (text) => ({ text, strikethrough: false, serialDate: undefined, backgroundHex: '' });
+  const cell = (text) => ({ text, serialDate: undefined, backgroundHex: '' });
   const tabRows = (gameId) => [
     [cell('Game #:'), cell(gameId)],
-    [cell('Name'), cell(''), cell('1')],
+    [cell('Name'), cell('RSVP'), cell('1')],
     [cell('Chad S'), cell(''), cell('SS')],
     [cell('Open spots'), cell(''), cell('')],
   ];

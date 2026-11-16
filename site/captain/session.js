@@ -44,9 +44,6 @@ export async function startCaptainMode() {
   toggle.disabled = true;
   try {
     const lineup = window.fieldView.currentLineup();
-    if (lineup !== null && (lineup.editable !== true || lineup.players.some((player) => player.sheetRow === undefined))) {
-      throw new Error('This lineup cannot be edited from here yet. Reload the page and try again. Sheets that number the kicking order in column B are edited in the sheet');
-    }
     captain.spreadsheetId = await confirmEditorAccess();
     await refreshTabs();
     captain.canManageGames = captain.tabs.has(NEW_GAME_TAB_NAME) && captain.tabs.has(SCHEDULE_TAB_NAME);

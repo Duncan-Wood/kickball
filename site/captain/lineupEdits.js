@@ -15,7 +15,7 @@ function nameExpectations(lineup, sheetRows) {
 function rowExpectations(lineup, player) {
   return [
     { address: cellAddress(lineup.tabName, 0, player.sheetRow), expected: player.name },
-    ...(lineup.usesRsvp ? [{ address: cellAddress(lineup.tabName, RSVP_COLUMN_INDEX, player.sheetRow), expected: player.rsvp }] : []),
+    { address: cellAddress(lineup.tabName, RSVP_COLUMN_INDEX, player.sheetRow), expected: player.rsvp },
     ...lineup.inningColumns.map((columnIndex, inningIndex) => ({ address: cellAddress(lineup.tabName, columnIndex, player.sheetRow), expected: player.positions[inningIndex] })),
   ];
 }
@@ -24,7 +24,7 @@ function rowWrites(lineup, { sheetRow, name, rsvp, positions }) {
   const rsvpText = RSVP_ANSWERS.find((answer) => answer.toLowerCase() === rsvp) ?? '';
   return [
     { range: cellAddress(lineup.tabName, 0, sheetRow), values: [[name]] },
-    ...(lineup.usesRsvp ? [{ range: cellAddress(lineup.tabName, RSVP_COLUMN_INDEX, sheetRow), values: [[rsvpText]] }] : []),
+    { range: cellAddress(lineup.tabName, RSVP_COLUMN_INDEX, sheetRow), values: [[rsvpText]] },
     ...lineup.inningColumns.map((columnIndex, inningIndex) => ({ range: cellAddress(lineup.tabName, columnIndex, sheetRow), values: [[positions[inningIndex]]] })),
   ];
 }

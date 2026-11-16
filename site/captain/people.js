@@ -9,7 +9,6 @@ export const MINIMUM_PLAYERS = 8;
 const HINTS = {
   kicking: 'Tap a kicker, then the spot they should take.',
   players: 'Mark who is coming.',
-  playersWithoutRsvp: 'This sheet has no RSVP column, so players who are out are struck through in the sheet. You can still add players from the roster here.',
 };
 
 function moveKicker(sourceRow, targetRow) {
@@ -53,7 +52,7 @@ function headcountLine(lineup) {
   const isShort = count.playing < MINIMUM_PLAYERS;
   const line = node('p', isShort ? 'headcount short' : 'headcount');
   const breakdown = [[count.yes, 'yes'], [count.maybe, 'maybe'], [count.waiting, 'no reply'], [count.out, 'out']]
-    .filter(([amount, label]) => amount > 0 && (lineup.usesRsvp || label === 'out'))
+    .filter(([amount]) => amount > 0)
     .map(([amount, label]) => `${amount} ${label}`)
     .join(', ');
   line.append(node('strong', undefined, `${count.playing} playing`), node('span', 'headcount-detail', breakdown));
@@ -93,8 +92,8 @@ function playerRow(lineup, player) {
 }
 
 export function playersPanel(lineup) {
-  const parts = [node('p', 'captain-hint', lineup.usesRsvp ? HINTS.players : HINTS.playersWithoutRsvp), headcountLine(lineup)];
-  if (lineup.usesRsvp && lineup.players.length > 0) {
+  const parts = [node('p', 'captain-hint', HINTS.players), headcountLine(lineup)];
+  if (lineup.players.length > 0) {
     const list = node('div', 'player-list');
     list.append(...lineup.players.map((player) => playerRow(lineup, player)));
     parts.push(list);

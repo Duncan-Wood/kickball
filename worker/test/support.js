@@ -40,7 +40,7 @@ function fakeEdgeCache() {
 const cell = (text) => ({ formattedValue: text });
 
 export function lineupTab(title) {
-  const rows = [['Game #:', '1'], ['Name', '', '1'], ['Chad S', '', 'SS'], ['Open spots', '', '']];
+  const rows = [['Game #:', '1'], ['Name', 'RSVP', '1'], ['Chad S', '', 'SS'], ['Open spots', '', '']];
   return { properties: { title }, data: [{ rowData: rows.map((row) => ({ values: row.map(cell) })) }] };
 }
 

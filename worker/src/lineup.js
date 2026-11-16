@@ -4,7 +4,7 @@ export function isCurrentLineupTab(tabName) {
   return /lineup$/i.test(tabName);
 }
 
-const END_OF_GRID_LABELS = ['Open spots', 'Acceptable'];
+const END_OF_GRID_LABEL = 'Open spots';
 const RSVP_ANSWERS = ['yes', 'maybe', 'no'];
 const RSVP_COLUMN_INDEX = 1;
 const FIRST_INNING_COLUMN_INDEX = 2;
@@ -12,23 +12,25 @@ const FIRST_INNING_COLUMN_INDEX = 2;
 export function locateLineupGrid(tabName, rows) {
   const firstColumn = rows.map((row) => (row[0]?.text ?? '').trim());
   const headerRowIndex = firstColumn.indexOf('Name');
-  const acceptableRowIndex = firstColumn.findIndex((label) => END_OF_GRID_LABELS.includes(label));
+  const openSpotsRowIndex = firstColumn.indexOf(END_OF_GRID_LABEL);
   const gameNumberRowIndex = firstColumn.indexOf('Game #:');
   const opponentRowIndex = firstColumn.indexOf('Opponent:');
   const dateRowIndex = firstColumn.indexOf('Date:');
   const timeRowIndex = firstColumn.indexOf('Time:');
   const locationRowIndex = firstColumn.indexOf('Location:');
   const labelRowIndex = firstColumn.indexOf('Label:');
-  const resultRowIndex = [firstColumn.indexOf('Result:'), firstColumn.indexOf('Notes:')].find((rowIndex) => rowIndex !== -1) ?? -1;
-  if (headerRowIndex === -1 || acceptableRowIndex === -1) {
+  const resultRowIndex = firstColumn.indexOf('Result:');
+  if (headerRowIndex === -1 || openSpotsRowIndex === -1) {
     throw new Error(`Tab "${tabName}" needs "Name" and "Open spots" labels in column A`);
   }
   const headerCells = rows[headerRowIndex];
   const inningColumnIndexes = headerCells
     .map((cell, columnIndex) => (columnIndex >= FIRST_INNING_COLUMN_INDEX && /^\d+$/.test(cell.text.trim()) ? columnIndex : -1))
     .filter((columnIndex) => columnIndex !== -1);
-  const usesRsvp = headerCells[RSVP_COLUMN_INDEX]?.text.trim().toLowerCase() === 'rsvp';
-  return { headerRowIndex, acceptableRowIndex, gameNumberRowIndex, opponentRowIndex, dateRowIndex, timeRowIndex, locationRowIndex, labelRowIndex, resultRowIndex, inningColumnIndexes, usesRsvp };
+  if (headerCells[RSVP_COLUMN_INDEX]?.text.trim().toLowerCase() !== 'rsvp') {
+    throw new Error(`Tab "${tabName}" needs "RSVP" beside "Name" in column B`);
+  }
+  return { headerRowIndex, openSpotsRowIndex, gameNumberRowIndex, opponentRowIndex, dateRowIndex, timeRowIndex, locationRowIndex, labelRowIndex, resultRowIndex, inningColumnIndexes };
 }
 
 export function readLineup(tabName, rows) {
@@ -55,8 +57,6 @@ export function readLineup(tabName, rows) {
     resultText,
     innings: inningColumnIndexes.map((columnIndex) => textAt(headerRowIndex, columnIndex)),
     inningColumns: inningColumnIndexes,
-    editable: players.every((player) => player.kickNumber === null),
-    usesRsvp: grid.usesRsvp,
     spareRows: spareRows(rows, grid),
     players,
   };
@@ -99,60 +99,33 @@ export function orderedLineups(lineups) {
   return { lineups: [...distinctLineups].sort((first, second) => first.gameNumber - second.gameNumber), problems };
 }
 
-function spareRows(rows, { headerRowIndex, acceptableRowIndex }) {
+function spareRows(rows, { headerRowIndex, openSpotsRowIndex }) {
   return rows
-    .slice(headerRowIndex + 1, acceptableRowIndex)
+    .slice(headerRowIndex + 1, openSpotsRowIndex)
     .map((row, offset) => ({ row, sheetRow: headerRowIndex + 2 + offset }))
     .filter(({ row }) => (row[0]?.text ?? '').trim() === '')
     .map(({ sheetRow }) => sheetRow);
 }
 
-function readPlayers(tabName, rows, grid) {
-  const { headerRowIndex, acceptableRowIndex, inningColumnIndexes, usesRsvp } = grid;
-  const playerRows = rows
-    .slice(headerRowIndex + 1, acceptableRowIndex)
+function readPlayers(tabName, rows, { headerRowIndex, openSpotsRowIndex, inningColumnIndexes }) {
+  return rows
+    .slice(headerRowIndex + 1, openSpotsRowIndex)
     .map((row, offset) => ({ row, sheetRow: headerRowIndex + 2 + offset }))
-    .filter(({ row }) => (row[0]?.text ?? '').trim() !== '');
-  const kickNumberText = (row) => (row[1]?.text ?? '').trim();
-  const usesKickNumbers = !usesRsvp && playerRows.some(({ row }) => isKickNumber(kickNumberText(row)));
-  const players = playerRows.map(({ row, sheetRow }) => {
-    const name = row[0].text.trim();
-    const kickText = kickNumberText(row);
-    if (usesRsvp) return readRsvpPlayer(tabName, row, sheetRow, name, inningColumnIndexes);
-    if (usesKickNumbers && kickText !== '' && !isKickNumber(kickText)) {
-      throw new Error(`Tab "${tabName}": the kick number for "${name}" in column B must be a whole number or blank`);
-    }
-    return {
-      name,
-      sheetRow,
-      attending: usesKickNumbers ? isKickNumber(kickText) : row[0].strikethrough !== true,
-      kickNumber: usesKickNumbers && isKickNumber(kickText) ? Number(kickText) : null,
-      rsvp: '',
-      positions: inningColumnIndexes.map((columnIndex) => (row[columnIndex]?.text ?? '').trim()),
-    };
-  });
-  if (!usesKickNumbers) return players;
-  const kicking = players.filter((player) => player.attending).sort((first, second) => first.kickNumber - second.kickNumber);
-  return kicking.concat(players.filter((player) => !player.attending));
-}
-
-function readRsvpPlayer(tabName, row, sheetRow, name, inningColumnIndexes) {
-  const answer = (row[RSVP_COLUMN_INDEX]?.text ?? '').trim().toLowerCase();
-  if (answer !== '' && !RSVP_ANSWERS.includes(answer)) {
-    throw new Error(`Tab "${tabName}": the RSVP for "${name}" must be Yes, Maybe, No or blank`);
-  }
-  return {
-    name,
-    sheetRow,
-    attending: answer !== 'no' && row[0].strikethrough !== true,
-    kickNumber: null,
-    rsvp: answer,
-    positions: inningColumnIndexes.map((columnIndex) => (row[columnIndex]?.text ?? '').trim()),
-  };
-}
-
-function isKickNumber(cellText) {
-  return /^\d+$/.test(cellText.trim());
+    .filter(({ row }) => (row[0]?.text ?? '').trim() !== '')
+    .map(({ row, sheetRow }) => {
+      const name = row[0].text.trim();
+      const answer = (row[RSVP_COLUMN_INDEX]?.text ?? '').trim().toLowerCase();
+      if (answer !== '' && !RSVP_ANSWERS.includes(answer)) {
+        throw new Error(`Tab "${tabName}": the RSVP for "${name}" must be Yes, Maybe, No or blank`);
+      }
+      return {
+        name,
+        sheetRow,
+        attending: answer !== 'no',
+        rsvp: answer,
+        positions: inningColumnIndexes.map((columnIndex) => (row[columnIndex]?.text ?? '').trim()),
+      };
+    });
 }
 
 function isoDateOf(serialDate) {

@@ -3,7 +3,7 @@ import { appendComment, COMMENTS_PER_HOUR, validatedComment } from './comments.j
 import { RateLimitedError, readTeamSheet, SheetGoneError } from './sheetsReader.js';
 import { decryptToken, encryptToken, newTeamSlug } from './tokens.js';
 
-const API_VERSION = 6;
+const API_VERSION = 7;
 const FRESH_READ_SECONDS = 15;
 const STALE_READ_SECONDS = 3600;
 const RATE_LIMIT_COOLDOWN_SECONDS = 60;

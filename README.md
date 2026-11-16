@@ -66,7 +66,6 @@ Under the team page, **Captain tools** lets anyone who can edit the sheet change
 - **Undo:** reverses the last saved change, and keeps going back through earlier ones. Undoing new lineup tabs deletes those tabs. Unsaved form changes are not on the list. **Reset** discards them.
 - **Opening on the right game:** the team page opens on the next game by date, or the most recent one once the season is over.
 - Edits are written to the sheet with your own account, so the sheet's version history shows who made them. If the sheet changed since the page last updated, nothing is saved and the page says so.
-- Sheets that number the kicking order in column B are edited in the sheet.
 
 ## How it works
 
@@ -93,7 +92,7 @@ npx wrangler deploy
 
 `wrangler.toml` holds the KV namespace id, the Google client id and the allowed site origins. `TOKEN_ENCRYPTION_KEY` is 32 random bytes in base64. The Google project needs the Sheets, Drive and Picker APIs, a Web OAuth client and a Picker API key, all in `site/settings.js`.
 
-Deploy the Worker before the site. The page asks for API version 6 and shows "out of date" against an older Worker.
+Deploy the Worker before the site. The page asks for API version 7 and shows "out of date" against an older Worker.
 
 A fork needs its own Worker URL, Google client id and Picker API key in `site/settings.js`, and its own origin in `ALLOWED_ORIGINS` in `wrangler.toml`.
 
@@ -103,14 +102,13 @@ A fork needs its own Worker URL, Google client id and Picker API key in `site/se
 | --- | --- |
 | Tab name ends in "Lineup" (any capitalization) | The tab is a game |
 | Game # marked `Yes` in the `Schedule` tab's `Archived` column | The tab is skipped |
-| "Name" and "Open spots" (or "Acceptable") labels in column A | Finding the player grid. If one is missing, the view names the tab instead of guessing |
-| "Date:", "Time:", "Location:", "Opponent:", "Label:" and "Result:" labels in column A (an older "Notes:" label is read as the result), value in column B | Game details. Any that are missing show blank |
+| "Name" and "Open spots" labels in column A, with "RSVP" beside "Name" | Finding the player grid. If one is missing, the view names the tab instead of guessing |
+| "Date:", "Time:", "Location:", "Opponent:", "Label:" and "Result:" labels in column A, value in column B | Game details. Any that are missing show blank |
 | "Game #:" label in column A with a number or text like P1 beside it | A number names the game, like "Game 3 (10/21/26)", and puts the games in order. Text like P1 matches the tab to its row on the `Schedule` tab. A game is named by its Label when it has one, and otherwise by its tab name. Two tabs cannot share a Game #: the later tab is hidden and a notice on the page names both tabs |
 | Result text that contains W, L or T (or Won, Lost, Tied) and two scores, like "W, 12-0" or "Won 9-5" (your runs first) | The result of the game, shown as "Won 12-0" or "Lost 3-5". A game with a result counts toward season totals. Other text is shown as written |
 | Inning numbers in the "Name" row | One column per inning |
 | Position codes P, C, 1B, 2B, 3B, SS, LF, LC, CF, RC, RF | Placing players on the field. Any other code is flagged |
-| "RSVP" in the Name row's column B, with Yes, Maybe or No beside each player | No means not attending. Blank (no reply yet) and Maybe count as playing |
-| Strikethrough on a player's name | Player is not attending: left out of the kicking order, sitting list and totals |
+| Yes, Maybe or No in the RSVP column | No means not attending: left out of the field, kicking order and totals. Blank (no reply yet) and Maybe count as playing |
 | Row order of players | Kicking order |
 | Same spelling of a name on every tab | Season totals add up as one person |
 

@@ -9,7 +9,7 @@ const lineupTab = (title, gameId, label, result) => tab(title, [
   ['Game #:', gameId],
   ['Label:', label],
   ['Result:', result],
-  ['Name', '', '1'],
+  ['Name', 'RSVP', '1'],
   ['Chad S', '', 'SS'],
   ['Open spots', '', ''],
 ]);

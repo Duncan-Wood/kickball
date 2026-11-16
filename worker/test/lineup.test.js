@@ -4,7 +4,7 @@ import { archivedGameIds, defaultLineupTabName, readLineup, isCurrentLineupTab, 
 import { readConfig } from '../src/config.js';
 import { normalizedRows } from '../src/sheetsReader.js';
 
-const cell = (text, extra = {}) => ({ text, strikethrough: false, serialDate: undefined, backgroundHex: '', ...extra });
+const cell = (text, extra = {}) => ({ text, serialDate: undefined, backgroundHex: '', ...extra });
 const rowOf = (...texts) => texts.map((text) => (typeof text === 'string' ? cell(text) : text));
 
 function lineupRows(playerRows) {
@@ -15,9 +15,9 @@ function lineupRows(playerRows) {
     rowOf('Location:', 'Marie Reed', '', ''),
     rowOf('Label:', '', '', ''),
     rowOf('Result:', 'W, 12-0', '', ''),
-    rowOf('Name', '', '1', '2'),
+    rowOf('Name', 'RSVP', '1', '2'),
     ...playerRows,
-    rowOf('Acceptable', '', '', ''),
+    rowOf('Open spots', '', '', ''),
   ];
 }
 
@@ -33,7 +33,7 @@ test('tab names match whatever the capitalization', () => {
 });
 
 test('a tab with only the grid labels reads with blank game details', () => {
-  const rows = [rowOf('Name', '', '1', '2'), rowOf('Chad S', '', 'SS', 'P'), rowOf('Open spots', '', '', '')];
+  const rows = [rowOf('Name', 'RSVP', '1', '2'), rowOf('Chad S', '', 'SS', 'P'), rowOf('Open spots', '', '', '')];
   const lineup = readLineup('week 7 lineup', rows);
   assert.deepEqual([lineup.opponent, lineup.date, lineup.time, lineup.location, lineup.resultText, lineup.played, lineup.label], ['', '', '', '', '', false, 'week 7']);
   assert.deepEqual(lineup.players.map((player) => player.name), ['Chad S']);
@@ -46,36 +46,9 @@ test('blank rows inside the grid are reported as spare rows', () => {
   assert.deepEqual(lineup.players.map((player) => player.sheetRow), [8, 10]);
 });
 
-test('strikethrough names are not attending and keep sheet order', () => {
-  const rows = lineupRows([
-    rowOf('Chad S', '', 'SS', 'P'),
-    rowOf(cell('Amy B', { strikethrough: true }), '', '', ''),
-  ]);
-  const lineup = readLineup('Game 2 Lineup', rows);
-  assert.deepEqual(lineup.players.map((player) => [player.name, player.attending]), [['Chad S', true], ['Amy B', false]]);
-  assert.deepEqual(lineup.innings, ['1', '2']);
-  assert.equal(lineup.played, true);
-});
-
-test('kick numbers order the batting lineup and blank means absent', () => {
-  const rows = lineupRows([
-    rowOf('Chad S', '2', 'SS', 'P'),
-    rowOf('Emma E', '1', 'P', 'SS'),
-    rowOf('Amy B', '', '', ''),
-  ]);
-  const lineup = readLineup('Game 2 Lineup', rows);
-  assert.deepEqual(lineup.players.map((player) => player.name), ['Emma E', 'Chad S', 'Amy B']);
-  assert.equal(lineup.players[2].attending, false);
-  assert.equal(lineup.editable, false);
-});
-
 test('a missing label names the tab', () => {
   assert.throws(() => readLineup('Game 9 Lineup', [rowOf('Name', '', '1')]), /Tab "Game 9 Lineup" needs/);
-});
-
-test('a bad kick number fails loudly', () => {
-  const rows = lineupRows([rowOf('Chad S', '2', 'SS', 'P'), rowOf('Emma E', 'two', 'P', 'SS')]);
-  assert.throws(() => readLineup('Game 2 Lineup', rows), /kick number for "Emma E"/);
+  assert.throws(() => readLineup('Game 9 Lineup', [rowOf('Name', '', '1'), rowOf('Open spots', '', '')]), /Tab "Game 9 Lineup" needs "RSVP"/);
 });
 
 test('config defaults apply without a Team Config tab and colors come from fills', () => {
@@ -105,17 +78,17 @@ test('Sheets API rows are padded and colors converted', () => {
   assert.equal(rows[2][1].text, '');
 });
 
-function rsvpRows(playerRows, { gameNumber = '2', endLabel = 'Open spots' } = {}) {
+function rsvpRows(playerRows, { gameNumber = '2' } = {}) {
   return [
     rowOf('Game #:', gameNumber, '', '', '', '', ''),
     rowOf('Date:', cell('10/1/26', { serialDate: 46296 }), '', '', '', '', ''),
     rowOf('Time:', '7:00 PM', '', '', '', '', ''),
     rowOf('Location:', 'Marie Reed', '', '', '', '', ''),
     rowOf('Opponent:', 'The Burning Bushes', '', '', '', '', ''),
-    rowOf('Notes:', '', '', '', '', '', ''),
+    rowOf('Result:', '', '', '', '', '', ''),
     rowOf('Name', 'RSVP', '1', '2', 'Prefers', "Won't play"),
     ...playerRows,
-    rowOf(endLabel, '', '', '', '', ''),
+    rowOf('Open spots', '', '', '', '', ''),
   ];
 }
 
@@ -131,7 +104,6 @@ test('an RSVP column marks Maybe and blank as attending and No as absent', () =>
   assert.deepEqual(lineup.innings, ['1', '2']);
   assert.deepEqual(lineup.players[0].positions, ['SS', 'P']);
   assert.deepEqual(lineup.players.map((player) => player.rsvp), ['yes', 'maybe', '', 'no']);
-  assert.equal(lineup.usesRsvp, true);
 });
 
 test('position preferences never reach the lineup', () => {
@@ -141,25 +113,9 @@ test('position preferences never reach the lineup', () => {
   assert.equal(serialized.includes('LF, RF'), false);
 });
 
-test('a struck-through name is absent even when the RSVP says Yes', () => {
-  const rows = rsvpRows([rowOf(cell('Chad S', { strikethrough: true }), 'Yes', 'SS', 'P', '', '')]);
-  assert.equal(readLineup('Game 2 Lineup', rows).players[0].attending, false);
-});
-
-test('RSVP rows keep sheet order and ignore kick numbers', () => {
-  const rows = rsvpRows([rowOf('Chad S', 'Yes', 'SS', 'P', '', ''), rowOf('Emma E', 'Yes', 'P', 'SS', '', '')]);
-  const lineup = readLineup('Game 2 Lineup', rows);
-  assert.deepEqual(lineup.players.map((player) => [player.name, player.kickNumber]), [['Chad S', null], ['Emma E', null]]);
-});
-
 test('an unknown RSVP fails loudly', () => {
   const rows = rsvpRows([rowOf('Chad S', 'Yes', 'SS', 'P', '', ''), rowOf('Emma E', 'Probably', 'P', 'SS', '', '')]);
   assert.throws(() => readLineup('Game 2 Lineup', rows), /RSVP for "Emma E" must be Yes, Maybe, No or blank/);
-});
-
-test('the Acceptable label still ends the grid', () => {
-  const rows = rsvpRows([rowOf('Chad S', 'Yes', 'SS', 'P', '', '')], { endLabel: 'Acceptable' });
-  assert.equal(readLineup('Game 2 Lineup', rows).players.length, 1);
 });
 
 test('the label comes from the game number and date, or the tab name', () => {
@@ -184,7 +140,7 @@ test('lineups are ordered by game number and a repeated number hides the later t
   assert.deepEqual(orderedLineups(unnumbered), { lineups: unnumbered, problems: [] });
 });
 
-test('players carry their sheet row, skipping blank rows, and RSVP lineups can be edited', () => {
+test('players carry their sheet row, skipping blank rows', () => {
   const lineup = readLineup('Game 2 Lineup', rsvpRows([
     rowOf('Chad S', 'Yes', 'SS', 'P', '', ''),
     rowOf('', '', '', '', '', ''),
@@ -192,13 +148,12 @@ test('players carry their sheet row, skipping blank rows, and RSVP lineups can b
   ]), '2026-10-18');
   assert.deepEqual(lineup.players.map((player) => [player.name, player.sheetRow]), [['Chad S', 8], ['Emma E', 10]]);
   assert.deepEqual(lineup.inningColumns, [2, 3]);
-  assert.equal(lineup.editable, true);
 });
 
 test('the date on a game tab is exposed as an ISO date', () => {
   const lineup = readLineup('Game 2 Lineup', lineupRows([rowOf('Chad S', '', 'SS', 'P')]));
   assert.equal(lineup.isoDate, '2026-10-01');
-  assert.equal(readLineup('week 7 lineup', [rowOf('Name', '', '1'), rowOf('Open spots', '', '')]).isoDate, '');
+  assert.equal(readLineup('week 7 lineup', [rowOf('Name', 'RSVP', '1'), rowOf('Open spots', '', '')]).isoDate, '');
 });
 
 test('the default game is the next one by date, otherwise the latest, regardless of game number', () => {
@@ -234,15 +189,6 @@ test('a game with a recorded result counts as played and anything else does not'
 test('a Label row replaces the generated game name', () => {
   const rows = lineupRows([rowOf('Chad S', '', 'SS', 'P')]).map((row) => (row[0].text === 'Label:' ? rowOf('Label:', 'Semifinal', '', '') : row));
   assert.equal(readLineup('Game 2 Lineup', rows).label, 'Semifinal');
-});
-
-test('a tab with a Notes row instead of a Result row still reads its result', () => {
-  const rows = lineupRows([rowOf('Chad S', '', 'SS', 'P')])
-    .filter((row) => row[0].text !== 'Label:')
-    .map((row) => (row[0].text === 'Result:' ? rowOf('Notes:', 'W, 12-0', '', '') : row));
-  const lineup = readLineup('Game 2 Lineup', rows);
-  assert.equal(lineup.resultText, 'W, 12-0');
-  assert.equal(lineup.played, true);
 });
 
 test('games marked Yes in the Archived column of the Schedule are listed by Game #', () => {

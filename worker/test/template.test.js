@@ -9,7 +9,7 @@ function parserRows(rowData) {
   return rowData.map(({ values }) => values.map((cellData) => {
     const entered = cellData.userEnteredValue ?? {};
     const text = entered.stringValue ?? (entered.numberValue === undefined ? '' : String(entered.numberValue));
-    return { text, strikethrough: false, serialDate: entered.numberValue, backgroundHex: '' };
+    return { text, serialDate: entered.numberValue, backgroundHex: '' };
   }));
 }
 
