@@ -166,6 +166,7 @@ async function captainAccess(request, slug, environment) {
 
 async function handleTeam(request, slug, isComment, environment, context) {
   if (!isComment) {
+    if (request.method !== 'GET') throw new Error('This address only answers reads. Suggestions go to its /comment address');
     const payload = await teamPayload(slug, environment, context);
     const requestedTab = new URL(request.url).searchParams.get('tab');
     if (requestedTab === null) return payload;
