@@ -2,7 +2,7 @@
 
 A lineup page for a kickball team. The captain keeps the lineup in a Google Sheet, and players open one link on their phone to see who plays where in each inning, the kicking order, a whole-game table and season totals. Captains and co-captains can also edit the lineup from the same page. There is nothing to install.
 
-It is free, needs no player accounts, and keeps all data in the captain's own Google Sheet. Most team apps cover scheduling and chat, or scoring, and the few that plan fielding are mostly paid. See [release readiness](docs/release-readiness.md) for how it compares, its strengths and weaknesses, and what is left before a wider release.
+It is free, needs no player accounts, and keeps all data in the captain's own Google Sheet. Most team apps cover scheduling and chat, or scoring, and the few that plan fielding are mostly paid.
 
 Screenshots use made-up players.
 
@@ -31,19 +31,6 @@ Screenshots use made-up players.
 
 Players need no app, account or sign-in. Nothing is installed in the sheet and there is no script to paste or deploy. The app asks Google for one permission, `drive.file`. It lets the app see only the sheet it created, never the rest of your Drive.
 
-The `Team Config` tab has eight settings, which a captain can also change from **Team** in Captain tools: team name, season label, icon, main color, second color, stripe (Blend or Rainbow), font and the suggestion box. The color cells take their fill color: click the box, then the paint bucket in the toolbar. White is a valid value. Everything else (page background, text, borders, highlights) is worked out from the two colors. The `Roster` and `Schedule` tabs feed the game tabs and are never sent to players.
-
-## The team sheet
-
-- `Schedule` holds each game's date, time, location, opponent, label and result once. A game tab looks its details up by the number in its `Game #:` cell. A playoff or makeup game can use text like `P1` in place of a number.
-- `Start here` is the first tab. It holds the team link for players and the Captain link for you and any co-captain, as plain text to copy. A new sheet starts empty and hides the tabs the page manages (`Positions`, `Team Config` and `New game (copy me)`). View, then Hidden sheets, brings them back.
-- To add games, use **Games** in Captain tools, or duplicate the `New game (copy me)` tab, rename the copy so it ends with `Lineup`, and type its number in the `Game #:` cell. A copy keeps the old number until you change it, and the page hides a tab whose number another tab already uses. The blank tab is ignored until it is renamed.
-- The lookup cells in a game tab show a red corner flag if someone types over their formula. The warning is a validation rule, so it carries over when a tab is duplicated.
-- `Roster` can be edited from **Team** in Captain tools, and holds each player's name, the positions they prefer and the positions they won't play, private notes, a pronouns column and a Kicking column (Bunt, Power or Mixed). The Kicking tab in Captain tools shows each kicker's style beside their name. Subs go on the roster like anyone else and are added to a game's grid when they play.
-- In a game tab, the `RSVP` column takes Yes, Maybe or No as replies come in. A blank cell next to a name is gray, meaning no reply yet. Blank and Maybe players are still planned for, and a No turns the row gray.
-- The `Prefers` and `Won't play` columns after the innings fill in from the roster. A preferred position turns green in the grid and a won't-play position turns red. These columns are never sent to players.
-- The `Open spots` row under the grid lists the positions nobody is covering in each inning, and a position given to two players turns orange.
-
 ## Captain tools
 
 Under the team page, **Captain tools** lets anyone who can edit the sheet change the lineup from their phone, so a game can be planned or adjusted without opening the Sheets app.
@@ -66,6 +53,21 @@ Under the team page, **Captain tools** lets anyone who can edit the sheet change
 - **Undo:** reverses the last saved change, and keeps going back through earlier ones. Undoing new lineup tabs deletes those tabs. Unsaved form changes are not on the list. **Reset** discards them.
 - **Opening on the right game:** the team page opens on the next game by date, or the most recent one once the season is over.
 - Edits are written to the sheet with your own account, so the sheet's version history shows who made them. If the sheet changed since the page last updated, nothing is saved and the page says so.
+
+## Editing the sheet by hand
+
+None of this is required. Captain tools does all of it, and the sheet is there if you prefer it.
+
+The `Team Config` tab has eight settings, which a captain can also change from **Team** in Captain tools: team name, season label, icon, main color, second color, stripe (Blend or Rainbow), font and the suggestion box. The color cells take their fill color: click the box, then the paint bucket in the toolbar. White is a valid value. Everything else (page background, text, borders, highlights) is worked out from the two colors. The `Roster` and `Schedule` tabs feed the game tabs and are never sent to players.
+
+- `Schedule` holds each game's date, time, location, opponent, label and result once. A game tab looks its details up by the number in its `Game #:` cell. A playoff or makeup game can use text like `P1` in place of a number.
+- `Start here` is the first tab. It holds the team link for players and the Captain link for you and any co-captain, as plain text to copy. A new sheet starts empty and hides the tabs the page manages (`Positions`, `Team Config` and `New game (copy me)`). View, then Hidden sheets, brings them back.
+- To add games, use **Games** in Captain tools, or duplicate the `New game (copy me)` tab, rename the copy so it ends with `Lineup`, and type its number in the `Game #:` cell. A copy keeps the old number until you change it, and the page hides a tab whose number another tab already uses. The blank tab is ignored until it is renamed.
+- The lookup cells in a game tab show a red corner flag if someone types over their formula. The warning is a validation rule, so it carries over when a tab is duplicated.
+- `Roster` can be edited from **Team** in Captain tools, and holds each player's name, the positions they prefer and the positions they won't play, private notes, a pronouns column and a Kicking column (Bunt, Power or Mixed). The Kicking tab in Captain tools shows each kicker's style beside their name. Subs go on the roster like anyone else and are added to a game's grid when they play.
+- In a game tab, the `RSVP` column takes Yes, Maybe or No as replies come in. A blank cell next to a name is gray, meaning no reply yet. Blank and Maybe players are still planned for, and a No turns the row gray.
+- The `Prefers` and `Won't play` columns after the innings fill in from the roster. A preferred position turns green in the grid and a won't-play position turns red. These columns are never sent to players.
+- The `Open spots` row under the grid lists the positions nobody is covering in each inning, and a position given to two players turns orange.
 
 ## How it works
 
