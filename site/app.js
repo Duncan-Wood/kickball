@@ -58,7 +58,7 @@ async function readApiResponse(response) {
     throw new Error('That link did not answer with lineup data. Check that the share link is complete.');
   }
   if (typeof data.apiVersion !== 'number') throw new Error('That link did not answer like a lineup script.');
-  if (data.apiVersion < MINIMUM_API_VERSION) throw new Error('This page is out of date. Reload it to try again.');
+  if (data.apiVersion < MINIMUM_API_VERSION) throw new Error('The lineup service is behind this page. Try again in a few minutes.');
   if (!data.ok) {
     const failure = new Error(data.error);
     failure.reconnect = data.reconnect === true;
@@ -81,7 +81,7 @@ async function apiGet(query) {
 }
 
 async function apiPost(body) {
-  return readApiResponse(await fetchFromScript(scriptAddress(), {
+  return readApiResponse(await fetchFromScript(scriptAddress() + '/comment', {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify(body),
@@ -498,7 +498,7 @@ async function refresh() {
   } catch (error) {
     refreshInFlight = false;
     failedRefreshes += 1;
-    showFailure('Live update failed, showing the lineup from ' + describeAge(lastGoodAt), error);
+    showFailure('Live update failed, showing the lineup from ' + describeAge(lastGoodAt), error, { retrying: true });
     scheduleRefresh();
     return;
   }
@@ -580,21 +580,24 @@ async function submitCommentForm(event) {
   commentToggleResetTimer = setTimeout(resetCommentToggle, COMMENT_CONFIRMATION_MILLISECONDS);
 }
 
-function showFailure(title, error) {
+function showFailure(title, error, { retrying = false } = {}) {
   const panel = document.getElementById('error-panel');
   const heading = document.createElement('strong');
   heading.textContent = title;
   const detail = document.createElement('div');
   detail.textContent = error instanceof Error ? error.message : String(error);
-  const hint = document.createElement('div');
-  hint.className = 'error-hint';
-  hint.textContent = 'This page keeps trying on its own.';
-  panel.replaceChildren(heading, detail, hint);
-  if (error instanceof Error && error.reconnect === true) {
-    const reconnectLink = document.createElement('a');
-    reconnectLink.href = new URL('start.html?reconnect=' + teamCode, location.href).href;
-    reconnectLink.textContent = 'Captain: reconnect here';
-    hint.append(' ', reconnectLink);
+  panel.replaceChildren(heading, detail);
+  if (retrying) {
+    const hint = document.createElement('div');
+    hint.className = 'error-hint';
+    hint.textContent = 'This page keeps trying on its own.';
+    if (error instanceof Error && error.reconnect === true) {
+      const reconnectLink = document.createElement('a');
+      reconnectLink.href = new URL('start.html?reconnect=' + teamCode, location.href).href;
+      reconnectLink.textContent = 'Captain: reconnect here';
+      hint.append(' ', reconnectLink);
+    }
+    panel.append(hint);
   }
   panel.hidden = false;
 }
@@ -654,7 +657,7 @@ async function loadLineups() {
     }
     start(saved);
     showUpdated(saved.savedAt);
-    showFailure('Showing the lineup saved ' + describeAge(saved.savedAt), error);
+    showFailure('Showing the lineup saved ' + describeAge(saved.savedAt), error, { retrying: true });
     return;
   }
   start(data);
@@ -663,7 +666,7 @@ async function loadLineups() {
 }
 
 function showLoadFailure(error) {
-  showFailure('Could not load the lineups', error);
+  showFailure('Could not load the lineups', error, { retrying: true });
   document.getElementById('status').textContent = 'Trying again…';
   failedLoads += 1;
   setTimeout(loadLineups, Math.min(FIRST_LOAD_RETRY_MILLISECONDS * 2 ** (failedLoads - 1), LONGEST_RETRY_MILLISECONDS));
@@ -705,7 +708,10 @@ window.fieldView = {
 if (TEAM_CODE_PATTERN.test(teamCode || '')) {
   loadLineups();
 } else {
-  document.getElementById('status').textContent = 'This link is missing its team code. Ask your captain for the share link, or set up your own team at start.html.';
+  const setupLink = document.createElement('a');
+  setupLink.href = 'start.html';
+  setupLink.textContent = 'set up your own team';
+  document.getElementById('status').replaceChildren('This link is missing its team code. Ask your captain for the team link, or ', setupLink, '.');
 }
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');

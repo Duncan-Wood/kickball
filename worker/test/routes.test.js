@@ -27,6 +27,16 @@ test('unknown paths and malformed team codes are 404s that still carry the API v
   }
 });
 
+test('a POST to the read address is refused, so a suggestion sent there cannot look saved', async () => {
+  const environment = await environmentWithTeam();
+  await withGoogle(googleWithLineups([]), async (calls) => {
+    const body = await answer(post(`/api/team/${SLUG}`, { action: 'comment', tab: 'Game 1 Lineup', text: 'hello' }), environment);
+    assert.equal(body.ok, false);
+    assert.match(body.error, /only answers reads/);
+    assert.equal(calls.length, 0);
+  });
+});
+
 test('a team code nobody connected is refused without calling Google', async () => {
   const environment = await environmentWithTeam();
   await withGoogle(googleWithLineups([]), async (calls) => {
