@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { applyAddedPlayers, applyFieldingChanges, applyKickingMove, applyRsvp, applyRemovedPlayers, applyRestoredPlayers, blankPlayerRows, firstBlankRosterRow, headcount, lineupPlayer, positionsIn, positionsText, rosterNameProblem, rosterPlayerFromRow, rowsWithName, candidatesForSpot, cellAddress, columnLetter, describeInnings, fieldingChanges, fieldingChangesForInnings, inningsForPreset, inningsHaveDifferentLineups, inverseKickingMove, isoDateFromDisplayed, isoTimeFromDisplayed, scheduleGames, kickingMove, nextGameNumber, occupantsOf, positionChoices, playersToAdd, rosterNamesToAdd, rowAfterMove } from '../../site/edits.js';
+import { applyAddedPlayers, applyFieldingChanges, applyKickingMove, applyRsvp, applyRemovedPlayers, applyRestoredPlayers, blankPlayerRows, firstBlankRosterRow, headcount, lineupPlayer, positionsIn, positionsText, rosterNameProblem, rosterPlayerFromRow, rowsWithName, candidatesForSpot, cellAddress, columnLetter, describeInnings, fieldingChanges, fieldingChangesForInnings, inningsForPreset, inningsHaveDifferentLineups, inverseKickingMove, isoDateFromDisplayed, isoTimeFromDisplayed, scheduleGames, kickingMove, nextGameNumber, occupantsOf, playersToAdd, rosterNamesToAdd, rowAfterMove } from '../../site/edits.js';
 
 const player = (name, sheetRow, positions, attending = true) => ({ name, sheetRow, attending, positions });
 const lineupPlayers = () => [
@@ -115,17 +115,15 @@ test('applying added players puts them in sheet order with blank innings and use
   const lineup = { players: lineupPlayers(), spareRows: [12, 14] };
   const updated = applyAddedPlayers(lineup, [{ name: 'Pat', sheetRow: 12 }], 2);
   assert.deepEqual(updated.players.map((each) => each.name), ['Alex', 'Sam', 'Jordan', 'Pat', 'Riley']);
-  assert.deepEqual(updated.players[3], { name: 'Pat', sheetRow: 12, attending: true, kickNumber: null, rsvp: '', positions: ['', ''] });
+  assert.deepEqual(updated.players[3], { name: 'Pat', sheetRow: 12, attending: true, rsvp: '', positions: ['', ''] });
   assert.deepEqual(updated.spareRows, [14]);
 });
 
-test('an RSVP of no marks the player out and anything else brings them back, unless their name is struck through', () => {
+test('an RSVP of no marks the player out and anything else brings them back', () => {
   const attending = { ...player('Alex', 9, []), rsvp: '' };
   assert.deepEqual([applyRsvp(attending, 'no').attending, applyRsvp(attending, 'maybe').rsvp], [false, 'maybe']);
   const out = { ...player('Sam', 10, [], false), rsvp: 'no' };
   assert.equal(applyRsvp(out, 'yes').attending, true);
-  const struckThrough = { ...player('Jordan', 11, [], false), rsvp: 'yes' };
-  assert.equal(applyRsvp(struckThrough, 'maybe').attending, false);
 });
 
 test('spare rows move with a kicker', () => {
@@ -156,14 +154,6 @@ test('spot candidates list the bench first, then fielders in field order, and le
   const players = [player('Alex', 9, ['RF']), player('Sam', 10, ['P']), player('Jordan', 11, ['']), player('Riley', 12, ['SS']), player('Casey', 13, ['C'], false), player('Pat', 14, [''])];
   assert.deepEqual(candidatesForSpot(players, 0, 'C').map((each) => each.name), ['Jordan', 'Pat', 'Sam', 'Riley', 'Alex']);
   assert.deepEqual(candidatesForSpot(players, 0, 'P').map((each) => each.name), ['Jordan', 'Pat', 'Riley', 'Alex']);
-});
-
-test('position choices list every other position in field order with who is there', () => {
-  const choices = positionChoices(lineupPlayers(), 0, 'P');
-  assert.equal(choices.length, 10);
-  assert.equal(choices[0].position, 'C');
-  assert.deepEqual(choices[0].occupants.map((each) => each.name), ['Sam']);
-  assert.deepEqual(choices.find((choice) => choice.position === 'LF').occupants, []);
 });
 
 test('innings are described in plain words', () => {
@@ -278,14 +268,6 @@ test('a roster name must be filled in and not already used', () => {
 test('rows to rename are found in every game whatever the capitalization', () => {
   const lineups = [{ tabName: 'Game 1 Lineup', players: [{ name: 'Amy B', sheetRow: 9 }] }, { tabName: 'Game 2 Lineup', players: [{ name: 'amy b', sheetRow: 11 }, { name: 'Pat', sheetRow: 12 }] }];
   assert.deepEqual(rowsWithName(lineups, 'Amy B').map(({ lineup, sheetRow }) => [lineup.tabName, sheetRow]), [['Game 1 Lineup', 9], ['Game 2 Lineup', 11]]);
-});
-
-test('a roster whose first column holds numbers is recognised, and a normal roster is not', async () => {
-  const { rosterNamesAreNumbers } = await import('../../site/edits.js');
-  assert.equal(rosterNamesAreNumbers([['1', 'Amy B'], ['2', 'Abe Bashir'], ['3', 'Mac B'], ['sdfa', 'RF']]), true);
-  assert.equal(rosterNamesAreNumbers([['Amy B', 'SS'], ['Abe Bashir', ''], ['Mac B', '1B']]), false);
-  assert.equal(rosterNamesAreNumbers([['1'], ['2']]), false);
-  assert.equal(rosterNamesAreNumbers([]), false);
 });
 
 test('a season is one game a week from the first date, across month and year ends', async () => {

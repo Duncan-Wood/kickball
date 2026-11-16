@@ -6,7 +6,7 @@ import { archivedGameIds, defaultLineupTabName, isCurrentLineupTab, orderedLineu
 const SHEETS_ADDRESS = 'https://sheets.googleapis.com/v4/spreadsheets';
 const DRIVE_FILES_ADDRESS = 'https://www.googleapis.com/drive/v3/files';
 const SHEET_GONE_MESSAGE = 'This team\'s sheet was deleted from Google Drive. Ask your captain to set the team up again';
-const CELL_FIELDS = 'formattedValue,effectiveValue.numberValue,effectiveFormat(textFormat.strikethrough,backgroundColor)';
+const CELL_FIELDS = 'formattedValue,effectiveValue.numberValue,effectiveFormat.backgroundColor';
 
 export class SheetGoneError extends Error {}
 
@@ -32,14 +32,13 @@ export function normalizedRows(sheet) {
   const rowData = sheet.data?.[0]?.rowData ?? [];
   const rows = rowData.map((row) => (row.values ?? []).map((cell) => ({
     text: cell.formattedValue ?? '',
-    strikethrough: cell.effectiveFormat?.textFormat?.strikethrough === true,
     serialDate: cell.effectiveValue?.numberValue,
     backgroundHex: cell.effectiveFormat?.backgroundColor === undefined
       ? ''
       : `#${channelHex(cell.effectiveFormat.backgroundColor.red)}${channelHex(cell.effectiveFormat.backgroundColor.green)}${channelHex(cell.effectiveFormat.backgroundColor.blue)}`,
   })));
   const width = Math.max(0, ...rows.map((row) => row.length));
-  const emptyCell = () => ({ text: '', strikethrough: false, serialDate: undefined, backgroundHex: '' });
+  const emptyCell = () => ({ text: '', serialDate: undefined, backgroundHex: '' });
   return rows.map((row) => row.concat(Array.from({ length: width - row.length }, emptyCell)));
 }
 
