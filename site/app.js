@@ -341,12 +341,9 @@ function seasonTotals(playedLineups) {
 
 function renderSeason() {
   const playedLineups = lineups.filter((lineup) => lineup.played);
-  const playedGameNames = playedLineups.map((lineup) => {
-    return lineup.resultText === '' ? lineup.label : lineup.label + ' ' + describeResult(lineup);
-  });
   document.getElementById('subtitle').textContent = playedLineups.length === 0
     ? 'Season totals: no games played yet'
-    : 'Season totals in innings, counting games already played: ' + playedGameNames.join(', ') + '. A game is added once its result is entered.';
+    : `Season totals in innings · ${playedLineups.length} of ${lineups.length} games played`;
   const headerRow = tableRow([
     tableCell('th', 'Player', 'name'),
     ...['Games', 'Played', 'Sat', 'Infield', 'Outfield'].map((heading) => tableCell('th', heading)),
@@ -411,7 +408,7 @@ function populateGameOptions() {
   game.replaceChildren(...lineups.map((lineup) => {
     const option = document.createElement('option');
     option.value = lineup.tabName;
-    option.textContent = lineup.label;
+    option.textContent = lineup.date === '' || lineup.label.includes(lineup.date) ? lineup.label : `${lineup.label} (${lineup.date})`;
     return option;
   }));
 }
