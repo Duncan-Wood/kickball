@@ -13,7 +13,7 @@ Screenshots use made-up players.
 ## Features
 
 - Pick a game and an inning to see who plays each of the 11 positions
-- A position given to two players is flagged in red, and so is an absent player who still has a position. An open position is flagged only while someone is sitting, so a team with 8 to 10 players sees plain "open" chips instead of errors
+- A position given to two players is flagged in red. An open position is flagged only while someone is sitting, so a team of 8 to 10 sees plain "open" chips instead of errors
 - Game date, time, location, opponent and final score
 - Kicking order and the players sitting each inning
 - Whole-game table with innings played per player
@@ -50,13 +50,20 @@ Under the team page, **Captain tools** lets anyone who can edit the sheet change
 
 - **Who sees the link:** The Captain tools link is hidden from players. A captain or co-captain opens the team link once with `#captain` on the end, like `https://.../?team=abc123#captain`. After a successful sign-in the device remembers, and the link shows on its own.
 - **Signing in:** Sign in with Google and the page checks that your account can edit the team sheet. A co-captain who was shared the sheet picks it once in Google's file picker. Each visit starts with a Google sign-in, and the page keeps no sign-in afterward.
-- **Field:** tap a position and a panel slides up under the field listing who can play there, with the players sitting first and each player's current position beside their name. Tap someone to put them there, which swaps them with whoever held the spot. When the spot was open, the panel moves on to the next open position, so a lineup can be filled in by tapping down the list. Tap a sitting player to place them by tapping a position on the field. On a computer you can also drag a player onto a position.
-- **Edit innings:** changes apply to the inning on screen. To change several at once, tap more innings in the **Edit innings** row, or use **Odd**, **Even** or **All**. A captain who alternates two lineups can select the odd innings, set that lineup, then select the even innings and set the other. A note below the row says which innings a change will touch.
-- **Kicking:** tap a kicker, then tap the numbered spot in the order they should take.
-- **Players:** a headcount at the top shows how many are playing and warns below 8, and the same number sits on the **Players** button. Set each player's RSVP to Yes, Maybe or No. Marking someone No also clears their positions in every inning. The **×** beside a name removes them from this game, and a name tapped under **Add from the roster** goes into the next empty row after the last player, so late arrivals land at the end of the kicking order.
-- **Games:** lists every game on the `Schedule` tab with its date, time, place, opponent and whether it has a lineup tab. Tap a game to edit its details. **Label** is the name shown in place of "Game 7", like `Semifinal`, and **Result** is free text such as `Won 9-5`, **Add a game** for a reschedule or playoff (its Game # can be a number or text like `P1`), and **Set up lineups** to create a lineup tab for every game that has a date and no tab yet. Each new tab starts with everyone on the `Roster` tab (names in column A, not numbers) and no replies, so a captain only has to mark who is coming. **Archive** writes `Yes` in the Schedule's `Archived` column, so players stop seeing the game and it drops out of the Games list. The lineup tab, the row and its result stay. Undo reverses it, and to bring a game back later, clear its `Archived` cell. It only appears for sheets that have the `Schedule` and `New game (copy me)` tabs.
-- **Team:** two views. **Settings** is the eight `Team Config` settings as a form (name, season label, icon, main and second color, stripe, font and the suggestion box) with the team link and a Copy button. Changes show on the page as you make them, and **Save** writes them to the `Team Config` tab. **Roster** lists everyone on the `Roster` tab, one compact row each. A roster whose first column holds numbers is refused with a message, because the page would read the numbers as names. Tap a name to change their name, preferred and won't-play positions, pronouns or notes, or remove them, and use **Add a player** for someone new. Renaming a player also renames them in every game. Removing someone does not take them out of games already set up. Undo reverses any of these. Settings appears for sheets with a `Team Config` tab and Roster for sheets with a `Roster` tab.
-- **Undo:** the **Undo** button in the top bar reverses the last field move, kicking move, RSVP, added or removed player, roster change, team setting, game detail, archived game or set of new lineup tabs, and keeps going back through earlier ones. Undoing new lineup tabs deletes those tabs. Changes in a form that have not been saved yet are not on the Undo list. **Reset** discards them.
+- **Start:** a four-step checklist for a new team: add players, add games, set up lineups, send the link. It goes away once the team is set up.
+- **Field:** tap a position, then pick a player from the panel. They swap with whoever held the spot. After an open spot is filled, the panel moves to the next open one. To place a sitting player, tap them, then a position. You can also drag a player: with a mouse, or on a phone by holding their name for a moment first.
+- **Apply changes to:** a change applies to the inning on screen. Choose **Odd**, **Even** or **All** to apply it to several innings at once.
+- **Kicking:** tap a kicker, then the spot they should take. Each kicker's style from the roster shows beside their name.
+- **Players:** a headcount shows how many are playing and warns below 8. Set each player's RSVP to Yes, Maybe or No. No takes a player off the field and out of the kicking order, and keeps their positions in case they come back. The **×** removes them from this game. A name tapped under **Add from the roster** goes after the last player, so late arrivals kick last.
+- **Games:** every game on the `Schedule` tab. Tap one to edit its date, time, location, opponent, **Label** (shown in place of "Game 7", like `Semifinal`) and **Result** (free text, like `Won 9-5`).
+  - **Add a season** fills an empty schedule from a first date and a number of weekly games.
+  - **Add a game** is for a reschedule or playoff. Its Game # can be a number or text like `P1`.
+  - **Set up lineups** creates a lineup tab for every dated game that has none. Each starts with the whole roster and no replies.
+  - **Archive** hides a game from players and from this list. Clear its `Archived` cell in the sheet to bring it back.
+- **Team:** two views.
+  - **Settings** is the eight `Team Config` settings as a form, with Copy buttons for the team link and the co-captain link. Changes preview as you make them, and **Save** keeps them.
+  - **Roster** lists everyone on the `Roster` tab. Tap a name to change their name, preferred and won't-play positions, kicking style, pronouns or notes, or to remove them. **Add a player** adds one, and **Add several** takes one name per line. Renaming a player renames them in every game. Removing someone leaves them in games already set up.
+- **Undo:** reverses the last saved change, and keeps going back through earlier ones. Undoing new lineup tabs deletes those tabs. Unsaved form changes are not on the list. **Reset** discards them.
 - **Opening on the right game:** the team page opens on the next game by date, or the most recent one once the season is over.
 - Edits are written to the sheet with your own account, so the sheet's version history shows who made them. If the sheet changed since the page last updated, nothing is saved and the page says so.
 - Sheets that number the kicking order in column B are edited in the sheet.
@@ -111,9 +118,9 @@ A fork needs its own Worker URL, Google client id and Picker API key in `site/se
 
 - The field always has the 11 positions above, and the template has 5 innings.
 - Each uncached sheet read uses two Google Sheets calls, and Google allows 300 read requests a minute per project, so the number of teams watched at the same moment is limited.
-- Anyone with the team link sees the lineups, including game notes. Stop sharing is the only way to revoke it.
+- Anyone with the team link sees the lineups and results. Stop sharing is the only way to revoke it.
 - Players cannot reply to RSVPs themselves. The captain enters them.
-- The page has no dark mode, and the field is not yet reachable by keyboard.
+- The page has no dark mode.
 - A game counts toward season totals once its result is entered, so a rained-out game never counts.
 - Date and time appear exactly as the lineup tab displays them.
 - A sheet where positions run down the side and names fill the cells is not read. Players go in rows and positions are codes.
