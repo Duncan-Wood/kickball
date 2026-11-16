@@ -169,9 +169,13 @@ function svgElement(tag, attributes, text) {
   return element;
 }
 
+function showsLineupProblems() {
+  return window.captainTools?.isActive?.() === true;
+}
+
 function drawChip(position, playerNames, openIsProblem) {
   const [x, y] = FIELD_SPOTS[position];
-  const isProblem = playerNames.length > 1 || (playerNames.length === 0 && openIsProblem);
+  const isProblem = showsLineupProblems() && (playerNames.length > 1 || (playerNames.length === 0 && openIsProblem));
   const name = playerNames.length === 0 ? 'open' : playerNames.join(' + ');
   const chip = svgElement('g', {
     class: isProblem ? 'chip problem' : playerNames.length === 0 ? 'chip open' : 'chip',
@@ -233,7 +237,7 @@ function renderInning() {
 
   const chips = document.getElementById('chips');
   chips.replaceChildren(...Object.keys(FIELD_SPOTS).map((position) => drawChip(position, inning.playersByPosition[position] || [], inning.openIsProblem)));
-  document.getElementById('problems').textContent = inning.problems.join(' · ');
+  document.getElementById('problems').textContent = showsLineupProblems() ? inning.problems.join(' · ') : '';
 
   const kickers = selectedLineup.players.filter((player) => player.attending);
   renderNameList('kicking-order', 'Kicking order', kickers, true);
@@ -306,7 +310,7 @@ function renderWholeGame() {
     if (innings.length === selectedLineup.innings.length) return problem + ' every inning';
     return problem + (innings.length === 1 ? ' in inning ' : ' in innings ') + innings.join(', ');
   });
-  document.getElementById('problems').textContent = problems.join(' · ');
+  document.getElementById('problems').textContent = showsLineupProblems() ? problems.join(' · ') : '';
   document.getElementById('bench').replaceChildren();
   document.getElementById('kicking-order').replaceChildren();
 }

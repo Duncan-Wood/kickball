@@ -107,5 +107,5 @@ element('captain-panel').addEventListener('keydown', (event) => {
   if (event.key === 'Enter' && event.target.tagName === 'SELECT') event.preventDefault();
 });
 window.addEventListener('hashchange', () => window.fieldView.rerender());
-window.captainTools = { afterRender };
+window.captainTools = { afterRender, isActive: () => captain.active };
 window.fieldView.rerender();
