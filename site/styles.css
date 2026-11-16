@@ -155,18 +155,17 @@ html:not(.has-team) body { background: #f6f1ea; color: #1c2a3a; }
 .captain-undo { min-height: 40px; padding: 0 10px; border: 1px solid var(--primary); border-radius: 10px; background: #fff; color: var(--primary); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .captain-undo:disabled { border-color: var(--border); color: var(--faint); cursor: default; }
 .captain-done { padding: 8px 2px; border: 0; background: none; color: var(--muted); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
-.captain-meta { display: flex; align-items: center; gap: 8px; }
-.captain-status { flex: 1; min-width: 0; min-height: 32px; margin: 0; padding: 6px 10px; box-sizing: border-box; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-radius: 8px; background: var(--tint); color: var(--ink); font-size: 13px; }
-.captain-status.empty { visibility: hidden; }
-.captain-status.error { background: #fde3e0; color: #b3261e; }
+.captain-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px 8px; }
+.captain-context { flex: 1; min-width: 0; }
+.captain-status { position: fixed; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); left: 12px; z-index: 30; max-width: 536px; margin: 0 auto; padding: 8px 12px; box-sizing: border-box; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-radius: 8px; background: var(--tint); color: var(--ink); font-size: 13px; box-shadow: 0 2px 8px rgba(28, 42, 58, 0.18); }
+.captain-status.empty { display: none; }
+.captain-status.error { position: static; max-width: none; margin: 0; box-shadow: none; background: #fde3e0; color: #b3261e; }
 .captain-panel { margin: 8px 0; }
 .captain-panel[hidden] { display: none; }
 .captain-hint { margin: 0 2px 8px; font-size: 14px; color: var(--muted); }
 .captain-subheading { margin: 16px 2px 8px; font-size: 14px; font-weight: 600; color: var(--ink); }
-.innings-edit { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0 0 6px; }
-.innings-edit-label { font-size: 13px; color: var(--muted); }
 .innings-edit-presets { display: flex; gap: 4px; }
-.inning-toggle, .inning-preset { min-width: 38px; min-height: 38px; padding: 0 10px; border: 1px solid var(--primary); border-radius: 10px; background: #fff; color: var(--primary); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.inning-toggle, .inning-preset { min-width: 38px; min-height: 40px; padding: 0 8px; white-space: nowrap; border: 1px solid var(--primary); border-radius: 10px; background: #fff; color: var(--primary); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
 .inning-toggle[aria-pressed="true"], .inning-preset[aria-pressed="true"] { background: var(--primary); color: #fff; }
 .innings-edit-caption { margin: 0 0 8px; padding: 6px 10px; border-left: 4px solid var(--accent); border-radius: 6px; background: var(--tint); font-size: 13px; color: var(--ink); }
 .order-list { margin: 0; padding: 0; overflow: hidden; list-style: none; border: 1px solid var(--border); border-radius: 12px; background: #fff; }

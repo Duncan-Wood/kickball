@@ -1,5 +1,5 @@
 import { headcount } from './edits.js';
-import { bindFieldEditing, fieldingPanel, followViewedInning, installFieldingEvents, keyboardIsInUse, renderDock, resetEditingState, restoreKeyboardFocus } from './captain/fielding.js';
+import { bindFieldEditing, fieldingPanel, followViewedInning, inningChoices, installFieldingEvents, keyboardIsInUse, renderDock, resetEditingState, restoreKeyboardFocus } from './captain/fielding.js';
 import { gamesPanel } from './captain/gamesPanel.js';
 import { getStartedPanel, gettingStartedIsOpen } from './captain/getStarted.js';
 import { teamPanel } from './captain/teamPanel.js';
@@ -89,6 +89,7 @@ function afterRender() {
   const selectedRowIsGone = lineup === null || (captain.selectedRow !== null && !lineup.players.some((player) => player.sheetRow === captain.selectedRow));
   if (selectedRowIsGone) captain.selectedRow = null;
   renderAreaButtons(lineup);
+  element('captain-context').replaceChildren(...(captain.area === 'fielding' && lineup !== null ? inningChoices(lineup, inField) : []));
   updateUndoButton();
   renderPanel(lineup, inField);
   if (isFielding && inField) bindFieldEditing();

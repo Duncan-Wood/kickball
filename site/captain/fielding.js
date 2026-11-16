@@ -299,25 +299,23 @@ function setEditMode(mode, inningCount) {
   else rerender();
 }
 
-function inningsRow(lineup) {
-  const row = node('div', 'innings-edit');
-  row.append(node('span', 'innings-edit-label', 'Apply changes to'));
+export function inningChoices(lineup, inField) {
+  if (!inField || lineup.innings.length < 2 || !lineup.players.some((player) => player.attending)) return [];
   const modes = node('div', 'innings-edit-presets');
+  modes.setAttribute('role', 'group');
+  modes.setAttribute('aria-label', 'Apply changes to');
   modes.append(...INNING_MODES.map(({ mode, label }) => {
     const choice = button(label, 'inning-preset', () => setEditMode(mode, lineup.innings.length));
     choice.setAttribute('aria-pressed', String(captain.editMode === mode));
     return choice;
   }));
-  row.append(modes);
-  return row;
+  return [modes];
 }
 
 export function fieldingPanel(lineup, inField) {
   if (!inField) return [node('p', 'captain-hint', HINTS.elsewhere)];
   if (!lineup.players.some((player) => player.attending)) return [node('p', 'captain-hint', HINTS.empty)];
   const parts = captain.undoStack.length === 0 ? [node('p', 'captain-hint', HINTS.fielding)] : [];
-  if (lineup.innings.length < 2) return parts;
-  parts.push(inningsRow(lineup));
   if (captain.editInnings.size > 1) {
     const together = editedInnings();
     const differs = inningsHaveDifferentLineups(lineup.players, together);
