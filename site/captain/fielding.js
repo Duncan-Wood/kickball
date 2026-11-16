@@ -280,10 +280,12 @@ export function renderDock(lineup, inField) {
   if (!shows) {
     dock.replaceChildren();
     document.body.style.paddingBottom = '';
+    document.body.style.removeProperty('--dock-height');
     return;
   }
   dock.replaceChildren(...dockContent(lineup, window.fieldView.currentInningIndex()));
   document.body.style.paddingBottom = `${dock.offsetHeight}px`;
+  document.body.style.setProperty('--dock-height', `${dock.offsetHeight}px`);
   const focusedChip = document.querySelector('#chips .chip.edit-selected');
   const hiddenBy = focusedChip === null ? 0 : focusedChip.getBoundingClientRect().bottom - (window.innerHeight - dock.offsetHeight - DOCK_CLEARANCE_PIXELS);
   if (hiddenBy > 0) window.scrollBy({ top: hiddenBy });
