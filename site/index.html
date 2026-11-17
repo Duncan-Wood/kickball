@@ -79,11 +79,12 @@
   <div class="accent-stripe"></div>
   <div class="error-panel" id="error-panel" role="alert" hidden></div>
   <div class="error-panel" id="problem-panel" role="status" hidden></div>
-  <div class="status" id="status" role="status">Loading lineups…</div>
+  <div class="status" id="status" role="status"><span class="loading-ball" aria-hidden="true"></span>Loading lineups…</div>
   <div id="view" hidden>
     <p class="empty-season-note" id="empty-season-note" hidden>This team hasn't set up its season yet.</p>
     <div class="controls">
       <select id="game" aria-label="Game"></select>
+      <button type="button" class="season-button" id="season-button" aria-pressed="false">Season</button>
       <div class="innings" id="innings"></div>
     </div>
     <div class="subtitle" id="subtitle"></div>
