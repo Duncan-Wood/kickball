@@ -43,13 +43,22 @@ export function fieldingChanges(players, inningIndex, sourceRow, target) {
   ];
 }
 
-export function fieldingChangesForInnings(players, inningIndexes, sourceRow, target, inningLabels) {
-  return inningIndexes.flatMap((inningIndex) => {
-    try {
-      return fieldingChanges(players, inningIndex, sourceRow, target).map((change) => ({ ...change, inningIndex }));
-    } catch (error) {
-      throw new Error(`Inning ${inningLabels[inningIndex]}: ${error.message}`);
-    }
+export function copyInningChanges(players, sourceInningIndex, targetInningIndexes) {
+  return targetInningIndexes.flatMap((inningIndex) => players
+    .filter((player) => player.positions[inningIndex] !== player.positions[sourceInningIndex])
+    .map((player) => ({ sheetRow: player.sheetRow, inningIndex, value: player.positions[sourceInningIndex] })));
+}
+
+export function copyTargets(sourceInningIndex, inningCount) {
+  const others = Array.from({ length: inningCount }, (unused, index) => index).filter((index) => index !== sourceInningIndex);
+  const later = others.filter((index) => index > sourceInningIndex);
+  const candidates = [later.slice(0, 1), later, others.filter((index) => index % 2 === 0), others.filter((index) => index % 2 === 1), others];
+  const seen = new Set();
+  return candidates.filter((innings) => {
+    const key = innings.join(',');
+    if (innings.length === 0 || seen.has(key)) return false;
+    seen.add(key);
+    return true;
   });
 }
 
@@ -150,18 +159,6 @@ export function describeInnings(inningIndexes, inningLabels) {
   const labels = inningIndexes.map((index) => inningLabels[index]);
   if (labels.length === 1) return `inning ${labels[0]}`;
   return `innings ${labels.slice(0, -1).join(', ')} and ${labels[labels.length - 1]}`;
-}
-
-export function inningsForPreset(preset, inningCount) {
-  const all = Array.from({ length: inningCount }, (unused, index) => index);
-  if (preset === 'odd') return all.filter((index) => index % 2 === 0);
-  if (preset === 'even') return all.filter((index) => index % 2 === 1);
-  return all;
-}
-
-export function inningsHaveDifferentLineups(players, inningIndexes) {
-  const lineupOf = (inningIndex) => players.filter((player) => player.attending).map((player) => `${player.sheetRow}:${player.positions[inningIndex]}`).join('|');
-  return new Set(inningIndexes.map(lineupOf)).size > 1;
 }
 
 export function applyRestoredPlayers(lineup, restoredPlayers) {
