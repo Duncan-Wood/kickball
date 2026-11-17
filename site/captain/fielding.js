@@ -1,4 +1,4 @@
-import { candidatesForSpot, describeInnings, fieldingChangesForInnings, inningsForPreset, inningsHaveDifferentLineups, lineupPlayer, occupantsOf } from '../edits.js';
+import { candidatesForSpot, copyInningChanges, copyTargets, describeInnings, fieldingChanges, lineupPlayer, occupantsOf } from '../edits.js';
 import { POSITION_CODES, POSITION_NAMES } from '../template.js';
 import { button, node } from './dom.js';
 import { saveFielding } from './lineupEdits.js';
@@ -9,12 +9,6 @@ const DRAG_START_PIXELS = 8;
 const CLICK_SUPPRESSION_MILLISECONDS = 50;
 const LONG_PRESS_MILLISECONDS = 250;
 const DOCK_CLEARANCE_PIXELS = 16;
-const INNING_MODES = [
-  { mode: 'one', label: 'This inning' },
-  { mode: 'odd', label: 'Odd' },
-  { mode: 'even', label: 'Even' },
-  { mode: 'all', label: 'All' },
-];
 const HINTS = {
   fielding: 'Tap a position, then pick a player.',
   elsewhere: 'Pick an inning above to edit the field.',
@@ -26,10 +20,6 @@ let dragState = null;
 let longPress = null;
 let keyboardNavigating = false;
 let lastEditableKey = null;
-
-function editedInnings() {
-  return [...captain.editInnings].sort((first, second) => first - second);
-}
 
 function rerender() {
   window.fieldView.rerender();
@@ -72,7 +62,7 @@ function applyFielding(sourceRow, target, { advancesToNextOpenSpot = false } = {
   const inningIndex = window.fieldView.currentInningIndex();
   let changes;
   try {
-    changes = fieldingChangesForInnings(lineup.players, editedInnings(), sourceRow, target, lineup.innings);
+    changes = fieldingChanges(lineup.players, inningIndex, sourceRow, target).map((change) => ({ ...change, inningIndex }));
   } catch (error) {
     setStatus(error.message, { isError: true });
     return;
@@ -291,38 +281,42 @@ export function renderDock(lineup, inField) {
   if (hiddenBy > 0) window.scrollBy({ top: hiddenBy });
 }
 
-function setEditMode(mode, inningCount) {
-  captain.editMode = mode;
-  const inningIndexes = mode === 'one' ? [window.fieldView.currentInningIndex()] : inningsForPreset(mode, inningCount);
-  captain.editInnings = new Set(inningIndexes);
-  const first = Math.min(...inningIndexes);
-  captain.viewedInning = first;
-  if (window.fieldView.currentInningIndex() !== first) window.fieldView.selectInning(first);
-  else rerender();
+function copyInning(lineup, sourceInningIndex, targetInningIndexes) {
+  const targets = describeInnings(targetInningIndexes, lineup.innings);
+  const changes = copyInningChanges(lineup.players, sourceInningIndex, targetInningIndexes);
+  if (changes.length === 0) {
+    setStatus(`Nothing to copy: ${targets} already ${targetInningIndexes.length === 1 ? 'matches' : 'match'} inning ${lineup.innings[sourceInningIndex]}`);
+    return;
+  }
+  captain.focus = null;
+  saveEdit(() => saveFielding(lineup, changes), `inning ${lineup.innings[sourceInningIndex]} copied to ${targets}`);
 }
 
 export function inningChoices(lineup, inField) {
   if (!inField || lineup.innings.length < 2 || !lineup.players.some((player) => player.attending)) return [];
-  const modes = node('div', 'innings-edit-presets');
-  modes.setAttribute('role', 'group');
-  modes.setAttribute('aria-label', 'Apply changes to');
-  modes.append(...INNING_MODES.map(({ mode, label }) => {
-    const choice = button(label, 'inning-preset', () => setEditMode(mode, lineup.innings.length));
-    choice.setAttribute('aria-pressed', String(captain.editMode === mode));
-    return choice;
+  const sourceInningIndex = window.fieldView.currentInningIndex();
+  const targets = copyTargets(sourceInningIndex, lineup.innings.length);
+  const select = node('select', 'copy-inning');
+  const prompt = node('option', undefined, `Copy inning ${lineup.innings[sourceInningIndex]} to…`);
+  prompt.value = '';
+  select.append(prompt, ...targets.map((innings, index) => {
+    const description = describeInnings(innings, lineup.innings);
+    const option = node('option', undefined, description[0].toUpperCase() + description.slice(1));
+    option.value = String(index);
+    return option;
   }));
-  return [modes];
+  select.addEventListener('change', () => {
+    const chosen = targets[Number(select.value)];
+    select.value = '';
+    if (!captain.saving) copyInning(lineup, sourceInningIndex, chosen);
+  });
+  return [select];
 }
 
 export function fieldingPanel(lineup, inField) {
   if (!inField) return [node('p', 'captain-hint', HINTS.elsewhere)];
   if (!lineup.players.some((player) => player.attending)) return [node('p', 'captain-hint', HINTS.empty)];
   const parts = captain.undoStack.length === 0 ? [node('p', 'captain-hint', HINTS.fielding)] : [];
-  if (captain.editInnings.size > 1) {
-    const together = editedInnings();
-    const differs = inningsHaveDifferentLineups(lineup.players, together);
-    parts.push(node('p', 'innings-edit-caption', `Changes apply to ${describeInnings(together, lineup.innings)}.${differs ? ' Their lineups differ, so each one changes on its own.' : ''}`));
-  }
   return parts;
 }
 
@@ -330,18 +324,6 @@ export function resetEditingState(lineup) {
   captain.tabName = lineup.tabName;
   captain.focus = null;
   captain.selectedRow = null;
-  captain.viewedInning = window.fieldView.currentInningIndex();
-  captain.editMode = 'one';
-  captain.editInnings = new Set([captain.viewedInning]);
-}
-
-export function followViewedInning() {
-  const inningIndex = window.fieldView.currentInningIndex();
-  if (captain.viewedInning === inningIndex) return;
-  captain.viewedInning = inningIndex;
-  captain.editMode = 'one';
-  captain.editInnings = new Set([inningIndex]);
-  captain.focus = null;
 }
 
 function editableKey(editable) {
