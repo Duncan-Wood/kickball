@@ -126,6 +126,8 @@ function showSavedTeams() {
       stopSharing(team, stopSharingLink);
     });
     links.append(
+      linkElement('Captain tools', `${teamAddress(team.slug)}#captain`),
+      ' · ',
       linkElement('Team link', teamAddress(team.slug)),
       ' · ',
       linkElement('Open sheet', SHEET_ADDRESS_PREFIX + team.spreadsheetId, true),

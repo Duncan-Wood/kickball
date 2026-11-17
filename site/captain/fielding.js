@@ -67,7 +67,7 @@ function fieldingLabel(sourceName, target) {
   return target.kind === 'spot' ? `${sourceName} to ${target.position}` : `${sourceName} swapped`;
 }
 
-function applyFielding(sourceRow, target) {
+function applyFielding(sourceRow, target, { advancesToNextOpenSpot = false } = {}) {
   const lineup = window.fieldView.currentLineup();
   const inningIndex = window.fieldView.currentInningIndex();
   let changes;
@@ -82,7 +82,7 @@ function applyFielding(sourceRow, target) {
     clearFocus();
     return;
   }
-  const fillsOpenSpot = target.kind === 'spot' && occupantsOf(lineup.players, inningIndex, target.position).length === 0;
+  const fillsOpenSpot = advancesToNextOpenSpot && occupantsOf(lineup.players, inningIndex, target.position).length === 0;
   saveEdit(() => saveFielding(lineup, changes), fieldingLabel(lineupPlayer(lineup, sourceRow).name, target)).then((saved) => {
     if (!saved) return;
     if (fillsOpenSpot) advanceFocusAfterFilling(target.position);
@@ -250,7 +250,7 @@ function spotDockContent(lineup, inningIndex, close) {
   occupants.forEach((occupant) => header.append(button(occupants.length === 1 ? 'Sit out' : `Sit ${occupant.name}`, 'dock-action', () => applyFielding(occupant.sheetRow, { kind: 'bench' }))));
   header.append(close);
   const candidates = candidatesForSpot(lineup.players, inningIndex, position);
-  const pick = (candidate) => pickChip(candidate, inningIndex, () => applyFielding(candidate.sheetRow, { kind: 'spot', position }));
+  const pick = (candidate) => pickChip(candidate, inningIndex, () => applyFielding(candidate.sheetRow, { kind: 'spot', position }, { advancesToNextOpenSpot: true }));
   const body = node('div', 'dock-body');
   [['Sitting', candidates.filter((candidate) => candidate.positions[inningIndex] === '')], ['Playing', candidates.filter((candidate) => candidate.positions[inningIndex] !== '')]]
     .filter(([, group]) => group.length > 0)
