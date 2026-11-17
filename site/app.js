@@ -372,6 +372,9 @@ function render() {
   if (mode === 'game') renderWholeGame();
   if (mode === 'season') renderSeason();
   window.captainTools?.afterRender();
+  const seasonButton = document.getElementById('season-button');
+  seasonButton.classList.toggle('selected', mode === 'season');
+  seasonButton.setAttribute('aria-pressed', String(mode === 'season'));
   document.querySelectorAll('#innings button').forEach((button) => {
     const matchesInning = mode !== 'inning' || Number(button.dataset.inningIndex) === selectedInningIndex;
     const isSelected = button.dataset.mode === mode && matchesInning;
@@ -400,7 +403,6 @@ function selectLineup(tabName) {
   document.getElementById('innings').replaceChildren(
     ...selectedLineup.innings.map((inning, index) => modeButton(inning, 'inning', index)),
     modeButton('All', 'game'),
-    modeButton('Season', 'season'),
   );
   render();
 }
@@ -410,7 +412,8 @@ function populateGameOptions() {
   game.replaceChildren(...lineups.map((lineup) => {
     const option = document.createElement('option');
     option.value = lineup.tabName;
-    option.textContent = lineup.date === '' || lineup.label.includes(lineup.date) ? lineup.label : `${lineup.label} (${lineup.date})`;
+    const labelWithDate = lineup.date === '' || lineup.label.includes(lineup.date) ? lineup.label : `${lineup.label} (${lineup.date})`;
+    option.textContent = lineup.opponent === '' ? labelWithDate : `${labelWithDate} vs ${lineup.opponent}`;
     return option;
   }));
 }
@@ -424,6 +427,10 @@ function start(data) {
   game.addEventListener('change', () => {
     selectLineup(game.value);
     resetCommentToggle();
+  });
+  document.getElementById('season-button').addEventListener('click', () => {
+    mode = 'season';
+    render();
   });
   document.getElementById('comment-toggle').addEventListener('click', () => setCommentFormOpen(true));
   document.getElementById('comment-cancel').addEventListener('click', () => setCommentFormOpen(false));

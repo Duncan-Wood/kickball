@@ -35,7 +35,7 @@ Players need no app, account or sign-in. Nothing is installed in the sheet and t
 
 Under the team page, **Captain tools** lets anyone who can edit the sheet change the lineup from their phone, so a game can be planned or adjusted without opening the Sheets app.
 
-- **Who sees the link:** The Captain tools link is hidden from players. A captain or co-captain opens the team link once with `#captain` on the end, like `https://.../?team=abc123#captain`. After a successful sign-in the device remembers, and the link shows on its own.
+- **Who sees the link:** The Captain tools link is hidden from players. A captain or co-captain opens the team link once with `#captain` on the end, like `https://.../?team=abc123#captain`. After a successful sign-in the device remembers, and the link shows on its own. The setup page also lists a **Captain tools** link for each of your teams.
 - **Signing in:** Sign in with Google and the page checks that your account can edit the team sheet. A co-captain who was shared the sheet picks it once in Google's file picker. Each visit starts with a Google sign-in, and the page keeps no sign-in afterward.
 - **Start:** a four-step checklist for a new team: add players, add games, set up lineups, send the link. It goes away once the team is set up.
 - **Field:** tap a position, then pick a player from the panel. They swap with whoever held the spot. After an open spot is filled, the panel moves to the next open one. To place a sitting player, tap them, then a position. You can also drag a player: with a mouse, or on a phone by holding their name for a moment first.

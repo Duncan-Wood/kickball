@@ -22,6 +22,7 @@ h1 { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; font-size: 2
 .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 select {
   flex: 1 1 200px;
+  min-width: 0;
   font-size: 15px;
   padding: 8px 10px;
   border: 1px solid var(--border);
@@ -45,6 +46,8 @@ select {
 .innings button:first-child { border-left: 0; }
 .innings button.wide { flex: 0 0 auto; padding: 8px 12px; }
 .innings button.selected { background: var(--primary); color: #fff; }
+.season-button { flex: none; min-height: 40px; padding: 8px 14px; border: 1px solid var(--border); border-radius: 8px; background: #fff; color: var(--ink); font-size: 15px; font-weight: 600; cursor: pointer; }
+.season-button.selected { border-color: var(--primary); background: var(--primary); color: #fff; }
 .subtitle { margin: 10px 2px 6px; font-size: 14px; color: var(--muted); }
 .game-details { margin: -2px 2px 8px; font-size: 14px; font-weight: 500; }
 .game-details:empty { display: none; }
@@ -144,7 +147,10 @@ html:not(.has-team) body { background: #f6f1ea; color: #1c2a3a; }
 .error-panel[hidden] { display: none; }
 .error-panel div { margin-top: 4px; overflow-wrap: anywhere; }
 .error-panel .error-hint { font-size: 12px; color: var(--muted); }
-.status { padding: 24px 4px; font-size: 14px; color: var(--muted); }
+.status { padding: 56px 4px; font-size: 16px; font-weight: 500; text-align: center; color: var(--muted); }
+.loading-ball { display: block; width: 36px; height: 36px; margin: 0 auto 18px; border-radius: 50%; background: var(--primary); animation: loading-bounce 0.6s ease-in infinite alternate; }
+@keyframes loading-bounce { from { transform: translateY(-22px); } to { transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .loading-ball { animation: none; } }
 .captain-bar { position: sticky; top: 0; z-index: 5; display: flex; flex-direction: column; gap: 6px; margin: 8px -12px 0; padding: 8px 12px; background: var(--background); border-bottom: 1px solid var(--border-soft); }
 .captain-bar[hidden] { display: none; }
 .segmented { display: flex; overflow: hidden; border: 1px solid var(--primary); border-radius: 10px; background: #fff; }
