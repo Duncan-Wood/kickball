@@ -280,10 +280,12 @@ export function renderDock(lineup, inField) {
   if (!shows) {
     dock.replaceChildren();
     document.body.style.paddingBottom = '';
+    document.body.style.removeProperty('--dock-height');
     return;
   }
   dock.replaceChildren(...dockContent(lineup, window.fieldView.currentInningIndex()));
   document.body.style.paddingBottom = `${dock.offsetHeight}px`;
+  document.body.style.setProperty('--dock-height', `${dock.offsetHeight}px`);
   const focusedChip = document.querySelector('#chips .chip.edit-selected');
   const hiddenBy = focusedChip === null ? 0 : focusedChip.getBoundingClientRect().bottom - (window.innerHeight - dock.offsetHeight - DOCK_CLEARANCE_PIXELS);
   if (hiddenBy > 0) window.scrollBy({ top: hiddenBy });
@@ -299,25 +301,23 @@ function setEditMode(mode, inningCount) {
   else rerender();
 }
 
-function inningsRow(lineup) {
-  const row = node('div', 'innings-edit');
-  row.append(node('span', 'innings-edit-label', 'Apply changes to'));
+export function inningChoices(lineup, inField) {
+  if (!inField || lineup.innings.length < 2 || !lineup.players.some((player) => player.attending)) return [];
   const modes = node('div', 'innings-edit-presets');
+  modes.setAttribute('role', 'group');
+  modes.setAttribute('aria-label', 'Apply changes to');
   modes.append(...INNING_MODES.map(({ mode, label }) => {
     const choice = button(label, 'inning-preset', () => setEditMode(mode, lineup.innings.length));
     choice.setAttribute('aria-pressed', String(captain.editMode === mode));
     return choice;
   }));
-  row.append(modes);
-  return row;
+  return [modes];
 }
 
 export function fieldingPanel(lineup, inField) {
   if (!inField) return [node('p', 'captain-hint', HINTS.elsewhere)];
   if (!lineup.players.some((player) => player.attending)) return [node('p', 'captain-hint', HINTS.empty)];
-  const parts = [node('p', 'captain-hint', HINTS.fielding)];
-  if (lineup.innings.length < 2) return parts;
-  parts.push(inningsRow(lineup));
+  const parts = captain.undoStack.length === 0 ? [node('p', 'captain-hint', HINTS.fielding)] : [];
   if (captain.editInnings.size > 1) {
     const together = editedInnings();
     const differs = inningsHaveDifferentLineups(lineup.players, together);
