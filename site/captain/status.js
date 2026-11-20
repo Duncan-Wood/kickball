@@ -14,11 +14,16 @@ export function setStatus(text, { isError = false, sticky = false } = {}) {
   if (text !== '' && !isError && !sticky) statusTimer = setTimeout(() => setStatus(''), STATUS_MILLISECONDS);
 }
 
+function updateHistoryButton(buttonId, stack, verb) {
+  const historyButton = element(buttonId);
+  const latest = stack[stack.length - 1];
+  historyButton.disabled = latest === undefined || captain.saving;
+  historyButton.title = latest === undefined ? `Nothing to ${verb.toLowerCase()}` : `${verb}: ${latest.label}`;
+}
+
 export function updateUndoButton() {
-  const undoButton = element('captain-undo');
-  const latest = captain.undoStack[captain.undoStack.length - 1];
-  undoButton.disabled = latest === undefined || captain.saving;
-  undoButton.title = latest === undefined ? 'Nothing to undo' : `Undo: ${latest.label}`;
+  updateHistoryButton('captain-undo', captain.undoStack, 'Undo');
+  updateHistoryButton('captain-redo', captain.redoStack, 'Redo');
 }
 
 async function runWhileSaving(startText, work) {
@@ -39,6 +44,7 @@ export async function saveEdit(work, label) {
       const undo = await work();
       captain.selectedRow = null;
       if (typeof undo === 'function') captain.undoStack = [...captain.undoStack, { label, run: undo }].slice(-UNDO_LIMIT);
+      captain.redoStack = [];
       window.fieldView.changed();
       setStatus(label === undefined ? 'Saved' : `Saved: ${label}`);
     });
@@ -50,18 +56,28 @@ export async function saveEdit(work, label) {
   }
 }
 
-export async function undoLatest() {
-  const entry = captain.undoStack[captain.undoStack.length - 1];
+async function stepThroughHistory(fromKey, toKey, startText, doneText) {
+  const entry = captain[fromKey][captain[fromKey].length - 1];
   if (entry === undefined || captain.saving) return;
-  captain.undoStack = captain.undoStack.slice(0, -1);
+  captain[fromKey] = captain[fromKey].slice(0, -1);
   try {
-    await runWhileSaving('Undoing…', async () => {
-      await entry.run();
+    await runWhileSaving(startText, async () => {
+      const reverse = await entry.run();
+      if (typeof reverse !== 'function') throw new Error(`"${entry.label}" did not return a way to reverse it`);
+      captain[toKey] = [...captain[toKey], { label: entry.label, run: reverse }].slice(-UNDO_LIMIT);
       window.fieldView.changed();
-      setStatus(`Undone: ${entry.label}`);
+      setStatus(`${doneText}: ${entry.label}`);
     });
   } catch (error) {
     window.fieldView.rerender();
     setStatus(error.message, { isError: true });
   }
+}
+
+export function undoLatest() {
+  return stepThroughHistory('undoStack', 'redoStack', 'Undoing…', 'Undone');
+}
+
+export function redoLatest() {
+  return stepThroughHistory('redoStack', 'undoStack', 'Redoing…', 'Redone');
 }

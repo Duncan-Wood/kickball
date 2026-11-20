@@ -85,16 +85,10 @@ async function blankRosterRows(rows, names) {
   await confirmSheetStillMatches(rows.map((row, index) => ({ address: cellAddress(ROSTER_TAB_NAME, 0, row), expected: names[index] })));
   await writeValues(rows.map((row) => ({ range: `${cellAddress(ROSTER_TAB_NAME, 0, row)}:${ROSTER_LAST_COLUMN_LETTER}${row}`, values: [['', '', '', '', '', '']] })), 'RAW');
   await refreshRoster();
+  return () => fillRosterRows(rows, names);
 }
 
-export async function addRosterPlayers(names) {
-  const roster = await fetchRoster();
-  names.forEach((name, index) => {
-    const problem = rosterNameProblem(name, [...roster, ...names.slice(0, index).map((earlier) => ({ name: earlier, sheetRow: null }))], null);
-    if (problem !== null) throw new Error(problem);
-  });
-  const firstRow = firstBlankRosterRow(await columnValues(`${ROSTER_TAB_NAME}!A${ROSTER_FIRST_ROW}:A`));
-  const rows = names.map((name, index) => firstRow + index);
+async function fillRosterRows(rows, names) {
   await confirmSheetStillMatches(rows.map((row) => ({ address: cellAddress(ROSTER_TAB_NAME, 0, row), expected: '' })));
   await writeValues([
     ...rows.map((row, index) => ({ range: `${cellAddress(ROSTER_TAB_NAME, 0, row)}:${ROSTER_LAST_COLUMN_LETTER}${row}`, values: [[names[index], '', '', '', '', '']] })),
@@ -104,7 +98,20 @@ export async function addRosterPlayers(names) {
   return () => blankRosterRows(rows, names);
 }
 
+export async function addRosterPlayers(names) {
+  const roster = await fetchRoster();
+  names.forEach((name, index) => {
+    const problem = rosterNameProblem(name, [...roster, ...names.slice(0, index).map((earlier) => ({ name: earlier, sheetRow: null }))], null);
+    if (problem !== null) throw new Error(problem);
+  });
+  const firstRow = firstBlankRosterRow(await columnValues(`${ROSTER_TAB_NAME}!A${ROSTER_FIRST_ROW}:A`));
+  return fillRosterRows(names.map((name, index) => firstRow + index), names);
+}
+
 export async function removeRosterPlayer(player) {
   await writeRosterRow(player.sheetRow, player.name, BLANK_PLAYER);
-  return () => writeRosterRow(player.sheetRow, '', fieldsOf(player));
+  return async () => {
+    await writeRosterRow(player.sheetRow, '', fieldsOf(player));
+    return () => removeRosterPlayer(player);
+  };
 }

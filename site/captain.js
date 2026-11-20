@@ -6,9 +6,9 @@ import { teamPanel } from './captain/teamPanel.js';
 import { chooseArea } from './captain/navigation.js';
 import { kickingPanel, playersPanel } from './captain/people.js';
 import { SIGN_IN_SCRIPT, loadScript } from './captain/sheetApi.js';
-import { captainToolsOffered, startCaptainMode, stopCaptainMode } from './captain/session.js';
+import { captainToolsOffered, toggleCaptainView } from './captain/session.js';
 import { ADD_FOCUS_KEY, AREAS, captain, element } from './captain/state.js';
-import { undoLatest, updateUndoButton } from './captain/status.js';
+import { redoLatest, undoLatest, updateUndoButton } from './captain/status.js';
 import { node } from './captain/dom.js';
 
 let pendingRefocusKey = null;
@@ -36,9 +36,11 @@ function refocusPanel(panel, key) {
   return true;
 }
 
+const isEditing = () => captain.active && !captain.previewing;
+
 function renderPanel(lineup, inField) {
   const panel = element('captain-panel');
-  panel.hidden = !captain.active || (lineup === null && !['start', 'games', 'team'].includes(captain.area));
+  panel.hidden = !isEditing() || (lineup === null && !['start', 'games', 'team'].includes(captain.area));
   if (panel.hidden) {
     panel.replaceChildren();
     delete panel.dataset.area;
@@ -74,12 +76,16 @@ function renderAreaButtons(lineup) {
 function afterRender() {
   const inField = window.fieldView.inFieldMode();
   const isFielding = captain.area === 'fielding';
-  element('captain-bar').hidden = !captain.active;
-  document.body.classList.toggle('captain-active', captain.active && inField && isFielding);
-  document.body.classList.toggle('captain-list', captain.active && !isFielding);
-  document.documentElement.classList.toggle('captain-mode', captain.active);
-  element('captain-toggle').hidden = captain.active || !captainToolsOffered();
-  if (!captain.active) {
+  const editing = isEditing();
+  element('captain-bar').hidden = !editing;
+  document.body.classList.toggle('captain-active', editing && inField && isFielding);
+  document.body.classList.toggle('captain-list', editing && !isFielding);
+  document.documentElement.classList.toggle('captain-mode', editing);
+  const toggle = element('captain-toggle');
+  toggle.hidden = !captain.active && !captainToolsOffered();
+  toggle.textContent = editing ? 'Player view' : 'Edit';
+  if (!editing) {
+    renderPanel(null, false);
     renderDock(null, false);
     return;
   }
@@ -98,9 +104,9 @@ function afterRender() {
 }
 
 element('captain-toggle').addEventListener('pointerdown', () => loadScript(SIGN_IN_SCRIPT));
-element('captain-toggle').addEventListener('click', startCaptainMode);
-element('captain-done').addEventListener('click', stopCaptainMode);
+element('captain-toggle').addEventListener('click', toggleCaptainView);
 element('captain-undo').addEventListener('click', undoLatest);
+element('captain-redo').addEventListener('click', redoLatest);
 AREAS.forEach((area) => element(`area-${area}`).addEventListener('click', () => chooseArea(area)));
 installFieldingEvents();
 document.addEventListener('pointerdown', () => { pendingRefocusKey = null; });
@@ -108,5 +114,5 @@ element('captain-panel').addEventListener('keydown', (event) => {
   if (event.key === 'Enter' && event.target.tagName === 'SELECT') event.preventDefault();
 });
 window.addEventListener('hashchange', () => window.fieldView.rerender());
-window.captainTools = { afterRender, isActive: () => captain.active };
+window.captainTools = { afterRender, isActive: isEditing };
 window.fieldView.rerender();
