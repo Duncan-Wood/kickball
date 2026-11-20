@@ -62,7 +62,6 @@ export async function startCaptainMode() {
       scheduleRows: null,
       scheduleError: null,
       openGameId: null,
-      draftGameId: null,
       seasonFormOpen: false,
       addingSeveral: false,
       undoStack: [],

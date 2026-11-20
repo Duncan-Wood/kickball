@@ -1,4 +1,4 @@
-import { blankPlayerRows, cellAddress, nextGameId, scheduleGames, seasonDates, seasonProblem } from '../edits.js';
+import { blankPlayerRows, cellAddress, nextGameDefaults, nextGameId, scheduleGames, scheduleIds, seasonDates, seasonProblem } from '../edits.js';
 import { NEW_GAME_TAB_NAME, ROSTER_TAB_NAME, SCHEDULE_TAB_NAME } from '../template.js';
 import { fetchRosterNames } from './roster.js';
 import { columnValues, confirmSheetStillMatches, refreshTabs, sheetRows, sheetsRequest, writeValues } from './sheetApi.js';
@@ -90,56 +90,74 @@ export async function createGameTabs(gameIds) {
   return () => removeGameTabs(replies.map(({ duplicateSheet }) => duplicateSheet.properties.sheetId), tabNames, gameIds);
 }
 
-export async function saveGameDetails(game, values, initialValues) {
-  const scheduledIds = await columnValues(`${SCHEDULE_TAB_NAME}!A:A`);
-  const existingIndex = scheduledIds.indexOf(game.id);
-  const row = existingIndex === -1 ? scheduledIds.length + 1 : existingIndex + 1;
-  const changedFields = GAME_DETAIL_FIELDS.filter((field) => values[field] !== initialValues[field]);
-  const detailCell = (field) => cellAddress(SCHEDULE_TAB_NAME, GAME_DETAIL_FIRST_COLUMN_INDEX + GAME_DETAIL_FIELDS.indexOf(field), row);
-  const writeDetails = async (id, detailValues) => {
-    await writeValues([
-      ...(existingIndex === -1 ? [{ range: cellAddress(SCHEDULE_TAB_NAME, 0, row), values: [[id]] }] : []),
-      ...changedFields.map((field) => ({ range: detailCell(field), values: [[detailValues[field]]] })),
-    ]);
-    await loadSchedule();
+async function refreshScheduleRows() {
+  captain.scheduleRows = await sheetRows(`${SCHEDULE_TAB_NAME}!A:H`);
+}
+
+export async function saveGameField(game, field, value, previousValue) {
+  const cell = cellAddress(SCHEDULE_TAB_NAME, GAME_DETAIL_FIRST_COLUMN_INDEX + GAME_DETAIL_FIELDS.indexOf(field), game.row);
+  await confirmSheetStillMatches([{ address: cellAddress(SCHEDULE_TAB_NAME, 0, game.row), expected: game.id }]);
+  const write = async (text) => {
+    await writeValues([{ range: cell, values: [[text]] }]);
+    await refreshScheduleRows();
   };
-  const restoreNew = async () => {
-    await writeDetails(game.id, values);
-    return restoreOld;
+  const putBack = async () => {
+    await write(previousValue);
+    captain.panelStale = true;
+    return putAgain;
   };
-  const restoreOld = async () => {
-    await writeDetails('', initialValues);
-    return restoreNew;
+  const putAgain = async () => {
+    await write(value);
+    captain.panelStale = true;
+    return putBack;
   };
-  captain.openGameId = null;
-  captain.draftGameId = null;
-  await writeDetails(game.id, values);
-  return restoreOld;
+  await write(value);
+  return putBack;
 }
 
 const SEASON_COLUMN_LETTER = 'D';
 
+async function addScheduleRows(rowValues) {
+  const firstRow = (await columnValues(`${SCHEDULE_TAB_NAME}!A:A`)).length + 1;
+  const rows = rowValues.map((unused, index) => firstRow + index);
+  await confirmSheetStillMatches(rows.map((row) => ({ address: cellAddress(SCHEDULE_TAB_NAME, 0, row), expected: '' })));
+  const ids = rowValues.map(([id]) => id);
+  const writeRows = (valuesFor) => writeValues(rows.map((row, index) => ({ range: `${cellAddress(SCHEDULE_TAB_NAME, 0, row)}:${SEASON_COLUMN_LETTER}${row}`, values: [valuesFor(index)] })));
+  const add = async () => {
+    await writeRows((index) => rowValues[index]);
+    const removeTabs = await createGameTabs(ids);
+    await loadSchedule();
+    return async () => {
+      await removeTabs();
+      await writeRows(() => ['', '', '', '']);
+      await loadSchedule();
+      return add;
+    };
+  };
+  return add();
+}
+
+function nextId() {
+  return nextGameId(scheduleIds(captain.scheduleRows ?? []), window.fieldView.allLineups());
+}
+
+export function newGamePreview() {
+  return { id: nextId(), ...nextGameDefaults(allScheduledGames()) };
+}
+
+export async function addGame() {
+  const { id, date, time, location } = newGamePreview();
+  const undo = await addScheduleRows([[id, date, time, location]]);
+  captain.openGameId = id;
+  return undo;
+}
+
 export async function addSeasonGames({ firstDate, count, time, location }) {
   const problem = seasonProblem(firstDate, count);
   if (problem !== null) throw new Error(problem);
-  const firstId = Number(nextGameId(allScheduledGames(), window.fieldView.allLineups()));
-  const firstRow = (await columnValues(`${SCHEDULE_TAB_NAME}!A:A`)).length + 1;
-  const rows = Array.from({ length: count }, (unused, index) => firstRow + index);
-  await confirmSheetStillMatches(rows.map((row) => ({ address: cellAddress(SCHEDULE_TAB_NAME, 0, row), expected: '' })));
+  const firstId = Number(nextId());
   const dates = seasonDates(firstDate, count);
-  const writeRows = async (rowValues) => {
-    await writeValues(rows.map((row, index) => ({ range: `${cellAddress(SCHEDULE_TAB_NAME, 0, row)}:${SEASON_COLUMN_LETTER}${row}`, values: [rowValues(index)] })));
-    await loadSchedule();
-  };
-  const addRows = async () => {
-    await writeRows((index) => [String(firstId + index), dates[index], time, location]);
-    return clearRows;
-  };
-  const clearRows = async () => {
-    await writeRows(() => ['', '', '', '']);
-    return addRows;
-  };
-  return addRows();
+  return addScheduleRows(dates.map((date, index) => [String(firstId + index), date, time, location]));
 }
 
 const ARCHIVE_COLUMN_INDEX = 7;
@@ -155,6 +173,7 @@ export async function archiveGame(game) {
   const { tabName } = game;
   await setArchived(game, true);
   if (tabName !== null) await reloadUntilGone([tabName]);
+  captain.openGameId = null;
   await loadSchedule();
   return async () => {
     await setArchived(game, false);
@@ -162,4 +181,14 @@ export async function archiveGame(game) {
     await loadSchedule();
     return () => archiveGame(game);
   };
+}
+
+export async function unarchiveGame(game) {
+  await setArchived(game, false);
+  await refreshTabs();
+  const tabName = `Game ${game.id} Lineup`;
+  if (captain.tabs.has(tabName)) await reloadUntilPresent([tabName]);
+  await loadSchedule();
+  const shown = allScheduledGames().find((scheduled) => scheduled.id === game.id) ?? game;
+  return () => archiveGame(shown);
 }

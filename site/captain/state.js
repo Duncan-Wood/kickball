@@ -27,7 +27,6 @@ export const captain = {
   scheduleRows: null,
   scheduleError: null,
   openGameId: null,
-  draftGameId: null,
   seasonFormOpen: false,
   addingSeveral: false,
   panelStale: false,
