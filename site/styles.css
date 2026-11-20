@@ -204,11 +204,17 @@ html:not(.has-team) body { background: #f6f1ea; color: #1c2a3a; }
 .game-state.ready { background: var(--primary); color: #fff; }
 .game-editor { padding: 0 14px 14px; border-top: 1px solid var(--border-soft); }
 .game-editor label { display: block; margin: 10px 0 2px; font-size: 13px; color: var(--muted); }
-.game-editor input { width: 100%; padding: 9px 10px; border: 1px solid var(--border); border-radius: 8px; font: inherit; font-size: 16px; }
+.game-editor input, .game-editor textarea { width: 100%; padding: 9px 10px; border: 1px solid var(--border); border-radius: 8px; font: inherit; font-size: 16px; color: var(--ink); background: #fff; }
+.game-editor textarea { display: block; margin-top: 4px; resize: vertical; }
+.game-editor label.stacked { display: flex; flex-direction: column; }
 .game-actions { display: flex; gap: 8px; }
 .game-actions .panel-action { margin-top: 14px; }
 .captain-active .chip, .captain-active #bench li { cursor: pointer; }
-.captain-active svg, .captain-active #bench, .captain-active #kicking-order { -webkit-user-select: none; user-select: none; }
+#field, .bench, #summary td.name, .captain-bar, .captain-panel, .dock, .updated { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.captain-panel input, .captain-panel textarea { -webkit-user-select: text; user-select: text; }
+html.captain-mode, html.captain-mode body { overscroll-behavior-y: contain; }
+.chip.lifted .chip-box { stroke: var(--accent); stroke-width: 3.5; stroke-dasharray: none; filter: drop-shadow(0 3px 4px rgba(28, 42, 58, 0.35)); }
+.bench li.lifted { outline: 3px solid var(--accent); box-shadow: 0 4px 10px rgba(28, 42, 58, 0.3); transform: scale(1.06); }
 .captain-active .chip .chip-box { stroke: var(--primary); stroke-width: 1.8; }
 .captain-active .chip.problem .chip-box { stroke: #b3261e; }
 .captain-active #bench li { outline: 1.5px solid var(--primary); }
@@ -259,9 +265,21 @@ a:focus-visible, button:focus-visible, select:focus-visible, textarea:focus-visi
 .position-group { margin: 12px 0 0; }
 .position-group-label { display: block; margin-bottom: 4px; font-size: 13px; color: var(--muted); }
 .position-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.share-link { display: flex; gap: 8px; align-items: end; }
-.share-link label { flex: 1; margin: 0; }
-.share-link .panel-action { width: auto; margin: 0; padding: 9px 14px; }
+.share-links { margin-top: 16px; }
+.share-link { display: flex; align-items: center; gap: 10px; width: 100%; margin-top: 8px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 12px; background: #fff; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.share-link-text { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+.share-link-label { font-size: 15px; font-weight: 600; }
+.share-link-address { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--muted); }
+.share-link-action { flex: none; padding: 4px 12px; border-radius: 999px; background: var(--primary); color: #fff; font-size: 13px; font-weight: 600; }
+.color-row { display: flex; gap: 8px; }
+.color-row input[type="color"] { flex: none; width: 56px; }
+.color-row input[type="text"] { flex: 1; font-family: ui-monospace, Menlo, monospace; text-transform: lowercase; }
+.inning-toggle:disabled { border-style: dashed; border-color: var(--border); color: var(--faint); cursor: default; }
+.confirm-dialog { max-width: 340px; padding: 18px; border: 0; border-radius: 14px; color: var(--ink); box-shadow: 0 10px 40px rgba(28, 42, 58, 0.35); }
+.confirm-dialog::backdrop { background: rgba(28, 42, 58, 0.4); }
+.confirm-dialog p { margin: 0 0 6px; font-size: 16px; }
+.confirm-dialog .game-actions .panel-action { margin-top: 12px; }
+.panel-action.danger { border-color: #b3261e; background: #b3261e; color: #fff; }
 
 .empty-season-note { margin: 24px 2px; font-size: 17px; color: var(--muted); }
 .empty-season-note[hidden] { display: none; }
