@@ -295,3 +295,4 @@ a:focus-visible, button:focus-visible, select:focus-visible, textarea:focus-visi
 .archived-game .game-text { font-size: 15px; }
 .panel-link { color: var(--primary); font-weight: 600; white-space: nowrap; }
 .font-sample { display: block; margin-top: 6px; padding: 8px 10px; border-radius: 8px; background: #fff; border: 1px dashed var(--border); font-size: 20px; color: var(--ink); }
+a.comment-toggle { width: fit-content; }
