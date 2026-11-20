@@ -9,6 +9,7 @@ const SHARE_LINK_LABEL = 'Share link';
 export const ROSTER_TAB_NAME = 'Roster';
 export const SCHEDULE_TAB_NAME = 'Schedule';
 export const NEW_GAME_TAB_NAME = 'New game (copy me)';
+export const COMMENTS_TAB_NAME = 'Comments';
 const CONFIG_SHEET_ID = 0;
 const ROSTER_SHEET_ID = 1;
 const SCHEDULE_SHEET_ID = 2;

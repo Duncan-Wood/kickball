@@ -3,15 +3,20 @@ import { KICKING_STYLES, POSITION_CODES } from '../template.js';
 import { button, confirmAction, formField, node, selectField } from './dom.js';
 import { addRosterPlayers, removeRosterPlayer, saveRosterPlayer } from './roster.js';
 import { ADD_FOCUS_KEY, captain } from './state.js';
-import { saveEdit, setStatus } from './status.js';
+import { autosave, saveEdit, setStatus } from './status.js';
 
-const HINT = 'Removing someone here keeps them in games already set up.';
+const HINT = 'Tap a name to change it. Changes save as you go.';
 const NEW_PLAYER_KEY = 'new';
+const BLANK_PLAYER = { name: '', prefers: '', avoids: '', notes: '', pronouns: '', kicking: '' };
+
+function redrawPanel() {
+  captain.panelStale = true;
+  window.fieldView.rerender();
+}
 
 function closeEditor() {
   captain.openRosterRow = null;
-  captain.panelStale = true;
-  window.fieldView.rerender();
+  redrawPanel();
 }
 
 function positionChips(label, text, onToggle) {
@@ -43,47 +48,81 @@ function blockCodesChosenElsewhere(group, otherGroup) {
   });
 }
 
+function saveTextWhenLeft(input, save) {
+  input.addEventListener('blur', save);
+  input.addEventListener('keydown', (event) => { if (event.key === 'Enter') input.blur(); });
+}
+
 function rosterEditor(player) {
-  const initial = player ?? { name: '', prefers: '', avoids: '', notes: '', pronouns: '', kicking: '' };
+  let saved = { name: player.name, prefers: player.prefers, avoids: player.avoids, notes: player.notes, pronouns: player.pronouns, kicking: player.kicking };
+  const persist = (changes, what) => {
+    const previous = { ...saved, sheetRow: player.sheetRow };
+    const next = { ...saved, ...changes };
+    saved = next;
+    autosave(() => saveRosterPlayer(next, previous), `${next.name}: ${what}`).then((ok) => {
+      if (ok) refreshSummary(player.sheetRow);
+      else redrawPanel();
+    });
+  };
   const form = node('form', 'game-editor');
-  const nameField = formField('Name', 'text', 'name', initial.name);
-  if (player !== null) nameField.append(node('span', 'field-note', 'Changing the name also changes it in every game.'));
+  form.addEventListener('submit', (event) => event.preventDefault());
+  const nameField = formField('Name', 'text', 'name', saved.name);
+  nameField.append(node('span', 'field-note', 'Changing the name also changes it in every game.'));
+  const textField = (label, key) => {
+    const field = key === 'name' ? nameField : formField(label, 'text', key, saved[key]);
+    const input = field.querySelector('input');
+    saveTextWhenLeft(input, () => {
+      const value = input.value.trim();
+      if (value !== saved[key]) persist({ [key]: value }, label.toLowerCase());
+    });
+    return field;
+  };
   const blockConflicts = () => {
     blockCodesChosenElsewhere(prefers, avoids);
     blockCodesChosenElsewhere(avoids, prefers);
   };
-  const prefers = positionChips('Prefers', initial.prefers, blockConflicts);
-  const avoids = positionChips("Won't play", initial.avoids, blockConflicts);
+  const prefers = positionChips('Prefers', saved.prefers, () => {
+    blockConflicts();
+    persist({ prefers: positionsText(chosenCodes(prefers), saved.prefers) }, 'prefers');
+  });
+  const avoids = positionChips("Won't play", saved.avoids, () => {
+    blockConflicts();
+    persist({ avoids: positionsText(chosenCodes(avoids), saved.avoids) }, "won't play");
+  });
   avoids.append(node('span', 'field-note', "A position can be in Prefers or Won't play, not both."));
   blockConflicts();
-  const kicking = selectField('Kicking style', 'kicking', [['', 'Not set'], ...KICKING_STYLES.map((style) => [style, style])], initial.kicking);
-  form.append(nameField, prefers, avoids, kicking, formField('Pronouns', 'text', 'pronouns', initial.pronouns), formField('Notes', 'text', 'notes', initial.notes));
+  const kicking = selectField('Kicking style', 'kicking', [['', 'Not set'], ...KICKING_STYLES.map((style) => [style, style])], saved.kicking);
+  kicking.querySelector('select').addEventListener('change', (event) => persist({ kicking: event.target.value }, 'kicking style'));
+  form.append(textField('Name', 'name'), prefers, avoids, kicking, textField('Pronouns', 'pronouns'), textField('Notes', 'notes'));
   const actions = node('div', 'game-actions');
-  const save = node('button', 'panel-action primary', 'Save');
-  save.type = 'submit';
-  actions.append(save);
-  if (player !== null) {
-    actions.append(button('Remove from roster', 'panel-action', async () => {
-      const confirmed = await confirmAction(`Remove ${player.name} from the roster?`, 'They stay in games already set up. Undo brings them back.', 'Remove');
-      if (confirmed) saveEdit(() => removeRosterPlayer(player), `Removed ${player.name} from the roster`).then((saved) => saved && closeEditor());
-    }));
-  }
-  actions.append(button('Cancel', 'panel-action', closeEditor));
+  actions.append(button('Remove from roster', 'panel-action', async () => {
+    const confirmed = await confirmAction(`Remove ${saved.name} from the roster?`, 'They stay in games already set up. Undo brings them back.', 'Remove');
+    if (confirmed) saveEdit(() => removeRosterPlayer({ ...player, ...saved }), `Removed ${saved.name} from the roster`).then((removed) => removed && closeEditor());
+  }));
   form.append(actions);
-  form.addEventListener('submit', (event) => {
-    event.preventDefault();
-    if (captain.saving) return;
-    const fields = new FormData(form);
-    const values = {
-      name: fields.get('name').trim(),
-      prefers: positionsText(chosenCodes(prefers), initial.prefers),
-      avoids: positionsText(chosenCodes(avoids), initial.avoids),
-      pronouns: fields.get('pronouns').trim(),
-      kicking: fields.get('kicking'),
-      notes: fields.get('notes').trim(),
-    };
-    saveEdit(() => saveRosterPlayer(values, player), player === null ? `Added ${values.name} to the roster` : `Saved ${values.name}`).then((saved) => saved && closeEditor());
+  return form;
+}
+
+function newPlayerEditor() {
+  const form = node('form', 'game-editor');
+  form.addEventListener('submit', (event) => event.preventDefault());
+  const nameField = formField('Name', 'text', 'name', '');
+  nameField.append(node('span', 'field-note', 'Type a name, then fill in the rest. Everything saves as you go.'));
+  const input = nameField.querySelector('input');
+  saveTextWhenLeft(input, () => {
+    const name = input.value.trim();
+    if (name === '') {
+      closeEditor();
+      return;
+    }
+    saveEdit(() => saveRosterPlayer({ ...BLANK_PLAYER, name }, null), `Added ${name} to the roster`).then((added) => {
+      if (!added) return;
+      captain.openRosterRow = captain.rosterPlayers.find((player) => player.name.toLowerCase() === name.toLowerCase())?.sheetRow ?? null;
+      redrawPanel();
+    });
   });
+  form.append(nameField);
+  requestAnimationFrame(() => input.focus());
   return form;
 }
 
@@ -119,20 +158,29 @@ function addSeveralForm() {
   return form;
 }
 
+function summaryText(player) {
+  const details = [player.kicking, player.prefers === '' ? '' : `Prefers ${player.prefers}`, player.avoids === '' ? '' : `Won't play ${player.avoids}`].filter((detail) => detail !== '').join(' · ');
+  const text = node('span', 'game-text');
+  text.append(node('strong', undefined, player.name), ...(player.pronouns === '' ? [] : [node('span', 'game-meta', `(${player.pronouns})`)]), ...(details === '' ? [] : [node('span', 'game-meta', details)]));
+  return text;
+}
+
+function refreshSummary(sheetRow) {
+  const player = captain.rosterPlayers.find((candidate) => candidate.sheetRow === sheetRow);
+  const summary = document.querySelector(`[data-focus-key="player:${sheetRow}"]`);
+  if (player !== undefined && summary !== null) summary.replaceChildren(summaryText(player));
+}
+
 function playerCard(player) {
   const isOpen = captain.openRosterRow === player.sheetRow;
   const card = node('div', isOpen ? 'game-card roster-card open' : 'game-card roster-card');
   const summary = button('', 'game-summary', () => {
     captain.openRosterRow = isOpen ? null : player.sheetRow;
-    captain.panelStale = true;
-    window.fieldView.rerender();
+    redrawPanel();
   });
   summary.setAttribute('aria-expanded', String(isOpen));
   summary.dataset.focusKey = `player:${player.sheetRow}`;
-  const details = [player.kicking, player.prefers === '' ? '' : `Prefers ${player.prefers}`, player.avoids === '' ? '' : `Won't play ${player.avoids}`].filter((detail) => detail !== '').join(' · ');
-  const text = node('span', 'game-text');
-  text.append(node('strong', undefined, player.name), ...(player.pronouns === '' ? [] : [node('span', 'game-meta', `(${player.pronouns})`)]), ...(details === '' ? [] : [node('span', 'game-meta', details)]));
-  summary.append(text);
+  summary.append(summaryText(player));
   card.append(summary);
   if (isOpen) card.append(rosterEditor(player));
   return card;
@@ -149,7 +197,7 @@ export function rosterPanel() {
     parts.push(addSeveralForm());
   } else if (adding) {
     const card = node('div', 'game-card open');
-    card.append(rosterEditor(null));
+    card.append(newPlayerEditor());
     parts.push(card);
   } else {
     const addPlayer = button('Add a player', 'panel-action', () => {
