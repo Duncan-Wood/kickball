@@ -40,7 +40,7 @@ On the team page, **Edit** lets anyone who can edit the sheet change the lineup 
 - **Signing in:** Sign in with Google and the page checks that your account can edit the team sheet. A co-captain who was shared the sheet picks it once in Google's file picker. Each visit starts with a Google sign-in, and the page keeps no sign-in afterward.
 - **Lineup:** the field with the kicking order under it, the same as players see. Tap a position, then pick a player from the panel. They swap with whoever held the spot. After an open spot is filled, the panel moves to the next open one. To place a sitting player, tap them, then a position. In the kicking order, tap a kicker, then the kicker whose spot they should take. Each kicker's style from the roster shows beside their name. Anyone can also be dragged: with a mouse, or on a phone by holding their name for a moment first.
 - **Copy inning:** a change applies to the inning on screen. From inning 2 on, **Copy inning 1 here** (or whichever inning comes before) copies the previous inning onto this one. It shows only when the two differ.
-- **RSVPs:** a headcount shows how many are playing and warns below 8. Set each player's RSVP to Yes, Maybe or No. No takes a player off the field and out of the kicking order, and keeps their positions in case they come back. The **×** removes them from this game. A name tapped under **Add from the roster** goes after the last player, so late arrivals kick last.
+- **RSVPs:** a headcount shows how many are playing (Yes and Maybe) and, once anyone has replied, warns below 8. **Mark … with no reply as Yes** answers everyone still blank in one step, for teams that don't collect replies. Set each player's RSVP to Yes, Maybe or No. No takes a player off the field and out of the kicking order, and keeps their positions in case they come back. The **×** removes them from this game. A name tapped under **Add from the roster** goes after the last player, so late arrivals kick last.
 - **Games:** every game on the `Schedule` tab. Tap one to edit its date, time, location, opponent, **Label** (shown in place of "Game 7", like `Semifinal`) and **Result** (free text, like `Won 9-5`).
   - **Add a season** fills an empty schedule from a first date and a number of weekly games.
   - **Add a game** is for a reschedule or playoff. Its Game # can be a number or text like `P1`.
@@ -63,7 +63,7 @@ The `Team Config` tab has eight settings, which a captain can also change from *
 - To add games, use **Games** in Captain tools, or duplicate the `New game (copy me)` tab, rename the copy so it ends with `Lineup`, and type its number in the `Game #:` cell. A copy keeps the old number until you change it, and the page hides a tab whose number another tab already uses. The blank tab is ignored until it is renamed.
 - The lookup cells in a game tab show a red corner flag if someone types over their formula. The warning is a validation rule, so it carries over when a tab is duplicated.
 - `Roster` can be edited from **Roster** in Captain tools, and holds each player's name, the positions they prefer and the positions they won't play, private notes, a pronouns column and a Kicking column (Bunt, Power or Mixed). The Lineup tab in Captain tools shows each kicker's style beside their name. Subs go on the roster like anyone else and are added to a game's grid when they play.
-- In a game tab, the `RSVP` column takes Yes, Maybe or No as replies come in. A blank cell next to a name is gray, meaning no reply yet. Blank and Maybe players are still planned for, and a No turns the row gray.
+- In a game tab, the `RSVP` column takes Yes, Maybe or No as replies come in. A blank cell next to a name is gray, meaning no reply yet. Only Yes and Maybe players are planned for: a player with no reply stays off the field and out of the kicking order until they answer, and a No turns the row gray.
 - The `Prefers` and `Won't play` columns after the innings fill in from the roster. A preferred position turns green in the grid and a won't-play position turns red. These columns are never sent to players.
 - The `Open spots` row under the grid lists the positions nobody is covering in each inning, and a position given to two players turns orange.
 
@@ -108,7 +108,7 @@ A fork needs its own Worker URL, Google client id and Picker API key in `site/se
 | Result text that contains W, L or T (or Won, Lost, Tied) and two scores, like "W, 12-0" or "Won 9-5" (your runs first) | The result of the game, shown as "Won 12-0" or "Lost 3-5". A game with a result counts toward season totals. Other text is shown as written |
 | Inning numbers in the "Name" row | One column per inning |
 | Position codes P, C, 1B, 2B, 3B, SS, LF, LC, CF, RC, RF | Placing players on the field. Any other code is flagged |
-| Yes, Maybe or No in the RSVP column | No means not attending: left out of the field, kicking order and totals. Blank (no reply yet) and Maybe count as playing |
+| Yes, Maybe or No in the RSVP column | Yes and Maybe count as playing. No and blank (no reply yet) are left out of the field, kicking order and totals. A game where nobody has said Yes or Maybe shows "The lineup isn't set yet" |
 | Row order of players | Kicking order |
 | Same spelling of a name on every tab | Season totals add up as one person |
 

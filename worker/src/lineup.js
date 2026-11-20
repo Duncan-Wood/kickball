@@ -1,4 +1,5 @@
 import { describeResult, resultFromText } from '../../site/result.js';
+import { isAttending } from '../../site/rsvp.js';
 
 export function isCurrentLineupTab(tabName) {
   return /lineup$/i.test(tabName);
@@ -121,7 +122,7 @@ function readPlayers(tabName, rows, { headerRowIndex, openSpotsRowIndex, inningC
       return {
         name,
         sheetRow,
-        attending: answer !== 'no',
+        attending: isAttending(answer),
         rsvp: answer,
         positions: inningColumnIndexes.map((columnIndex) => (row[columnIndex]?.text ?? '').trim()),
       };

@@ -1,3 +1,4 @@
+import { isAttending } from './rsvp.js';
 import { KICKING_STYLES, POSITION_CODES } from './template.js';
 
 export function columnLetter(columnIndex) {
@@ -103,7 +104,7 @@ export function applyAddedPlayers(lineup, additions, inningCount) {
 }
 
 export function applyRsvp(player, answer) {
-  return { ...player, rsvp: answer, attending: answer !== 'no' };
+  return { ...player, rsvp: answer, attending: isAttending(answer) };
 }
 
 export function nextGameNumber(lineups) {
@@ -187,13 +188,13 @@ export function scheduleGames(scheduleRows, lineups) {
 }
 
 export function headcount(players) {
-  const count = (answer) => players.filter((player) => player.attending && player.rsvp === answer).length;
+  const count = (answer) => players.filter((player) => player.rsvp === answer).length;
   return {
     playing: players.filter((player) => player.attending).length,
     yes: count('yes'),
     maybe: count('maybe'),
     waiting: count(''),
-    out: players.filter((player) => !player.attending).length,
+    out: count('no'),
   };
 }
 
