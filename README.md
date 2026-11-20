@@ -12,7 +12,8 @@ Screenshots use made-up players.
 
 ## Features
 
-- Pick a game and an inning to see who plays each of the 11 positions. A player who answered Maybe has a "?" after their name
+- Pick a game and an inning to see who plays each of the 11 positions. The field shows a first name and last initial, like "Carl C.", adding letters when two players would match. A player who answered Maybe has a "?" after their name
+- **Share lineup image** makes a picture of the whole game in team colors, like a screenshot of a lineup sheet: positions down the side, innings across, who sits each inning and the kicking order. On a phone it opens the share sheet, and elsewhere it downloads the image
 - Players see an unfilled position as a plain "open" chip. Lineup problems show only in Captain tools: a position given to two players is flagged in red, and so is an open position while someone is sitting
 - Game date, time, location, opponent and final score
 - Kicking order and the players sitting each inning
@@ -48,6 +49,7 @@ On the team page, **Edit** lets anyone who can edit the sheet change the lineup 
 - **Copy lineup:** on a game whose field is still empty, **Copy lineup from Game N** brings over the positions and kicking order of the last game with a lineup, for everyone in both games.
 - **Roster:** everyone on the `Roster` tab. Tap a name to change their name, preferred and won't-play positions, kicking style, pronouns or notes, or to remove them. Each change saves on its own, and Undo takes it back. **Add a player** starts with just a name, and the rest can be filled in after. **Add several** takes one name per line. Renaming a player renames them in every game. Removing someone asks first, and leaves them in games already set up.
 - **Team:** the nine `Team Config` settings as a form. A sample line under Font shows the font you've picked. Each change saves on its own, and Undo takes it back. The team name can't be left empty. Copy buttons give the team link and the co-captain link, **Open the sheet** opens it in Google Sheets to share it with a co-captain, and the suggestion box setting links to the `Comments` tab.
+- **Share:** the same lineup image as players get, from the bar beside Undo and Redo.
 - **Undo and Redo:** Undo reverses the last saved change, and keeps going back through earlier ones. Redo puts back what Undo took away, until you make a new change. Undoing new lineup tabs deletes those tabs. Both last for the visit. The sheet's own version history keeps everything. Unsaved form changes are not on the list. **Reset** discards them.
 - **Opening on the right game:** the team page opens on the next game by date, or the most recent one once the season is over.
 - Edits are written to the sheet with your own account, so the sheet's version history shows who made them. If the sheet changed since the page last updated, nothing is saved and the page says so.
