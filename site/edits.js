@@ -111,16 +111,40 @@ export function nextGameNumber(lineups) {
   return Math.max(0, ...lineups.map((lineup) => lineup.gameNumber ?? 0)) + 1;
 }
 
-export function nextGameId(games, lineups) {
-  const scheduledNumbers = games.filter((game) => /^\d+$/.test(game.id)).map((game) => Number(game.id));
+export function scheduleIds(scheduleRows) {
+  return scheduleRows.slice(1).map((cells) => (cells[0] ?? '').trim()).filter((id) => id !== '');
+}
+
+export function nextGameId(scheduledIds, lineups) {
+  const scheduledNumbers = scheduledIds.filter((id) => /^\d+$/.test(id)).map(Number);
   return String(Math.max(nextGameNumber(lineups), ...scheduledNumbers.map((number) => number + 1)));
 }
 
-export function gameIdProblem(id, existingIds) {
-  if (id === '') return 'Enter a game number, like 7 or P1';
-  if (!/^[A-Za-z0-9][A-Za-z0-9 -]{0,19}$/.test(id)) return 'Use letters, numbers, spaces or dashes, up to 20 characters';
-  if (existingIds.some((existing) => existing.toLowerCase() === id.toLowerCase())) return `Game ${id} is already on the schedule`;
-  return null;
+export function nextGameDefaults(games) {
+  const dated = games
+    .map((game) => ({ game, date: isoDateFromDisplayed(game.date) }))
+    .filter(({ date }) => date !== '')
+    .sort((first, second) => first.date.localeCompare(second.date));
+  if (dated.length === 0) return { date: '', time: '', location: '' };
+  const { game, date } = dated[dated.length - 1];
+  return { date: seasonDates(date, 2)[1], time: isoTimeFromDisplayed(game.time), location: game.location };
+}
+
+export function copiedLineup(players, sourcePlayers, inningCount) {
+  const nameKey = (name) => name.trim().toLowerCase();
+  const sourceAttending = sourcePlayers.filter((player) => player.attending);
+  const sourceOrder = new Map(sourceAttending.map((player, index) => [nameKey(player.name), index]));
+  const sourceByName = new Map(sourceAttending.map((player) => [nameKey(player.name), player]));
+  const attending = players.filter((player) => player.attending);
+  const orderOf = (player) => sourceOrder.get(nameKey(player.name)) ?? sourceAttending.length;
+  const reordered = [...attending].sort((first, second) => orderOf(first) - orderOf(second));
+  const attendingRows = attending.map((player) => player.sheetRow).sort((first, second) => first - second);
+  const copied = reordered.map((player, index) => {
+    const source = sourceByName.get(nameKey(player.name));
+    const positions = Array.from({ length: inningCount }, (unused, inningIndex) => (source === undefined ? player.positions[inningIndex] : source.positions[inningIndex] ?? ''));
+    return { ...player, sheetRow: attendingRows[index], positions };
+  });
+  return [...copied, ...players.filter((player) => !player.attending)].sort((first, second) => first.sheetRow - second.sheetRow);
 }
 
 export function inverseKickingMove({ fromRow, finalRow }) {
@@ -183,7 +207,7 @@ export function scheduleGames(scheduleRows, lineups) {
     if (id === '') return [];
     const lineup = lineups.find((candidate) => candidate.gameId === id);
     const game = { id, row: index + 2, date: text(1), time: text(2), location: text(3), opponent: text(4), label: text(5), result: text(6), archived: text(7).toLowerCase() === 'yes', tabName: lineup?.tabName ?? null };
-    return [game.date, game.time, game.location, game.opponent].some((value) => value !== '') || lineup !== undefined ? [game] : [];
+    return [game.date, game.time, game.location, game.opponent, game.label, game.result].some((value) => value !== '') || lineup !== undefined ? [game] : [];
   });
 }
 

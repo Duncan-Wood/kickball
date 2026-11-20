@@ -41,6 +41,15 @@ export async function saveFielding(lineupWhenEditing, changes) {
   return () => saveFielding(lineup, reversal);
 }
 
+export async function saveLineupRows(lineupWhenEditing, players) {
+  const lineup = currentVersionOf(lineupWhenEditing);
+  const previousPlayers = lineup.players;
+  await confirmSheetStillMatches(previousPlayers.flatMap((player) => rowExpectations(lineup, player)));
+  await writeValues(players.flatMap((player) => rowWrites(lineup, player)), 'RAW');
+  lineup.players = [...players].sort((first, second) => first.sheetRow - second.sheetRow);
+  return () => saveLineupRows(lineup, previousPlayers);
+}
+
 export async function saveKickingMove(lineupWhenEditing, move, sourceRow, targetRow) {
   const lineup = currentVersionOf(lineupWhenEditing);
   await confirmSheetStillMatches(nameExpectations(lineup, [sourceRow, targetRow]));
