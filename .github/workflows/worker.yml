@@ -6,6 +6,7 @@ on:
       - 'worker/**'
       - 'site/template.js'
       - 'site/result.js'
+      - 'site/rsvp.js'
       - 'site/teamSettings.js'
       - 'site/theme.js'
       - '.github/workflows/worker.yml'
@@ -14,6 +15,7 @@ on:
     paths:
       - 'worker/**'
       - 'site/result.js'
+      - 'site/rsvp.js'
       - 'site/teamSettings.js'
       - 'site/theme.js'
       - '.github/workflows/worker.yml'

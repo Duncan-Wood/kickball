@@ -203,15 +203,20 @@ test('finding a player by sheet row returns undefined for a missing row', () => 
   assert.equal(lineupPlayer({ players: [] }, 9), undefined);
 });
 
-test('headcount counts who is playing, who has not replied and who is out', () => {
+test('headcount counts Yes and Maybe as playing, and keeps no reply apart from No', () => {
   const players = [
     { attending: true, rsvp: 'yes' },
     { attending: true, rsvp: 'yes' },
     { attending: true, rsvp: 'maybe' },
-    { attending: true, rsvp: '' },
+    { attending: false, rsvp: '' },
     { attending: false, rsvp: 'no' },
   ];
-  assert.deepEqual(headcount(players), { playing: 4, yes: 2, maybe: 1, waiting: 1, out: 1 });
+  assert.deepEqual(headcount(players), { playing: 3, yes: 2, maybe: 1, waiting: 1, out: 1 });
+});
+
+test('clearing an RSVP takes the player out of the game', () => {
+  const answered = { ...player('Sam', 10, ['P']), rsvp: 'yes' };
+  assert.equal(applyRsvp(answered, '').attending, false);
 });
 
 test('blank player rows are the empty rows between the header and the end label', () => {

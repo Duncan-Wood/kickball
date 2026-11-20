@@ -130,7 +130,8 @@ function openSpotsFormula(columnIndex) {
   const firstRow = GAME_FIRST_PLAYER_ROW_INDEX + 1;
   const lastRow = GAME_LAST_PLAYER_ROW_INDEX + 1;
   const rsvp = columnLetter(GAME_RSVP_COLUMN_INDEX);
-  return `=IFERROR(TEXTJOIN(", ",TRUE,FILTER(Positions!$B$2:$B$12,COUNTIFS(${column}$${firstRow}:${column}$${lastRow},Positions!$B$2:$B$12,$${rsvp}$${firstRow}:$${rsvp}$${lastRow},"<>No")=0)),"")`;
+  const attendingCount = (answer) => `COUNTIFS(${column}$${firstRow}:${column}$${lastRow},Positions!$B$2:$B$12,$${rsvp}$${firstRow}:$${rsvp}$${lastRow},"${answer}")`;
+  return `=IFERROR(TEXTJOIN(", ",TRUE,FILTER(Positions!$B$2:$B$12,${attendingCount('Yes')}+${attendingCount('Maybe')}=0)),"")`;
 }
 
 function gameRows() {
@@ -217,10 +218,11 @@ function gameConditionalFormats(sheetId) {
   const avoids = columnLetter(GAME_AVOIDS_COLUMN_INDEX);
   const positionMatch = (listColumn) => `REGEXMATCH(UPPER($${listColumn}${firstRow}),"(^|[^A-Z0-9])"&UPPER(${firstInning}${firstRow})&"([^A-Z0-9]|$)")`;
   const inningEnd = GAME_FIRST_INNING_COLUMN_INDEX + INNING_COUNT;
+  const attendingAtPosition = (answer) => `COUNTIFS(${firstInning}$${firstRow}:${firstInning}$${lastRow},${firstInning}${firstRow},$${rsvp}$${firstRow}:$${rsvp}$${lastRow},"${answer}")`;
   const rules = [
     formulaRule(sheetId, 0, inningEnd, `=$${rsvp}${firstRow}="No"`, { textFormat: { foregroundColor: ABSENT_TEXT } }),
     formulaRule(sheetId, GAME_FIRST_INNING_COLUMN_INDEX, inningEnd, `=AND(${firstInning}${firstRow}<>"",${positionMatch(avoids)})`, { backgroundColor: AVOIDS_FILL, textFormat: { bold: true, foregroundColor: AVOIDS_TEXT } }),
-    formulaRule(sheetId, GAME_FIRST_INNING_COLUMN_INDEX, inningEnd, `=AND(${firstInning}${firstRow}<>"",COUNTIFS(${firstInning}$${firstRow}:${firstInning}$${lastRow},${firstInning}${firstRow},$${rsvp}$${firstRow}:$${rsvp}$${lastRow},"<>No")>1)`, { backgroundColor: DOUBLED_FILL, textFormat: { bold: true, foregroundColor: DOUBLED_TEXT } }),
+    formulaRule(sheetId, GAME_FIRST_INNING_COLUMN_INDEX, inningEnd, `=AND(${firstInning}${firstRow}<>"",${attendingAtPosition('Yes')}+${attendingAtPosition('Maybe')}>1)`, { backgroundColor: DOUBLED_FILL, textFormat: { bold: true, foregroundColor: DOUBLED_TEXT } }),
     formulaRule(sheetId, GAME_FIRST_INNING_COLUMN_INDEX, inningEnd, `=AND(${firstInning}${firstRow}<>"",${positionMatch(prefers)})`, { backgroundColor: PREFERS_FILL, textFormat: { foregroundColor: PREFERS_TEXT } }),
     formulaRule(sheetId, GAME_RSVP_COLUMN_INDEX, GAME_RSVP_COLUMN_INDEX + 1, `=$${rsvp}${firstRow}="Maybe"`, { backgroundColor: MAYBE_FILL }),
     formulaRule(sheetId, GAME_RSVP_COLUMN_INDEX, GAME_RSVP_COLUMN_INDEX + 1, `=AND($A${firstRow}<>"",$${rsvp}${firstRow}="")`, { backgroundColor: NO_REPLY_FILL }),
