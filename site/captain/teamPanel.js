@@ -1,4 +1,4 @@
-import { CONFIG_FIELDS, FONTS, STRIPE_STYLES, configFromSettings, settingProblem, settingsFromConfig, settingsWithDefaults } from '../teamSettings.js';
+import { CONFIG_FIELDS, FONTS, STRIPE_STYLES, STRIPE_THICKNESSES, configFromSettings, settingProblem, settingsFromConfig, settingsWithDefaults } from '../teamSettings.js';
 import { COMMENTS_TAB_NAME } from '../template.js';
 import { button, formField, node, selectField } from './dom.js';
 import { saveTeamSettings } from './settings.js';
@@ -8,6 +8,7 @@ import { autosave, setStatus } from './status.js';
 const HINT = 'Changes save as you make them. Undo takes them back.';
 const CHOICES = {
   stripe: STRIPE_STYLES.map((style) => [style, style]),
+  thickness: STRIPE_THICKNESSES.map((thickness) => [thickness, thickness]),
   font: FONTS.map((font) => [font, font]),
   toggle: [['On', 'On'], ['Off', 'Off']],
 };
@@ -64,13 +65,24 @@ function suggestionNote() {
   return note;
 }
 
+function fontSample(select) {
+  const sample = node('span', 'font-sample', `${window.fieldView.currentConfig().teamName} · Won 7-5`);
+  const showFont = () => { sample.style.fontFamily = `'${select.value}', sans-serif`; };
+  select.addEventListener('input', showFont);
+  select.addEventListener('change', showFont);
+  showFont();
+  return sample;
+}
+
 function fieldFor(field, value, commit) {
   let control;
   if (field.kind === 'color') {
     control = colorField(field, value, commit);
   } else if (field.kind in CHOICES) {
     control = selectField(field.label, field.key, CHOICES[field.kind], value);
-    control.querySelector('select').addEventListener('change', commit);
+    const select = control.querySelector('select');
+    select.addEventListener('change', commit);
+    if (field.kind === 'font') control.append(fontSample(select));
   } else {
     control = formField(field.label, INPUT_TYPES[field.kind], field.key, value);
     const input = control.querySelector('input');

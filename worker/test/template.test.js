@@ -38,6 +38,16 @@ test('the sheet counts only Yes and Maybe players when it lists open spots and f
   });
 });
 
+test('each Team Config dropdown sits on the row of its own setting', () => {
+  const configSheet = templateSheet('Team Config');
+  const labelAtRow = (rowIndex) => configSheet.rowData[rowIndex].values[0].userEnteredValue.stringValue;
+  const dropdowns = formattingRequests().filter((request) => request.setDataValidation?.range.sheetId === configSheet.properties.sheetId);
+  const choicesByLabel = Object.fromEntries(dropdowns.map(({ setDataValidation }) => [labelAtRow(setDataValidation.range.startRowIndex), setDataValidation.rule.condition.values.map(({ userEnteredValue }) => userEnteredValue)]));
+  assert.deepEqual(Object.keys(choicesByLabel), ['Stripe', 'Stripe thickness', 'Font', 'Suggestion box']);
+  assert.ok(choicesByLabel.Stripe.includes('Pride'));
+  assert.deepEqual(choicesByLabel['Stripe thickness'], ['Thin', 'Thick']);
+});
+
 function templateSheet(title) {
   return teamSheetDefinition('Test Team', 'Fall 2026').sheets.find(({ properties }) => properties.title === title);
 }
@@ -99,7 +109,9 @@ test('Start here holds only the two links, with room to write them', () => {
 test('saving the team links writes the team link and the Captain link, and clearing blanks both', async () => {
   const sent = [];
   const originalFetch = globalThis.fetch;
+  const olderLayoutLabels = [['Setting'], ['Team name'], ['Season label'], ['Icon'], ['Main color'], ['Second color'], ['Stripe'], ['Font'], ['Suggestion box'], [], ['Share link']];
   globalThis.fetch = async (address, options) => {
+    if (options.method === 'GET') return Response.json({ values: olderLayoutLabels });
     sent.push({ address: String(address), body: JSON.parse(options.body) });
     return Response.json({});
   };
@@ -111,6 +123,7 @@ test('saving the team links writes the team link and the Captain link, and clear
   }
   const [saved, cleared] = sent.map(({ body }) => body.data);
   assert.deepEqual(saved.map(({ values }) => values), [[['https://example.test/?team=abc']], [['https://example.test/?team=abc'], ['https://example.test/?team=abc#captain']]]);
+  assert.match(saved[0].range, /Team Config.!B11$/);
   assert.match(saved[1].range, /Start here.!B3:B4/);
   assert.deepEqual(cleared.map(({ values }) => values), [[['']], [[''], ['']]]);
 });

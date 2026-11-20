@@ -4,11 +4,14 @@ const FIELD_SPOTS = {
   P: [200, 266], C: [200, 382],
 };
 const INFIELD_POSITIONS = ['P', 'C', '1B', '2B', '3B', 'SS'];
-const MINIMUM_API_VERSION = 8;
+const MINIMUM_API_VERSION = 9;
 const REFRESH_SECONDS = 10;
 const TEAM_CODE_PATTERN = /^[a-z0-9]{12}$/;
 const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
-const FONTS = ['Fredoka', 'Nunito', 'Poppins', 'Roboto', 'Lora'];
+const FONT_NAME_PATTERN = /^[A-Za-z0-9 ]{1,40}$/;
+const STRIPE_DRAWINGS = ['blend', 'bands', 'candy'];
+const STRIPE_HEIGHT_RANGE = [1, 12];
+const CANDY_BAND_PIXELS = 6;
 const THEME_VARIABLES = {
   primary: '--primary',
   accent: '--accent',
@@ -94,8 +97,8 @@ function applyConfig(settings) {
     document.documentElement.style.setProperty(variable, settings.theme[key]);
   });
   applyStripe(settings.theme.stripe);
-  if (!FONTS.includes(settings.font)) throw new Error('The sheet sent an unknown font');
-  const fontAddress = 'https://fonts.googleapis.com/css2?family=' + settings.font + ':wght@400;500;600;700&display=swap';
+  if (!FONT_NAME_PATTERN.test(settings.font)) throw new Error('The sheet sent an unknown font');
+  const fontAddress = 'https://fonts.googleapis.com/css2?family=' + settings.font.replace(/ /g, '+') + ':wght@400;500;600;700&display=swap';
   if (!document.querySelector('link[href="' + fontAddress + '"]')) {
     const fontLink = document.createElement('link');
     fontLink.rel = 'stylesheet';
@@ -132,15 +135,28 @@ function applyTeamManifest(settings) {
   document.getElementById('manifest').href = teamManifestAddress;
 }
 
+function stripeBackground({ style, colors }) {
+  if (style === 'candy') {
+    const bands = colors.map((color, index) => color + ' ' + index * CANDY_BAND_PIXELS + 'px ' + (index + 1) * CANDY_BAND_PIXELS + 'px');
+    return 'repeating-linear-gradient(135deg, ' + bands.join(', ') + ')';
+  }
+  if (style === 'blend') return 'linear-gradient(90deg, ' + colors.join(', ') + ')';
+  const segmentPercent = 100 / colors.length;
+  const bands = colors.map((color, index) => color + ' ' + index * segmentPercent + '% ' + (index + 1) * segmentPercent + '%');
+  return 'linear-gradient(90deg, ' + bands.join(', ') + ')';
+}
+
 function applyStripe(stripe) {
-  if (!Array.isArray(stripe.colors) || !stripe.colors.every((color) => HEX_COLOR_PATTERN.test(color))) {
+  if (!Array.isArray(stripe.colors) || stripe.colors.length === 0 || !stripe.colors.every((color) => HEX_COLOR_PATTERN.test(color))) {
     throw new Error('The sheet sent an invalid list of stripe colors');
   }
-  const segmentPercent = 100 / stripe.colors.length;
-  const stops = stripe.colors.map((color, index) => (
-    stripe.smooth ? color : color + ' ' + index * segmentPercent + '% ' + (index + 1) * segmentPercent + '%'
-  ));
-  document.querySelector('.accent-stripe').style.background = 'linear-gradient(90deg, ' + stops.join(', ') + ')';
+  if (!STRIPE_DRAWINGS.includes(stripe.style)) throw new Error('The sheet sent an unknown stripe style');
+  if (!Number.isInteger(stripe.height) || stripe.height < STRIPE_HEIGHT_RANGE[0] || stripe.height > STRIPE_HEIGHT_RANGE[1]) {
+    throw new Error('The sheet sent an invalid stripe thickness');
+  }
+  const accentStripe = document.querySelector('.accent-stripe');
+  accentStripe.style.background = stripeBackground(stripe);
+  accentStripe.style.height = stripe.height + 'px';
 }
 
 function applyIcon(icon) {
