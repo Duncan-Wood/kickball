@@ -3,12 +3,10 @@ import { describeResult, resultFromText } from '../result.js';
 import { button, formField, node } from './dom.js';
 import { addGame, addSeasonGames, allScheduledGames, archiveGame, newGamePreview, saveGameField, scheduledGames, unarchiveGame } from './schedule.js';
 import { ADD_FOCUS_KEY, captain } from './state.js';
-import { saveEdit } from './status.js';
+import { autosave, saveEdit } from './status.js';
 
 const HINT = 'Tap a game to change it. Changes save when you leave a field.';
 const FIELDS = [['date', 'Date', 'date'], ['time', 'Time', 'time'], ['location', 'Location', 'text'], ['opponent', 'Opponent', 'text'], ['label', 'Label', 'text'], ['result', 'Result', 'text']];
-
-let saveQueue = Promise.resolve();
 
 function rerenderPanel() {
   captain.panelStale = true;
@@ -52,7 +50,7 @@ function autosavedField(game, [field, label, type]) {
     if (value === saved) return;
     const previous = saved;
     saved = value;
-    saveQueue = saveQueue.then(() => saveEdit(() => saveGameField(game, field, value, previous), `${gameTitle(game)}: ${label.toLowerCase()}`)).then((ok) => {
+    autosave(() => saveGameField(game, field, value, previous), `${gameTitle(game)}: ${label.toLowerCase()}`).then((ok) => {
       if (ok) refreshSummary(game.id);
       else saved = previous;
     });
