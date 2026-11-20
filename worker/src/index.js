@@ -3,12 +3,13 @@ import { appendComment, COMMENTS_PER_HOUR, validatedComment } from './comments.j
 import { RateLimitedError, readTeamSheet, SheetGoneError } from './sheetsReader.js';
 import { decryptToken, encryptToken, newTeamSlug } from './tokens.js';
 
-const API_VERSION = 7;
+const API_VERSION = 8;
 const FRESH_READ_SECONDS = 15;
 const STALE_READ_SECONDS = 3600;
 const RATE_LIMIT_COOLDOWN_SECONDS = 60;
 const TEAM_ROUTE = /^\/api\/team\/([a-z0-9]{12})(\/comment)?$/;
 const CAPTAIN_ROUTE = /^\/api\/team\/([a-z0-9]{12})\/captain$/;
+const FRESH_ROUTE = /^\/api\/team\/([a-z0-9]{12})\/fresh$/;
 const DRIVE_FILES_ADDRESS = 'https://www.googleapis.com/drive/v3/files';
 
 class UnknownTeamError extends Error {}
@@ -148,6 +149,17 @@ async function disconnect(request, environment) {
 
 async function captainAccess(request, slug, environment) {
   const { accessToken } = await request.json();
+  return editorAccess(accessToken, slug, environment);
+}
+
+async function freshTeamPayload(request, slug, environment, context) {
+  const { accessToken } = await request.json();
+  const { access } = await editorAccess(accessToken, slug, environment);
+  if (access !== 'editor') throw new Error('Open Captain tools again and pick the team sheet');
+  return readFromGoogle(slug, environment, context);
+}
+
+async function editorAccess(accessToken, slug, environment) {
   if (typeof accessToken !== 'string' || accessToken === '') throw new Error('Missing sign-in');
   const stored = await environment.TEAMS.get(`team:${slug}`, 'json');
   if (stored === null) throw new Error('This team link is not recognized. Ask your captain for a new one');
@@ -193,6 +205,8 @@ export default {
       if (request.method === 'POST' && pathname === '/api/disconnect') return jsonResponse({ ok: true, ...(await disconnect(request, environment)) }, 200, request, environment);
       const captainMatch = CAPTAIN_ROUTE.exec(pathname);
       if (request.method === 'POST' && captainMatch !== null) return jsonResponse({ ok: true, ...(await captainAccess(request, captainMatch[1], environment)) }, 200, request, environment);
+      const freshMatch = FRESH_ROUTE.exec(pathname);
+      if (request.method === 'POST' && freshMatch !== null) return jsonResponse({ ok: true, ...(await freshTeamPayload(request, freshMatch[1], environment, context)) }, 200, request, environment);
       const teamMatch = TEAM_ROUTE.exec(pathname);
       if (teamMatch !== null) {
         const body = await handleTeam(request, teamMatch[1], teamMatch[2] !== undefined, environment, context);
