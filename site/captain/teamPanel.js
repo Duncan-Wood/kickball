@@ -12,12 +12,40 @@ const CHOICES = {
   font: FONTS.map((font) => [font, font]),
   toggle: [['On', 'On'], ['Off', 'Off']],
 };
-const INPUT_TYPES = { text: 'text', icon: 'text', color: 'color' };
+const INPUT_TYPES = { text: 'text', icon: 'text' };
+const HEX_PATTERN = /^#[0-9a-f]{6}$/;
+
+function colorField(field, value) {
+  const label = node('label', undefined, field.label);
+  const row = node('span', 'color-row');
+  const picker = node('input');
+  picker.type = 'color';
+  picker.name = field.key;
+  picker.value = value;
+  const hex = node('input');
+  hex.type = 'text';
+  hex.value = value;
+  hex.maxLength = 7;
+  hex.autocomplete = 'off';
+  hex.spellcheck = false;
+  hex.setAttribute('aria-label', `${field.label} hex code`);
+  picker.addEventListener('input', () => { hex.value = picker.value; });
+  hex.addEventListener('input', () => {
+    const typed = hex.value.trim().toLowerCase();
+    const withHash = typed.startsWith('#') ? typed : `#${typed}`;
+    if (HEX_PATTERN.test(withHash)) picker.value = withHash;
+  });
+  hex.addEventListener('blur', () => { hex.value = picker.value; });
+  row.append(picker, hex);
+  label.append(row);
+  return label;
+}
 
 function fieldFor(field, value) {
-  const control = field.kind in CHOICES
-    ? selectField(field.label, field.key, CHOICES[field.kind], value)
-    : formField(field.label, INPUT_TYPES[field.kind], field.key, value);
+  let control;
+  if (field.kind === 'color') control = colorField(field, value);
+  else if (field.kind in CHOICES) control = selectField(field.label, field.key, CHOICES[field.kind], value);
+  else control = formField(field.label, INPUT_TYPES[field.kind], field.key, value);
   control.append(node('span', 'field-note', field.note));
   return control;
 }
@@ -32,23 +60,25 @@ function previewIfValid(values) {
   if (!hasProblem) window.fieldView.previewConfig(configFromSettings(settingsWithDefaults(values)));
 }
 
-function linkRow(labelText, name, link) {
-  const row = node('div', 'share-link game-editor');
-  const field = formField(labelText, 'text', name, link);
-  field.querySelector('input').readOnly = true;
-  row.append(field, button('Copy', 'panel-action', () => {
-    navigator.clipboard.writeText(link).then(() => setStatus('Link copied'), () => setStatus('Could not copy. Select the link and copy it', { isError: true }));
-  }));
+function linkRow(labelText, link) {
+  const row = button('', 'share-link', () => {
+    navigator.clipboard.writeText(link).then(() => setStatus(`${labelText} copied`), () => setStatus('Could not copy the link', { isError: true }));
+  });
+  const text = node('span', 'share-link-text');
+  text.append(node('span', 'share-link-label', labelText), node('span', 'share-link-address', link.replace(/^https?:\/\//, '')));
+  row.append(text, node('span', 'share-link-action', 'Copy'));
   return row;
 }
 
 function shareLinkRows() {
   const link = `${location.origin}${location.pathname}?team=${window.fieldView.teamCode}`;
-  return [
-    linkRow('Link for players', 'shareLink', link),
-    linkRow('Link for co-captains', 'captainLink', `${link}#captain`),
+  const links = node('div', 'share-links');
+  links.append(
+    linkRow('Link for players', link),
+    linkRow('Link for co-captains', `${link}#captain`),
     node('p', 'captain-hint', 'Share the sheet with a co-captain first, then send them this link.'),
-  ];
+  );
+  return [links];
 }
 
 function settingsPanel() {

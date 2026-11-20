@@ -9,6 +9,7 @@ const DRAG_START_PIXELS = 8;
 const CLICK_SUPPRESSION_MILLISECONDS = 50;
 const LONG_PRESS_MILLISECONDS = 250;
 const DOCK_CLEARANCE_PIXELS = 16;
+const LIFT_VIBRATION_MILLISECONDS = 10;
 const HINTS = {
   fielding: 'Tap a position, then pick a player.',
   elsewhere: 'Pick an inning above to edit the field.',
@@ -117,6 +118,16 @@ function startDrag(event, sourceElement) {
   dragState = { sourceElement, startX: event.clientX, startY: event.clientY, dragging: false, ghost: null };
 }
 
+function lift(sourceElement) {
+  window.getSelection()?.removeAllRanges();
+  sourceElement.classList.add('lifted');
+  navigator.vibrate?.(LIFT_VIBRATION_MILLISECONDS);
+}
+
+function drop(sourceElement) {
+  sourceElement.classList.remove('lifted');
+}
+
 function moveDrag(event) {
   if (dragState === null) return;
   if (!dragState.dragging) {
@@ -129,6 +140,7 @@ function moveDrag(event) {
     }
     captain.selectedRow = sourceRow;
     dragState.dragging = true;
+    lift(dragState.sourceElement);
     dragState.ghost = node('div', 'drag-ghost', lineupPlayer(window.fieldView.currentLineup(), sourceRow).name);
     document.body.append(dragState.ghost);
     decorate();
@@ -141,6 +153,7 @@ function endDrag(event) {
   if (dragState === null) return;
   const { dragging, ghost, sourceElement } = dragState;
   dragState = null;
+  drop(sourceElement);
   if (!dragging) return;
   ghost.remove();
   suppressClicksUntil = Date.now() + CLICK_SUPPRESSION_MILLISECONDS;
@@ -161,6 +174,7 @@ function startTouchDrag(event, sourceElement) {
   longPress.timer = setTimeout(() => {
     longPress.armed = true;
     dragState = { sourceElement, startX: clientX, startY: clientY, dragging: false, ghost: null };
+    lift(sourceElement);
   }, LONG_PRESS_MILLISECONDS);
 }
 
@@ -185,6 +199,7 @@ function endTouchDrag(event) {
   if (!armed) return;
   if (event.type === 'touchcancel') {
     dragState?.ghost?.remove();
+    if (dragState !== null) drop(dragState.sourceElement);
     dragState = null;
     captain.selectedRow = null;
     decorate();
@@ -342,6 +357,7 @@ export function bindFieldEditing() {
     editable.addEventListener('click', () => handleTap(editable));
     editable.addEventListener('pointerdown', (event) => startDrag(event, editable));
     editable.addEventListener('touchstart', (event) => startTouchDrag(event, editable), { passive: true });
+    editable.addEventListener('contextmenu', (event) => event.preventDefault());
     editable.addEventListener('keydown', (event) => {
       if (event.key !== 'Enter' && event.key !== ' ') return;
       event.preventDefault();

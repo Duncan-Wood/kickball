@@ -353,7 +353,7 @@ function renderSeason() {
   const playerRows = seasonTotals(playedLineups).map((totals) => tableRow([
     tableCell('td', totals.name, 'name'),
     tableCell('td', totals.games, totals.games === 0 ? 'sat' : ''),
-    tableCell('td', totals.played, totals.games === 0 ? 'sat' : 'played'),
+    tableCell('td', totals.played, totals.games === 0 ? 'sat' : ''),
     tableCell('td', totals.sat, totals.sat === 0 ? 'sat' : ''),
     tableCell('td', totals.infield),
     tableCell('td', totals.outfield),
