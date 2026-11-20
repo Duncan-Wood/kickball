@@ -1,7 +1,7 @@
 import { blankPlayerRows, cellAddress, nextGameDefaults, nextGameId, scheduleGames, scheduleIds, seasonDates, seasonProblem } from '../edits.js';
 import { NEW_GAME_TAB_NAME, ROSTER_TAB_NAME, SCHEDULE_TAB_NAME } from '../template.js';
 import { fetchRosterNames } from './roster.js';
-import { columnValues, confirmSheetStillMatches, refreshTabs, sheetRows, sheetsRequest, writeValues } from './sheetApi.js';
+import { columnValues, confirmSheetStillMatches, currentAccessToken, refreshTabs, sheetRows, sheetsRequest, writeValues } from './sheetApi.js';
 import { captain } from './state.js';
 
 const NEW_GAME_LOOKUP_ATTEMPTS = 10;
@@ -37,7 +37,7 @@ function waitMilliseconds(milliseconds) {
 
 async function reloadUntil(isDone, failureMessage) {
   for (let attempt = 1; attempt <= NEW_GAME_LOOKUP_ATTEMPTS; attempt += 1) {
-    if (isDone(await window.fieldView.reloadLineups())) return;
+    if (isDone(await window.fieldView.reloadLineups(undefined, await currentAccessToken()))) return;
     await waitMilliseconds(NEW_GAME_LOOKUP_WAIT_MILLISECONDS);
   }
   throw new Error(failureMessage);
