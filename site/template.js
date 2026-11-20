@@ -1,4 +1,4 @@
-import { CONFIG_FIELDS, FONTS, STRIPE_STYLES } from './teamSettings.js';
+import { CONFIG_FIELDS, CONFIG_TAB_NAME, FONTS, STRIPE_STYLES, STRIPE_THICKNESSES } from './teamSettings.js';
 const SHEETS_ADDRESS = 'https://sheets.googleapis.com/v4/spreadsheets';
 export const POSITION_CODES = ['P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'LC', 'CF', 'RC', 'RF'];
 export const KICKING_STYLES = ['Bunt', 'Power', 'Mixed'];
@@ -232,10 +232,13 @@ function gameConditionalFormats(sheetId) {
 }
 
 function configFormattingRequests(sheetId) {
+  const settingRowIndex = (key) => 1 + CONFIG_FIELDS.findIndex((field) => field.key === key);
+  const settingList = (key, values) => listValidation(sheetId, settingRowIndex(key), settingRowIndex(key) + 1, 1, 2, values);
   return [
-    listValidation(sheetId, 6, 7, 1, 2, STRIPE_STYLES),
-    listValidation(sheetId, 7, 8, 1, 2, FONTS),
-    listValidation(sheetId, 8, 9, 1, 2, ['On', 'Off']),
+    settingList('stripeStyle', STRIPE_STYLES),
+    settingList('stripeThickness', STRIPE_THICKNESSES),
+    settingList('font', FONTS),
+    settingList('suggestionBox', ['On', 'Off']),
     columnWidth(sheetId, 0, 160), columnWidth(sheetId, 1, 160), columnWidth(sheetId, 2, 460),
   ];
 }
@@ -328,12 +331,15 @@ export async function createTeamSheet(accessToken, teamName, seasonLabel, timeZo
   return { spreadsheetId: created.spreadsheetId, spreadsheetUrl: created.spreadsheetUrl };
 }
 
+const CONFIG_LABEL_RANGE = `'${CONFIG_TAB_NAME}'!A1:A40`;
+
 export async function saveTeamLinks(accessToken, spreadsheetId, teamLink) {
-  const shareRow = SETTINGS.length + 3;
+  const { values: labels = [] } = await sheetsRequest(accessToken, `/${spreadsheetId}/values/${encodeURIComponent(CONFIG_LABEL_RANGE)}`, 'GET');
+  const shareRow = labels.findIndex((row) => (row[0] ?? '').trim() === SHARE_LINK_LABEL) + 1;
   await sheetsRequest(accessToken, `/${spreadsheetId}/values:batchUpdate`, 'POST', {
     valueInputOption: 'RAW',
     data: [
-      { range: `'Team Config'!B${shareRow}`, values: [[teamLink]] },
+      ...(shareRow === 0 ? [] : [{ range: `'${CONFIG_TAB_NAME}'!B${shareRow}`, values: [[teamLink]] }]),
       { range: `'Start here'!B${START_TEAM_LINK_ROW}:B${START_CAPTAIN_LINK_ROW}`, values: [[teamLink], [teamLink === '' ? '' : `${teamLink}#captain`]] },
     ],
   });

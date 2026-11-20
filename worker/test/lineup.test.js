@@ -51,6 +51,11 @@ test('a missing label names the tab', () => {
   assert.throws(() => readLineup('Game 9 Lineup', [rowOf('Name', '', '1'), rowOf('Open spots', '', '')]), /Tab "Game 9 Lineup" needs "RSVP"/);
 });
 
+test('a Team Config tab from before stripe thickness existed draws a thin stripe', () => {
+  const config = readConfig([rowOf('Setting', 'Value'), rowOf('Stripe', 'Pride'), rowOf('Font', 'Bebas Neue')]);
+  assert.deepEqual([config.theme.stripe.name, config.theme.stripe.thickness, config.theme.stripe.height, config.font], ['Pride', 'Thin', 3, 'Bebas Neue']);
+});
+
 test('config defaults apply without a Team Config tab and colors come from fills', () => {
   assert.equal(readConfig(null).teamName, 'My Team');
   const rows = [
