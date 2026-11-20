@@ -102,6 +102,7 @@
         <div class="captain-context" id="captain-context"></div>
         <button type="button" class="captain-undo" id="captain-undo" disabled>Undo</button>
         <button type="button" class="captain-undo" id="captain-redo" disabled>Redo</button>
+        <button type="button" class="captain-undo" id="captain-share">Share</button>
       </div>
       <div class="captain-status empty" id="captain-status" role="status"></div>
     </div>
@@ -128,6 +129,7 @@
     <div class="bench" id="kicking-order"></div>
     <div class="bench" id="bench"></div>
     <p class="updated" id="updated"></p>
+    <button type="button" class="comment-toggle" id="share-lineup" hidden>Share lineup image</button>
     <button type="button" class="comment-toggle" id="comment-toggle" hidden>Anonymous suggestion box</button>
     <form class="comment-form" id="comment-form" hidden>
       <textarea id="comment-text" maxlength="1000" placeholder="Anything on your mind?" required></textarea>
@@ -141,7 +143,7 @@
 </main>
 <section class="dock" id="captain-dock" aria-label="Choose a player" hidden></section>
 <script src="settings.js"></script>
-<script src="app.js"></script>
+<script type="module" src="app.js"></script>
 <script type="module" src="captain.js"></script>
 </body>
 </html>
