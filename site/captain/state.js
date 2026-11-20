@@ -6,6 +6,7 @@ export const element = (id) => document.getElementById(id);
 
 export const captain = {
   active: false,
+  previewing: false,
   area: 'fielding',
   selectedRow: null,
   focus: null,
@@ -30,4 +31,5 @@ export const captain = {
   addingSeveral: false,
   panelStale: false,
   undoStack: [],
+  redoStack: [],
 };

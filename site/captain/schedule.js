@@ -51,7 +51,7 @@ function reloadUntilGone(tabNames) {
   return reloadUntil((lineups) => tabNames.every((tabName) => !lineups.some((lineup) => lineup.tabName === tabName)), 'The lineup tabs were removed, but this page has not picked that up yet. Reload the page in a few seconds');
 }
 
-async function removeGameTabs(sheetIds, tabNames) {
+async function removeGameTabs(sheetIds, tabNames, gameIds) {
   await sheetsRequest(':batchUpdate', {
     method: 'POST',
     body: JSON.stringify({ requests: sheetIds.map((sheetId) => ({ deleteSheet: { sheetId } })) }),
@@ -59,6 +59,7 @@ async function removeGameTabs(sheetIds, tabNames) {
   await reloadUntilGone(tabNames);
   await refreshTabs();
   captain.panelStale = true;
+  return () => createGameTabs(gameIds);
 }
 
 export async function createGameTabs(gameIds) {
@@ -86,7 +87,7 @@ export async function createGameTabs(gameIds) {
   await writeValues(tabNames.flatMap((tabName) => rosterNames.map((name, index) => ({ range: cellAddress(tabName, 0, playerRows[index]), values: [[name]] }))), 'RAW');
   await reloadUntilPresent(tabNames);
   await refreshTabs();
-  return () => removeGameTabs(replies.map(({ duplicateSheet }) => duplicateSheet.properties.sheetId), tabNames);
+  return () => removeGameTabs(replies.map(({ duplicateSheet }) => duplicateSheet.properties.sheetId), tabNames, gameIds);
 }
 
 export async function saveGameDetails(game, values, initialValues) {
@@ -95,20 +96,25 @@ export async function saveGameDetails(game, values, initialValues) {
   const row = existingIndex === -1 ? scheduledIds.length + 1 : existingIndex + 1;
   const changedFields = GAME_DETAIL_FIELDS.filter((field) => values[field] !== initialValues[field]);
   const detailCell = (field) => cellAddress(SCHEDULE_TAB_NAME, GAME_DETAIL_FIRST_COLUMN_INDEX + GAME_DETAIL_FIELDS.indexOf(field), row);
-  await writeValues([
-    { range: cellAddress(SCHEDULE_TAB_NAME, 0, row), values: [[game.id]] },
-    ...changedFields.map((field) => ({ range: detailCell(field), values: [[values[field]]] })),
-  ]);
-  captain.openGameId = null;
-  captain.draftGameId = null;
-  await loadSchedule();
-  return async () => {
+  const writeDetails = async (id, detailValues) => {
     await writeValues([
-      ...(existingIndex === -1 ? [{ range: cellAddress(SCHEDULE_TAB_NAME, 0, row), values: [['']] }] : []),
-      ...changedFields.map((field) => ({ range: detailCell(field), values: [[initialValues[field]]] })),
+      ...(existingIndex === -1 ? [{ range: cellAddress(SCHEDULE_TAB_NAME, 0, row), values: [[id]] }] : []),
+      ...changedFields.map((field) => ({ range: detailCell(field), values: [[detailValues[field]]] })),
     ]);
     await loadSchedule();
   };
+  const restoreNew = async () => {
+    await writeDetails(game.id, values);
+    return restoreOld;
+  };
+  const restoreOld = async () => {
+    await writeDetails('', initialValues);
+    return restoreNew;
+  };
+  captain.openGameId = null;
+  captain.draftGameId = null;
+  await writeDetails(game.id, values);
+  return restoreOld;
 }
 
 const SEASON_COLUMN_LETTER = 'D';
@@ -121,15 +127,19 @@ export async function addSeasonGames({ firstDate, count, time, location }) {
   const rows = Array.from({ length: count }, (unused, index) => firstRow + index);
   await confirmSheetStillMatches(rows.map((row) => ({ address: cellAddress(SCHEDULE_TAB_NAME, 0, row), expected: '' })));
   const dates = seasonDates(firstDate, count);
-  await writeValues(rows.map((row, index) => ({
-    range: `${cellAddress(SCHEDULE_TAB_NAME, 0, row)}:${SEASON_COLUMN_LETTER}${row}`,
-    values: [[String(firstId + index), dates[index], time, location]],
-  })));
-  await loadSchedule();
-  return async () => {
-    await writeValues(rows.map((row) => ({ range: `${cellAddress(SCHEDULE_TAB_NAME, 0, row)}:${SEASON_COLUMN_LETTER}${row}`, values: [['', '', '', '']] })));
+  const writeRows = async (rowValues) => {
+    await writeValues(rows.map((row, index) => ({ range: `${cellAddress(SCHEDULE_TAB_NAME, 0, row)}:${SEASON_COLUMN_LETTER}${row}`, values: [rowValues(index)] })));
     await loadSchedule();
   };
+  const addRows = async () => {
+    await writeRows((index) => [String(firstId + index), dates[index], time, location]);
+    return clearRows;
+  };
+  const clearRows = async () => {
+    await writeRows(() => ['', '', '', '']);
+    return addRows;
+  };
+  return addRows();
 }
 
 const ARCHIVE_COLUMN_INDEX = 7;
@@ -150,5 +160,6 @@ export async function archiveGame(game) {
     await setArchived(game, false);
     if (tabName !== null) await reloadUntilPresent([tabName]);
     await loadSchedule();
+    return () => archiveGame(game);
   };
 }

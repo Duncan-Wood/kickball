@@ -61,6 +61,8 @@ export async function startCaptainMode() {
       seasonFormOpen: false,
       addingSeveral: false,
       undoStack: [],
+      redoStack: [],
+      previewing: false,
       active: true,
       area: lineup === null ? 'start' : 'fielding',
     });
@@ -79,8 +81,13 @@ export async function startCaptainMode() {
   }
 }
 
-export function stopCaptainMode() {
-  Object.assign(captain, { active: false, selectedRow: null, focus: null, accessToken: null, spreadsheetId: null, tabs: new Map(), undoStack: [] });
+export function toggleCaptainView() {
+  if (!captain.active) {
+    startCaptainMode();
+    return;
+  }
+  if (!captain.previewing && captain.area === 'team') window.fieldView.previewConfig(window.fieldView.currentConfig());
+  Object.assign(captain, { previewing: !captain.previewing, panelStale: true, focus: null, selectedRow: null });
   setStatus('');
   window.fieldView.rerender();
 }
