@@ -1,13 +1,13 @@
 import { headcount } from './edits.js';
-import { bindFieldEditing, fieldingPanel, inningChoices, installFieldingEvents, keyboardIsInUse, renderDock, resetEditingState, restoreKeyboardFocus } from './captain/fielding.js';
+import { bindFieldEditing, copyInningButton, fieldingPanel, installFieldingEvents, keyboardIsInUse, renderDock, resetEditingState, restoreKeyboardFocus } from './captain/fielding.js';
 import { gamesPanel } from './captain/gamesPanel.js';
-import { getStartedPanel, gettingStartedIsOpen } from './captain/getStarted.js';
 import { teamPanel } from './captain/teamPanel.js';
 import { chooseArea } from './captain/navigation.js';
-import { kickingPanel, playersPanel } from './captain/people.js';
+import { playersPanel } from './captain/people.js';
+import { rosterPanel } from './captain/rosterPanel.js';
 import { SIGN_IN_SCRIPT, loadScript } from './captain/sheetApi.js';
-import { captainToolsOffered, toggleCaptainView } from './captain/session.js';
-import { ADD_FOCUS_KEY, AREAS, captain, element } from './captain/state.js';
+import { captainToolsOffered, firstAreaWithoutLineup, toggleCaptainView } from './captain/session.js';
+import { ADD_FOCUS_KEY, AREAS, LINEUP_AREAS, captain, element } from './captain/state.js';
 import { redoLatest, undoLatest, updateUndoButton } from './captain/status.js';
 import { node } from './captain/dom.js';
 
@@ -40,13 +40,13 @@ const isEditing = () => captain.active && !captain.previewing;
 
 function renderPanel(lineup, inField) {
   const panel = element('captain-panel');
-  panel.hidden = !isEditing() || (lineup === null && !['start', 'games', 'team'].includes(captain.area));
+  panel.hidden = !isEditing() || (lineup === null && LINEUP_AREAS.includes(captain.area));
   if (panel.hidden) {
     panel.replaceChildren();
     delete panel.dataset.area;
     return;
   }
-  const formPanels = { start: getStartedPanel, games: gamesPanel, team: teamPanel };
+  const formPanels = { games: gamesPanel, roster: rosterPanel, team: teamPanel };
   if (captain.area in formPanels) {
     if (panel.dataset.area === captain.area && !captain.panelStale) return;
     captain.panelStale = false;
@@ -57,25 +57,24 @@ function renderPanel(lineup, inField) {
     return;
   }
   panel.dataset.area = captain.area;
-  if (captain.area === 'kicking') panel.replaceChildren(...kickingPanel(lineup));
-  else if (captain.area === 'players') panel.replaceChildren(...playersPanel(lineup));
+  if (captain.area === 'rsvps') panel.replaceChildren(...playersPanel(lineup));
   else panel.replaceChildren(...fieldingPanel(lineup, inField));
 }
 
 function renderAreaButtons(lineup) {
   AREAS.forEach((area) => element(`area-${area}`).setAttribute('aria-pressed', String(captain.area === area)));
-  element('area-start').hidden = !(gettingStartedIsOpen() || captain.area === 'start');
-  ['fielding', 'kicking', 'players'].forEach((area) => { element(`area-${area}`).hidden = lineup === null; });
+  LINEUP_AREAS.forEach((area) => { element(`area-${area}`).hidden = lineup === null; });
   element('area-games').hidden = !captain.canManageGames;
+  element('area-roster').hidden = !captain.canEditRoster;
   element('area-team').hidden = !captain.canEditTeam;
-  const playersButton = element('area-players');
-  playersButton.replaceChildren('Players');
-  if (lineup !== null) playersButton.append(node('span', 'area-count', String(headcount(lineup.players).playing)));
+  const rsvpsButton = element('area-rsvps');
+  rsvpsButton.replaceChildren('RSVPs');
+  if (lineup !== null) rsvpsButton.append(node('span', 'area-count', String(headcount(lineup.players).playing)));
 }
 
 function afterRender() {
   const inField = window.fieldView.inFieldMode();
-  const isFielding = captain.area === 'fielding';
+  const isFielding = captain.area === 'lineup';
   const editing = isEditing();
   element('captain-bar').hidden = !editing;
   document.body.classList.toggle('captain-active', editing && inField && isFielding);
@@ -90,12 +89,12 @@ function afterRender() {
     return;
   }
   const lineup = window.fieldView.currentLineup();
-  if (lineup === null && ['fielding', 'kicking', 'players'].includes(captain.area)) captain.area = 'start';
+  if (lineup === null && LINEUP_AREAS.includes(captain.area)) captain.area = firstAreaWithoutLineup();
   if (lineup !== null && captain.tabName !== lineup.tabName) resetEditingState(lineup);
   const selectedRowIsGone = lineup === null || (captain.selectedRow !== null && !lineup.players.some((player) => player.sheetRow === captain.selectedRow));
   if (selectedRowIsGone) captain.selectedRow = null;
   renderAreaButtons(lineup);
-  element('captain-context').replaceChildren(...(captain.area === 'fielding' && lineup !== null ? inningChoices(lineup, inField) : []));
+  element('captain-context').replaceChildren(...(isFielding && lineup !== null ? copyInningButton(lineup, inField) : []));
   updateUndoButton();
   renderPanel(lineup, inField);
   if (isFielding && inField) bindFieldEditing();

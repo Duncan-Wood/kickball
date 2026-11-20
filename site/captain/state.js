@@ -1,4 +1,5 @@
-export const AREAS = ['start', 'fielding', 'kicking', 'players', 'games', 'team'];
+export const AREAS = ['lineup', 'rsvps', 'games', 'roster', 'team'];
+export const LINEUP_AREAS = ['lineup', 'rsvps'];
 export const RSVP_ANSWERS = ['Yes', 'Maybe', 'No'];
 export const ADD_FOCUS_KEY = 'add';
 
@@ -7,7 +8,7 @@ export const element = (id) => document.getElementById(id);
 export const captain = {
   active: false,
   previewing: false,
-  area: 'fielding',
+  area: 'lineup',
   selectedRow: null,
   focus: null,
   tabName: null,
@@ -18,10 +19,10 @@ export const captain = {
   tabs: new Map(),
   canManageGames: false,
   canEditTeam: false,
+  canEditRoster: false,
   rosterNames: null,
   rosterPlayers: null,
   openRosterRow: null,
-  teamView: 'settings',
   rosterError: null,
   scheduleRows: null,
   scheduleError: null,

@@ -1,4 +1,4 @@
-import { NEW_GAME_TAB_NAME, SCHEDULE_TAB_NAME } from '../template.js';
+import { NEW_GAME_TAB_NAME, ROSTER_TAB_NAME, SCHEDULE_TAB_NAME } from '../template.js';
 import { CONFIG_TAB_NAME } from '../teamSettings.js';
 import { resetEditingState } from './fielding.js';
 import { loadRoster } from './roster.js';
@@ -27,6 +27,11 @@ function rememberCaptainDevice() {
   }
 }
 
+export function firstAreaWithoutLineup() {
+  if (captain.canManageGames) return 'games';
+  return captain.canEditRoster ? 'roster' : 'team';
+}
+
 async function confirmEditorAccess() {
   let accessToken = await requestAccessToken('');
   let access = await askWorkerForAccess(accessToken);
@@ -48,11 +53,11 @@ export async function startCaptainMode() {
     await refreshTabs();
     captain.canManageGames = captain.tabs.has(NEW_GAME_TAB_NAME) && captain.tabs.has(SCHEDULE_TAB_NAME);
     captain.canEditTeam = captain.tabs.has(CONFIG_TAB_NAME);
+    captain.canEditRoster = captain.tabs.has(ROSTER_TAB_NAME);
     Object.assign(captain, {
       rosterNames: null,
       rosterPlayers: null,
       openRosterRow: null,
-      teamView: 'settings',
       rosterError: null,
       scheduleRows: null,
       scheduleError: null,
@@ -64,14 +69,11 @@ export async function startCaptainMode() {
       redoStack: [],
       previewing: false,
       active: true,
-      area: lineup === null ? 'start' : 'fielding',
+      area: lineup === null ? firstAreaWithoutLineup() : 'lineup',
     });
-    if (lineup === null) {
-      loadRoster();
-      loadSchedule();
-    } else {
-      resetEditingState(lineup);
-    }
+    if (lineup !== null) resetEditingState(lineup);
+    if (captain.canEditRoster) loadRoster();
+    if (captain.canManageGames) loadSchedule();
     rememberCaptainDevice();
     window.fieldView.rerender();
   } catch (error) {

@@ -46,7 +46,7 @@ function gameEditor(game) {
   if (game.tabName !== null) {
     actions.append(button('Open lineup', 'panel-action', () => {
       window.fieldView.showLineup(game.tabName);
-      chooseArea('fielding');
+      chooseArea('lineup');
     }));
   } else if (game.row !== null) {
     actions.append(button('Set up lineup', 'panel-action', () => saveEdit(async () => {

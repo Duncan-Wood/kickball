@@ -173,16 +173,33 @@ function showsLineupProblems() {
   return window.captainTools?.isActive?.() === true;
 }
 
-function drawChip(position, playerNames, openIsProblem) {
+const MAYBE_MARK = '?';
+
+function isMaybe(player) {
+  return player.rsvp === 'maybe';
+}
+
+function nameWithMaybe(player) {
+  return isMaybe(player) ? player.name + MAYBE_MARK : player.name;
+}
+
+function chipClass(isProblem, players) {
+  if (isProblem) return 'chip problem';
+  if (players.length === 0) return 'chip open';
+  return players.some(isMaybe) ? 'chip maybe' : 'chip';
+}
+
+function drawChip(position, players, openIsProblem) {
   const [x, y] = FIELD_SPOTS[position];
-  const isProblem = showsLineupProblems() && (playerNames.length > 1 || (playerNames.length === 0 && openIsProblem));
-  const name = playerNames.length === 0 ? 'open' : playerNames.join(' + ');
+  const isProblem = showsLineupProblems() && (players.length > 1 || (players.length === 0 && openIsProblem));
+  const name = players.length === 0 ? 'open' : players.map(nameWithMaybe).join(' + ');
+  const spokenNames = players.length === 0 ? 'open' : players.map((player) => (isMaybe(player) ? player.name + ', maybe' : player.name)).join(' and ');
   const chip = svgElement('g', {
-    class: isProblem ? 'chip problem' : playerNames.length === 0 ? 'chip open' : 'chip',
+    class: chipClass(isProblem, players),
     'data-edit-kind': 'spot',
     'data-position': position,
     role: 'img',
-    'aria-label': `${position}: ${name}${isProblem ? ', needs attention' : ''}`,
+    'aria-label': `${position}: ${spokenNames}${isProblem ? ', needs attention' : ''}`,
   });
   chip.appendChild(svgElement('rect', { class: 'chip-box', x: x - CHIP_WIDTH / 2, y: y - 6, width: CHIP_WIDTH, height: 22, rx: 5 }));
   chip.appendChild(svgElement('rect', { class: 'chip-label-box', x: x - 15, y: y - 18, width: 30, height: 13, rx: 4 }));
@@ -202,15 +219,15 @@ function summarizeInning(inningIndex) {
       bench.push(player);
       return;
     }
-    playersByPosition[position] = (playersByPosition[position] || []).concat(player.name);
+    playersByPosition[position] = (playersByPosition[position] || []).concat(player);
   });
   Object.keys(FIELD_SPOTS).forEach((position) => {
-    const names = playersByPosition[position] || [];
-    if (names.length === 0 && bench.length > 0) openPositions.push(position);
-    if (names.length > 1) problems.push(position + ' has ' + names.join(' and '));
+    const players = playersByPosition[position] || [];
+    if (players.length === 0 && bench.length > 0) openPositions.push(position);
+    if (players.length > 1) problems.push(position + ' has ' + players.map((player) => player.name).join(' and '));
   });
   Object.keys(playersByPosition).filter((position) => !FIELD_SPOTS[position]).forEach((position) => {
-    problems.push('"' + position + '" is not a field position (' + playersByPosition[position].join(', ') + ')');
+    problems.push('"' + position + '" is not a field position (' + playersByPosition[position].map((player) => player.name).join(', ') + ')');
   });
   return { playersByPosition, bench, problems, openPositions, openIsProblem: bench.length > 0 };
 }
@@ -254,7 +271,7 @@ function renderNameList(elementId, headingText, players, numbered) {
   const list = document.createElement('ul');
   players.forEach((player, index) => {
     const item = document.createElement('li');
-    item.dataset.editKind = 'player';
+    item.dataset.editKind = numbered ? 'kicker' : 'player';
     item.dataset.row = player.sheetRow;
     if (numbered) {
       const order = document.createElement('span');
@@ -263,9 +280,18 @@ function renderNameList(elementId, headingText, players, numbered) {
       item.appendChild(order);
     }
     item.append(player.name);
+    if (isMaybe(player)) item.append(maybeMark());
     list.appendChild(item);
   });
   element.append(heading, list);
+}
+
+function maybeMark() {
+  const mark = document.createElement('span');
+  mark.className = 'maybe-mark';
+  mark.textContent = MAYBE_MARK;
+  mark.title = 'Maybe';
+  return mark;
 }
 
 function tableCell(tag, text, className) {
@@ -281,6 +307,12 @@ function tableRow(cells) {
   return row;
 }
 
+function nameCell(player) {
+  const cell = tableCell('td', player.name, 'name');
+  if (isMaybe(player)) cell.append(maybeMark());
+  return cell;
+}
+
 function renderWholeGame() {
   renderSubtitle('whole game, in kicking order');
   renderGameDetails();
@@ -294,7 +326,7 @@ function renderWholeGame() {
     const inningsPlayed = player.positions.filter((position) => position !== '').length;
     return tableRow([
       tableCell('td', kickingIndex + 1, 'kicking-order'),
-      tableCell('td', player.name, 'name'),
+      nameCell(player),
       ...player.positions.map((position) => (position === '' ? tableCell('td', 'sit', 'sat') : tableCell('td', position))),
       tableCell('td', inningsPlayed + ' of ' + selectedLineup.innings.length, 'played'),
     ]);
