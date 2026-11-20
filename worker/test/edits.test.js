@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { applyAddedPlayers, applyFieldingChanges, applyKickingMove, applyRsvp, applyRemovedPlayers, applyRestoredPlayers, blankPlayerRows, firstBlankRosterRow, headcount, lineupPlayer, positionsIn, positionsText, rosterNameProblem, rosterPlayerFromRow, rowsWithName, candidatesForSpot, cellAddress, columnLetter, describeInnings, fieldingChanges, copyInningChanges, copyTargets, inverseKickingMove, isoDateFromDisplayed, isoTimeFromDisplayed, scheduleGames, kickingMove, nextGameNumber, occupantsOf, playersToAdd, rosterNamesToAdd, rowAfterMove } from '../../site/edits.js';
+import { applyAddedPlayers, applyFieldingChanges, applyKickingMove, applyRsvp, applyRemovedPlayers, applyRestoredPlayers, blankPlayerRows, firstBlankRosterRow, headcount, lineupPlayer, positionsIn, positionsText, rosterNameProblem, rosterPlayerFromRow, rowsWithName, candidatesForSpot, cellAddress, columnLetter, fieldingChanges, copyInningChanges, inverseKickingMove, isoDateFromDisplayed, isoTimeFromDisplayed, scheduleGames, kickingMove, nextGameNumber, occupantsOf, playersToAdd, rosterNamesToAdd, rowAfterMove } from '../../site/edits.js';
 
 const player = (name, sheetRow, positions, attending = true) => ({ name, sheetRow, attending, positions });
 const lineupPlayers = () => [
@@ -143,28 +143,14 @@ test('spot candidates list the bench first, then fielders in field order, and le
   assert.deepEqual(candidatesForSpot(players, 0, 'P').map((each) => each.name), ['Jordan', 'Pat', 'Riley', 'Alex']);
 });
 
-test('innings are described in plain words', () => {
-  assert.equal(describeInnings([1], ['1', '2', '3']), 'inning 2');
-  assert.equal(describeInnings([0, 2], ['1', '2', '3']), 'innings 1 and 3');
-  assert.equal(describeInnings([0, 2, 4], ['1', '2', '3', '4', '5']), 'innings 1, 3 and 5');
-});
-
-test('copying an inning changes only the players who differ, in every target inning', () => {
+test('copying the previous inning changes only the players who differ', () => {
   const players = [player('Alex', 9, ['P', 'C', 'P']), player('Sam', 10, ['C', 'P', '']), player('Riley', 13, ['LF', 'LF', 'RF'], false)];
-  assert.deepEqual(copyInningChanges(players, 0, [1, 2]), [
-    { sheetRow: 9, inningIndex: 1, value: 'P' },
-    { sheetRow: 10, inningIndex: 1, value: 'C' },
-    { sheetRow: 10, inningIndex: 2, value: 'C' },
+  assert.deepEqual(copyInningChanges(players, 1, 2), [
+    { sheetRow: 9, inningIndex: 2, value: 'C' },
+    { sheetRow: 10, inningIndex: 2, value: 'P' },
     { sheetRow: 13, inningIndex: 2, value: 'LF' },
   ]);
-  assert.deepEqual(copyInningChanges(players, 0, [0]), []);
-});
-
-test('copy targets are the next inning, the later ones, odd, even and all others, without repeats', () => {
-  assert.deepEqual(copyTargets(0, 5), [[1], [1, 2, 3, 4], [2, 4], [1, 3]]);
-  assert.deepEqual(copyTargets(2, 5), [[3], [3, 4], [0, 4], [1, 3], [0, 1, 3, 4]]);
-  assert.deepEqual(copyTargets(4, 5), [[0, 2], [1, 3], [0, 1, 2, 3]]);
-  assert.deepEqual(copyTargets(0, 2), [[1]]);
+  assert.deepEqual(copyInningChanges(players, 0, 0), []);
 });
 
 test('removing added players puts their rows back in order', () => {
