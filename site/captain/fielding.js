@@ -1,7 +1,8 @@
-import { candidatesForSpot, copyInningChanges, copyTargets, describeInnings, fieldingChanges, lineupPlayer, occupantsOf } from '../edits.js';
+import { candidatesForSpot, copyInningChanges, fieldingChanges, kickingStyleFor, lineupPlayer, occupantsOf } from '../edits.js';
 import { POSITION_CODES, POSITION_NAMES } from '../template.js';
 import { button, node } from './dom.js';
 import { saveFielding } from './lineupEdits.js';
+import { moveKicker } from './people.js';
 import { captain, element } from './state.js';
 import { saveEdit, setStatus } from './status.js';
 
@@ -11,7 +12,7 @@ const LONG_PRESS_MILLISECONDS = 250;
 const DOCK_CLEARANCE_PIXELS = 16;
 const LIFT_VIBRATION_MILLISECONDS = 10;
 const HINTS = {
-  fielding: 'Tap a position, then pick a player.',
+  fielding: 'Tap a position, then pick a player. Tap a kicker, then the spot they should take.',
   elsewhere: 'Pick an inning above to edit the field.',
   empty: 'Nobody is in this game yet. Add players on the Players tab first.',
 };
@@ -32,14 +33,18 @@ function clearFocus() {
 }
 
 function focusFromTarget(target) {
-  return target.kind === 'spot' ? { kind: 'spot', position: target.position } : { kind: 'player', sheetRow: target.sheetRow };
+  return target.kind === 'spot' ? { kind: 'spot', position: target.position } : { kind: target.kind, sheetRow: target.sheetRow };
 }
 
 function targetIsFocused(target) {
   const { focus } = captain;
-  if (focus === null) return false;
-  if (focus.kind === 'spot') return target.kind === 'spot' && focus.position === target.position;
-  return target.kind === 'player' && focus.sheetRow === target.sheetRow;
+  if (focus === null || focus.kind !== target.kind) return false;
+  return focus.kind === 'spot' ? focus.position === target.position : focus.sheetRow === target.sheetRow;
+}
+
+function applyKicking(sourceRow, targetRow) {
+  captain.focus = null;
+  moveKicker(sourceRow, targetRow);
 }
 
 function advanceFocusAfterFilling(filledPosition) {
@@ -87,11 +92,11 @@ function describeTarget(targetElement) {
   const { editKind, position, row } = holder.dataset;
   if (editKind === 'spot') return { kind: 'spot', position };
   if (editKind === 'bench') return { kind: 'bench' };
-  return { kind: 'player', sheetRow: Number(row) };
+  return { kind: editKind === 'kicker' ? 'kicker' : 'player', sheetRow: Number(row) };
 }
 
 function sourceRowFor(target, lineup, inningIndex) {
-  if (target.kind === 'player') return target.sheetRow;
+  if (target.kind === 'player' || target.kind === 'kicker') return target.sheetRow;
   if (target.kind !== 'spot') return null;
   const occupants = occupantsOf(lineup.players, inningIndex, target.position);
   return occupants.length === 0 ? null : occupants[occupants.length - 1].sheetRow;
@@ -105,13 +110,21 @@ function handleTap(targetElement) {
     applyFielding(captain.focus.sheetRow, target);
     return;
   }
+  if (captain.focus !== null && captain.focus.kind === 'kicker' && target.kind === 'kicker' && captain.focus.sheetRow !== target.sheetRow) {
+    applyKicking(captain.focus.sheetRow, target.sheetRow);
+    return;
+  }
   captain.focus = targetIsFocused(target) ? null : focusFromTarget(target);
   rerender();
 }
 
+const EDITABLE_SELECTOR = '#chips .chip, #bench li, #kicking-order li';
+
 function editableElements() {
-  return [...document.querySelectorAll('#chips .chip, #bench li')];
+  return [...document.querySelectorAll(EDITABLE_SELECTOR)];
 }
+
+const isKickingTarget = (target) => target !== null && target.kind === 'kicker';
 
 function startDrag(event, sourceElement) {
   if (event.pointerType === 'touch' || event.button !== 0 || captain.saving) return;
@@ -139,6 +152,7 @@ function moveDrag(event) {
       return;
     }
     captain.selectedRow = sourceRow;
+    dragState.isKicking = isKickingTarget(target);
     dragState.dragging = true;
     lift(dragState.sourceElement);
     dragState.ghost = node('div', 'drag-ghost', lineupPlayer(window.fieldView.currentLineup(), sourceRow).name);
@@ -151,7 +165,7 @@ function moveDrag(event) {
 
 function endDrag(event) {
   if (dragState === null) return;
-  const { dragging, ghost, sourceElement } = dragState;
+  const { dragging, ghost, sourceElement, isKicking } = dragState;
   dragState = null;
   drop(sourceElement);
   if (!dragging) return;
@@ -159,12 +173,13 @@ function endDrag(event) {
   suppressClicksUntil = Date.now() + CLICK_SUPPRESSION_MILLISECONDS;
   const target = describeTarget(document.elementFromPoint(event.clientX, event.clientY) ?? sourceElement);
   const sourceRow = captain.selectedRow;
-  if (target === null || sourceRow === null) {
+  if (target === null || sourceRow === null || isKickingTarget(target) !== isKicking) {
     captain.selectedRow = null;
     decorate();
     return;
   }
-  applyFielding(sourceRow, target);
+  if (isKicking) applyKicking(sourceRow, target.sheetRow);
+  else applyFielding(sourceRow, target);
 }
 
 function startTouchDrag(event, sourceElement) {
@@ -214,11 +229,13 @@ function decorate() {
   const lineup = window.fieldView.currentLineup();
   const inningIndex = window.fieldView.currentInningIndex();
   document.querySelectorAll('.edit-selected').forEach((marked) => marked.classList.remove('edit-selected'));
-  if (!captain.active || lineup === null || captain.area !== 'fielding') return;
+  if (!captain.active || lineup === null || captain.area !== 'lineup') return;
+  const draggingKicker = dragState !== null && dragState.isKicking === true;
   editableElements().forEach((editable) => {
     const target = describeTarget(editable);
     if (target === null) return;
-    const isDragged = captain.selectedRow !== null && target.kind !== 'bench' && sourceRowFor(target, lineup, inningIndex) === captain.selectedRow;
+    const inDraggedGroup = isKickingTarget(target) === draggingKicker;
+    const isDragged = captain.selectedRow !== null && inDraggedGroup && target.kind !== 'bench' && sourceRowFor(target, lineup, inningIndex) === captain.selectedRow;
     const isSelected = targetIsFocused(target) || isDragged;
     editable.classList.toggle('edit-selected', isSelected);
     editable.setAttribute('aria-pressed', String(isSelected));
@@ -267,9 +284,26 @@ function spotDockContent(lineup, inningIndex, close) {
   return [header, body];
 }
 
+function kickerDockHeader(lineup, close) {
+  const kickers = lineup.players.filter((player) => player.attending);
+  const slot = kickers.findIndex((player) => player.sheetRow === captain.focus.sheetRow) + 1;
+  const header = node('div', 'dock-header');
+  const title = node('div', 'dock-title');
+  title.append(node('strong', undefined, `${lineupPlayer(lineup, captain.focus.sheetRow).name} kicks ${slot}${ordinalSuffix(slot)}`), node('span', 'dock-sub', 'Tap the kicker whose spot they should take.'));
+  header.append(title, close);
+  return header;
+}
+
+function ordinalSuffix(number) {
+  const lastTwo = number % 100;
+  if (lastTwo >= 11 && lastTwo <= 13) return 'th';
+  return { 1: 'st', 2: 'nd', 3: 'rd' }[number % 10] ?? 'th';
+}
+
 function dockContent(lineup, inningIndex) {
   const close = button('×', 'dock-close', clearFocus);
   close.setAttribute('aria-label', 'Close');
+  if (captain.focus.kind === 'kicker') return [kickerDockHeader(lineup, close)];
   if (captain.focus.kind === 'player') return [playerDockHeader(lineup, inningIndex, close)];
   return spotDockContent(lineup, inningIndex, close);
 }
@@ -277,9 +311,9 @@ function dockContent(lineup, inningIndex) {
 export function renderDock(lineup, inField) {
   const dock = element('captain-dock');
   const { focus } = captain;
-  const focusIsGone = focus !== null && focus.kind === 'player' && lineup !== null && lineupPlayer(lineup, focus.sheetRow) === undefined;
+  const focusIsGone = focus !== null && focus.kind !== 'spot' && lineup !== null && lineupPlayer(lineup, focus.sheetRow) === undefined;
   if (focusIsGone) captain.focus = null;
-  const shows = captain.active && captain.area === 'fielding' && inField && lineup !== null && captain.focus !== null && lineup.players.some((player) => player.attending);
+  const shows = captain.active && captain.area === 'lineup' && inField && lineup !== null && captain.focus !== null && lineup.players.some((player) => player.attending);
   dock.hidden = !shows;
   document.body.classList.toggle('captain-placing', shows && captain.focus.kind === 'player');
   if (!shows) {
@@ -291,41 +325,22 @@ export function renderDock(lineup, inField) {
   dock.replaceChildren(...dockContent(lineup, window.fieldView.currentInningIndex()));
   document.body.style.paddingBottom = `${dock.offsetHeight}px`;
   document.body.style.setProperty('--dock-height', `${dock.offsetHeight}px`);
-  const focusedChip = document.querySelector('#chips .chip.edit-selected');
+  const focusedChip = document.querySelector('#chips .chip.edit-selected, #kicking-order li.edit-selected');
   const hiddenBy = focusedChip === null ? 0 : focusedChip.getBoundingClientRect().bottom - (window.innerHeight - dock.offsetHeight - DOCK_CLEARANCE_PIXELS);
   if (hiddenBy > 0) window.scrollBy({ top: hiddenBy });
 }
 
-function copyInning(lineup, sourceInningIndex, targetInningIndexes) {
-  const targets = describeInnings(targetInningIndexes, lineup.innings);
-  const changes = copyInningChanges(lineup.players, sourceInningIndex, targetInningIndexes);
-  if (changes.length === 0) {
-    setStatus(`Nothing to copy: ${targets} already ${targetInningIndexes.length === 1 ? 'matches' : 'match'} inning ${lineup.innings[sourceInningIndex]}`);
-    return;
-  }
-  captain.focus = null;
-  saveEdit(() => saveFielding(lineup, changes), `inning ${lineup.innings[sourceInningIndex]} copied to ${targets}`);
-}
-
-export function inningChoices(lineup, inField) {
-  if (!inField || lineup.innings.length < 2 || !lineup.players.some((player) => player.attending)) return [];
-  const sourceInningIndex = window.fieldView.currentInningIndex();
-  const targets = copyTargets(sourceInningIndex, lineup.innings.length);
-  const select = node('select', 'copy-inning');
-  const prompt = node('option', undefined, `Copy inning ${lineup.innings[sourceInningIndex]} to…`);
-  prompt.value = '';
-  select.append(prompt, ...targets.map((innings, index) => {
-    const description = describeInnings(innings, lineup.innings);
-    const option = node('option', undefined, description[0].toUpperCase() + description.slice(1));
-    option.value = String(index);
-    return option;
-  }));
-  select.addEventListener('change', () => {
-    const chosen = targets[Number(select.value)];
-    select.value = '';
-    if (!captain.saving) copyInning(lineup, sourceInningIndex, chosen);
-  });
-  return [select];
+export function copyInningButton(lineup, inField) {
+  const targetInningIndex = window.fieldView.currentInningIndex();
+  if (!inField || targetInningIndex === 0 || !lineup.players.some((player) => player.attending)) return [];
+  const sourceInningIndex = targetInningIndex - 1;
+  const changes = copyInningChanges(lineup.players, sourceInningIndex, targetInningIndex);
+  if (changes.length === 0) return [];
+  const sourceLabel = lineup.innings[sourceInningIndex];
+  return [button(`Copy inning ${sourceLabel} here`, 'copy-inning', () => {
+    captain.focus = null;
+    saveEdit(() => saveFielding(lineup, changes), `inning ${sourceLabel} copied to inning ${lineup.innings[targetInningIndex]}`);
+  })];
 }
 
 export function fieldingPanel(lineup, inField) {
@@ -342,17 +357,26 @@ export function resetEditingState(lineup) {
 }
 
 function editableKey(editable) {
-  return editable.dataset.position ?? `row:${editable.dataset.row}`;
+  if (editable.dataset.position !== undefined) return editable.dataset.position;
+  return `${editable.dataset.editKind}:${editable.dataset.row}`;
 }
 
 function editableForKey(key) {
   if (key === null) return null;
-  return key.startsWith('row:')
-    ? document.querySelector(`#bench li[data-row="${key.slice(4)}"]`)
-    : document.querySelector(`#chips .chip[data-position="${key}"]`);
+  const [kind, row] = key.split(':');
+  if (row === undefined) return document.querySelector(`#chips .chip[data-position="${key}"]`);
+  return document.querySelector(`[data-edit-kind="${kind}"][data-row="${row}"]`);
+}
+
+function addKickingStyles(lineup) {
+  document.querySelectorAll('#kicking-order li').forEach((item) => {
+    const style = kickingStyleFor(captain.rosterPlayers, lineupPlayer(lineup, Number(item.dataset.row)).name);
+    if (style !== '') item.append(node('span', 'kick-style', style));
+  });
 }
 
 export function bindFieldEditing() {
+  addKickingStyles(window.fieldView.currentLineup());
   editableElements().forEach((editable) => {
     editable.addEventListener('click', () => handleTap(editable));
     editable.addEventListener('pointerdown', (event) => startDrag(event, editable));
@@ -377,10 +401,10 @@ export function keyboardIsInUse() {
 export function restoreKeyboardFocus() {
   if (!keyboardNavigating || document.activeElement !== document.body) return;
   const dock = element('captain-dock');
-  const placingSittingPlayer = captain.focus !== null && captain.focus.kind === 'player';
-  const next = placingSittingPlayer
-    ? document.querySelector('#chips .chip')
-    : dock.querySelector('.pick-chip') ?? dock.querySelector('button');
+  const focusKind = captain.focus?.kind;
+  let next = dock.querySelector('.pick-chip') ?? dock.querySelector('button');
+  if (focusKind === 'player') next = document.querySelector('#chips .chip');
+  if (focusKind === 'kicker') next = document.querySelector('#kicking-order li');
   (next ?? editableForKey(lastEditableKey))?.focus();
 }
 
@@ -391,7 +415,7 @@ export function installFieldingEvents() {
   });
   document.addEventListener('pointerdown', () => { keyboardNavigating = false; });
   document.addEventListener('focusin', (event) => {
-    const editable = event.target.closest?.('#chips .chip, #bench li');
+    const editable = event.target.closest?.(EDITABLE_SELECTOR);
     if (editable) lastEditableKey = editableKey(editable);
   });
   document.addEventListener('pointermove', (event) => { if (event.pointerType !== 'touch') moveDrag(event); });

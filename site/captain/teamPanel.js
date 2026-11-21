@@ -1,11 +1,9 @@
 import { CONFIG_FIELDS, FONTS, STRIPE_STYLES, configFromSettings, settingProblem, settingsFromConfig, settingsWithDefaults } from '../teamSettings.js';
 import { button, formField, node, selectField } from './dom.js';
-import { rosterPanel } from './rosterPanel.js';
 import { saveTeamSettings } from './settings.js';
 import { captain } from './state.js';
 import { saveEdit, setStatus } from './status.js';
 
-const VIEWS = [['settings', 'Settings'], ['roster', 'Roster']];
 const HINT = 'Changes preview here. Save to keep them.';
 const CHOICES = {
   stripe: STRIPE_STYLES.map((style) => [style, style]),
@@ -81,7 +79,7 @@ function shareLinkRows() {
   return [links];
 }
 
-function settingsPanel() {
+export function teamPanel() {
   const savedValues = settingsFromConfig(window.fieldView.currentConfig());
   const form = node('form', 'game-editor team-editor');
   form.append(...CONFIG_FIELDS.map((field) => fieldFor(field, savedValues[field.key])));
@@ -104,22 +102,3 @@ function settingsPanel() {
   return [node('p', 'captain-hint', HINT), form, ...shareLinkRows()];
 }
 
-function viewToggle() {
-  const group = node('div', 'segmented sub-segmented');
-  group.append(...VIEWS.map(([view, label]) => {
-    const choice = button(label, '', () => {
-      if (captain.teamView === 'settings') window.fieldView.previewConfig(window.fieldView.currentConfig());
-      captain.teamView = view;
-      captain.openRosterRow = null;
-      captain.panelStale = true;
-      window.fieldView.rerender();
-    });
-    choice.setAttribute('aria-pressed', String(captain.teamView === view));
-    return choice;
-  }));
-  return group;
-}
-
-export function teamPanel() {
-  return [viewToggle(), ...(captain.teamView === 'roster' ? rosterPanel() : settingsPanel())];
-}

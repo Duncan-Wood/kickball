@@ -1,4 +1,4 @@
-import { headcount, kickingMove, kickingStyleFor, lineupPlayer, rosterNamesToAdd } from '../edits.js';
+import { headcount, kickingMove, lineupPlayer, rosterNamesToAdd } from '../edits.js';
 import { ROSTER_TAB_NAME } from '../template.js';
 import { button, node } from './dom.js';
 import { saveAddedPlayers, saveKickingMove, saveRemovedPlayers, saveRsvp } from './lineupEdits.js';
@@ -6,12 +6,9 @@ import { captain, RSVP_ANSWERS } from './state.js';
 import { saveEdit } from './status.js';
 
 export const MINIMUM_PLAYERS = 8;
-const HINTS = {
-  kicking: 'Tap a kicker, then the spot they should take.',
-  players: 'Mark who is coming.',
-};
+const HINT = 'Mark who is coming.';
 
-function moveKicker(sourceRow, targetRow) {
+export function moveKicker(sourceRow, targetRow) {
   const lineup = window.fieldView.currentLineup();
   const move = kickingMove(lineup.players, sourceRow, targetRow);
   if (move === null) {
@@ -20,31 +17,7 @@ function moveKicker(sourceRow, targetRow) {
     return;
   }
   const slot = lineup.players.filter((player) => player.attending).findIndex((player) => player.sheetRow === targetRow) + 1;
-  saveEdit(() => saveKickingMove(lineup, move, sourceRow, targetRow), `${lineupPlayer(lineup, sourceRow).name} to spot ${slot}`);
-}
-
-export function kickingPanel(lineup) {
-  const kickers = lineup.players.filter((player) => player.attending);
-  const list = node('ol', 'order-list');
-  kickers.forEach((player, index) => {
-    const isMoving = player.sheetRow === captain.selectedRow;
-    const row = button('', isMoving ? 'order-row moving' : 'order-row', () => {
-      if (captain.selectedRow === null) captain.selectedRow = player.sheetRow;
-      else if (isMoving) captain.selectedRow = null;
-      else {
-        moveKicker(captain.selectedRow, player.sheetRow);
-        return;
-      }
-      window.fieldView.rerender();
-    });
-    const style = kickingStyleFor(captain.rosterPlayers, player.name);
-    row.append(node('span', 'order-slot', String(index + 1)), node('span', 'order-name', player.name), ...(style === '' ? [] : [node('span', 'kick-style', style)]));
-    const item = node('li');
-    item.append(row);
-    list.append(item);
-  });
-  const moving = kickers.find((player) => player.sheetRow === captain.selectedRow);
-  return [node('p', 'captain-hint', moving === undefined ? HINTS.kicking : `Now tap the spot ${moving.name} should take, or tap ${moving.name} again to cancel.`), list];
+  saveEdit(() => saveKickingMove(lineup, move, sourceRow, targetRow), `${lineupPlayer(lineup, sourceRow).name} to kicking spot ${slot}`);
 }
 
 function headcountLine(lineup) {
@@ -92,7 +65,7 @@ function playerRow(lineup, player) {
 }
 
 export function playersPanel(lineup) {
-  const parts = [node('p', 'captain-hint', HINTS.players), headcountLine(lineup)];
+  const parts = [node('p', 'captain-hint', HINT), headcountLine(lineup)];
   if (lineup.players.length > 0) {
     const list = node('div', 'player-list');
     list.append(...lineup.players.map((player) => playerRow(lineup, player)));
