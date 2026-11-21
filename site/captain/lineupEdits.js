@@ -82,6 +82,7 @@ async function saveRestoredPlayers(lineupWhenEditing, restoredPlayers) {
   await confirmSheetStillMatches(restoredPlayers.map(({ sheetRow }) => ({ address: cellAddress(lineup.tabName, 0, sheetRow), expected: '' })));
   await writeValues(restoredPlayers.flatMap((player) => rowWrites(lineup, player)), 'RAW');
   Object.assign(lineup, applyRestoredPlayers(lineup, restoredPlayers));
+  return () => saveRemovedPlayers(lineup, restoredPlayers.map(({ sheetRow }) => sheetRow));
 }
 
 export async function saveAddedPlayers(lineupWhenEditing, names) {

@@ -75,6 +75,7 @@
     <span class="team-icon" id="team-icon"></span>
     <span id="team-name"></span>
     <span class="season-tag" id="season-tag" hidden></span>
+    <button type="button" class="header-toggle" id="captain-toggle" hidden>Edit</button>
   </h1>
   <div class="accent-stripe"></div>
   <div class="error-panel" id="error-panel" role="alert" hidden></div>
@@ -101,7 +102,7 @@
       <div class="captain-meta">
         <div class="captain-context" id="captain-context"></div>
         <button type="button" class="captain-undo" id="captain-undo" disabled>Undo</button>
-        <button type="button" class="captain-done" id="captain-done">Done</button>
+        <button type="button" class="captain-undo" id="captain-redo" disabled>Redo</button>
       </div>
       <div class="captain-status empty" id="captain-status" role="status"></div>
     </div>
@@ -128,7 +129,6 @@
     <div class="bench" id="bench"></div>
     <p class="updated" id="updated"></p>
     <button type="button" class="comment-toggle" id="comment-toggle" hidden>Anonymous suggestion box</button>
-    <button type="button" class="comment-toggle" id="captain-toggle" hidden>Captain tools</button>
     <form class="comment-form" id="comment-form" hidden>
       <textarea id="comment-text" maxlength="1000" placeholder="Anything on your mind?" required></textarea>
       <div class="comment-actions">
