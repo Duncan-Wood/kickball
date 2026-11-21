@@ -47,7 +47,7 @@ On the team page, **Edit** lets anyone who can edit the sheet change the lineup 
   - **Archive** hides a game from players and from this list. Archived games are listed under **Archived** at the bottom, with **Unarchive**.
 - **Copy lineup:** on a game whose field is still empty, **Copy lineup from Game N** brings over the positions and kicking order of the last game with a lineup, for everyone in both games.
 - **Roster:** everyone on the `Roster` tab. Tap a name to change their name, preferred and won't-play positions, kicking style, pronouns or notes, or to remove them. Each change saves on its own, and Undo takes it back. **Add a player** starts with just a name, and the rest can be filled in after. **Add several** takes one name per line. Renaming a player renames them in every game. Removing someone asks first, and leaves them in games already set up.
-- **Team:** the eight `Team Config` settings as a form. Each change saves on its own, and Undo takes it back. The team name can't be left empty. Copy buttons give the team link and the co-captain link, **Open the sheet** opens it in Google Sheets to share it with a co-captain, and the suggestion box setting links to the `Comments` tab.
+- **Team:** the nine `Team Config` settings as a form. A sample line under Font shows the font you've picked. Each change saves on its own, and Undo takes it back. The team name can't be left empty. Copy buttons give the team link and the co-captain link, **Open the sheet** opens it in Google Sheets to share it with a co-captain, and the suggestion box setting links to the `Comments` tab.
 - **Undo and Redo:** Undo reverses the last saved change, and keeps going back through earlier ones. Redo puts back what Undo took away, until you make a new change. Undoing new lineup tabs deletes those tabs. Both last for the visit. The sheet's own version history keeps everything. Unsaved form changes are not on the list. **Reset** discards them.
 - **Opening on the right game:** the team page opens on the next game by date, or the most recent one once the season is over.
 - Edits are written to the sheet with your own account, so the sheet's version history shows who made them. If the sheet changed since the page last updated, nothing is saved and the page says so.
@@ -56,7 +56,7 @@ On the team page, **Edit** lets anyone who can edit the sheet change the lineup 
 
 None of this is required. Captain tools does all of it, and the sheet is there if you prefer it.
 
-The `Team Config` tab has eight settings, which a captain can also change from **Team** in Captain tools: team name, season label, icon, main color, second color, stripe (Blend or Rainbow), font and the suggestion box. The color cells take their fill color: click the box, then the paint bucket in the toolbar. White is a valid value. Everything else (page background, text, borders, highlights) is worked out from the two colors. The `Roster` and `Schedule` tabs feed the game tabs and are never sent to players.
+The `Team Config` tab has nine settings, which a captain can also change from **Team** in Captain tools: team name, season label, icon, main color, second color, stripe (Blend, Solid, Split, Candy, pastel Rainbow, or Pride, Progress Pride, Trans, Bi, Lesbian and Nonbinary flag bands), stripe thickness (Thin or Thick), font (15 Google Fonts, loaded only when picked) and the suggestion box. A sheet made before Stripe thickness existed gets that row the first time it's changed from Captain tools. The color cells take their fill color: click the box, then the paint bucket in the toolbar. White is a valid value. Everything else (page background, text, borders, highlights) is worked out from the two colors. The `Roster` and `Schedule` tabs feed the game tabs and are never sent to players.
 
 - `Schedule` holds each game's date, time, location, opponent, label and result once. A game tab looks its details up by the number in its `Game #:` cell. A playoff or makeup game can use text like `P1` in place of a number.
 - `Start here` is the first tab. It holds the team link for players and the Captain link for you and any co-captain, as plain text to copy. A new sheet starts empty and hides the tabs the page manages (`Positions`, `Team Config` and `New game (copy me)`). View, then Hidden sheets, brings them back.
@@ -92,7 +92,7 @@ npx wrangler deploy
 
 `wrangler.toml` holds the KV namespace id, the Google client id and the allowed site origins. `TOKEN_ENCRYPTION_KEY` is 32 random bytes in base64. The Google project needs the Sheets, Drive and Picker APIs, a Web OAuth client and a Picker API key, all in `site/settings.js`.
 
-Deploy the Worker before the site. The page asks for API version 8 and shows "out of date" against an older Worker.
+Deploy the Worker before the site. The page asks for API version 9 and shows "out of date" against an older Worker.
 
 A fork needs its own Worker URL, Google client id and Picker API key in `site/settings.js`, and its own origin in `ALLOWED_ORIGINS` in `wrangler.toml`.
 

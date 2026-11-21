@@ -1,8 +1,9 @@
 import { themeFromColors } from './theme.js';
 
 export const CONFIG_TAB_NAME = 'Team Config';
-export const STRIPE_STYLES = ['Blend', 'Rainbow'];
-export const FONTS = ['Fredoka', 'Nunito', 'Poppins', 'Roboto', 'Lora'];
+export const STRIPE_STYLES = ['Blend', 'Solid', 'Split', 'Candy', 'Rainbow', 'Pride', 'Progress Pride', 'Trans', 'Bi', 'Lesbian', 'Nonbinary'];
+export const STRIPE_THICKNESSES = ['Thin', 'Thick'];
+export const FONTS = ['Fredoka', 'Nunito', 'Quicksand', 'Baloo 2', 'Poppins', 'Rubik', 'Roboto', 'Space Grotesk', 'Oswald', 'Bebas Neue', 'Archivo Black', 'Bungee', 'Lora', 'Merriweather', 'Pacifico'];
 
 const TEXT_SETTING_MAXIMUM_LENGTH = 60;
 const ICON_MAXIMUM_LENGTH = 300;
@@ -14,7 +15,8 @@ export const CONFIG_FIELDS = [
   { key: 'icon', label: 'Icon', kind: 'icon', defaultValue: 'https://duncan-wood.github.io/kickball/icons/kickball.svg', note: 'One emoji, or a link starting with https:// to a small image' },
   { key: 'mainColor', label: 'Main color', kind: 'color', defaultValue: '#2b6cb0', note: 'Buttons, headings and text' },
   { key: 'secondColor', label: 'Second color', kind: 'color', defaultValue: '#ed8936', note: 'Page background, highlights and borders' },
-  { key: 'stripeStyle', label: 'Stripe', kind: 'stripe', defaultValue: 'Blend', note: 'Blend fades from main to second color, Rainbow shows six pastel bands' },
+  { key: 'stripeStyle', label: 'Stripe', kind: 'stripe', defaultValue: 'Blend', note: 'The line under the team name. Blend fades from main to second color, Solid and Split use them as they are, Candy stripes them, and the rest are pastel rainbow and flag bands' },
+  { key: 'stripeThickness', label: 'Stripe thickness', kind: 'thickness', defaultValue: 'Thin', note: 'Thin or Thick. Thick shows the stripe pattern better' },
   { key: 'font', label: 'Font', kind: 'font', defaultValue: 'Fredoka', note: 'Pick from the list' },
   { key: 'suggestionBox', label: 'Suggestion box', kind: 'toggle', defaultValue: 'On', note: 'On shows the anonymous suggestion box, Off hides it' },
 ];
@@ -22,6 +24,7 @@ export const CONFIG_FIELDS = [
 export function settingProblem(field, entered) {
   if (field.kind === 'color') return COLOR_PATTERN.test(entered) ? null : 'is not a color like #2b6cb0';
   if (field.kind === 'stripe') return STRIPE_STYLES.includes(entered) ? null : `is not one of ${STRIPE_STYLES.join(', ')}`;
+  if (field.kind === 'thickness') return STRIPE_THICKNESSES.includes(entered) ? null : `is not one of ${STRIPE_THICKNESSES.join(', ')}`;
   if (field.kind === 'font') return FONTS.includes(entered) ? null : `is not one of ${FONTS.join(', ')}`;
   if (field.kind === 'toggle') return ['on', 'off'].includes(entered.toLowerCase()) ? null : 'is not On or Off';
   if (field.kind === 'icon') return entered.length <= ICON_MAXIMUM_LENGTH && (!/^https?:/i.test(entered) || /^https:\/\//i.test(entered)) ? null : 'is not an emoji or an https:// link';
@@ -33,11 +36,11 @@ export function settingsWithDefaults(entered) {
 }
 
 export function configFromSettings(settings) {
-  const { mainColor, secondColor, stripeStyle, suggestionBox, ...pageSettings } = settings;
+  const { mainColor, secondColor, stripeStyle, stripeThickness, suggestionBox, ...pageSettings } = settings;
   return {
     ...pageSettings,
     suggestionBox: suggestionBox.toLowerCase() === 'on',
-    theme: themeFromColors(mainColor.toLowerCase(), secondColor.toLowerCase(), stripeStyle),
+    theme: themeFromColors(mainColor.toLowerCase(), secondColor.toLowerCase(), stripeStyle, stripeThickness),
   };
 }
 
@@ -47,7 +50,8 @@ export function settingsFromConfig(config) {
     ...pageSettings,
     mainColor: theme.primary,
     secondColor: theme.accent,
-    stripeStyle: theme.stripe.smooth ? 'Blend' : 'Rainbow',
+    stripeStyle: theme.stripe.name,
+    stripeThickness: theme.stripe.thickness,
     suggestionBox: suggestionBox ? 'On' : 'Off',
   };
 }

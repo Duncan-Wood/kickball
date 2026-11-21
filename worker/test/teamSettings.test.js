@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CONFIG_FIELDS, configFromSettings, settingProblem, settingsFromConfig, settingsWithDefaults, sheetColorFromHex } from '../../site/teamSettings.js';
+import { CONFIG_FIELDS, FONTS, STRIPE_STYLES, STRIPE_THICKNESSES, configFromSettings, settingProblem, settingsFromConfig, settingsWithDefaults, sheetColorFromHex } from '../../site/teamSettings.js';
 
 const fieldFor = (key) => CONFIG_FIELDS.find((field) => field.key === key);
 
@@ -30,4 +30,27 @@ test('a hex color becomes the fractions the Sheets API expects', () => {
   assert.deepEqual(sheetColorFromHex('#ff0000'), { red: 1, green: 0, blue: 0 });
   const { red, green, blue } = sheetColorFromHex('#2b6cb0');
   assert.deepEqual([red, green, blue].map((channel) => Math.round(channel * 255)), [43, 108, 176]);
+});
+
+test('every stripe style draws with valid colors at the chosen thickness', () => {
+  STRIPE_STYLES.forEach((stripeStyle) => {
+    STRIPE_THICKNESSES.forEach((stripeThickness) => {
+      const { stripe } = configFromSettings({ ...settingsWithDefaults({}), stripeStyle, stripeThickness }).theme;
+      assert.equal(stripe.name, stripeStyle);
+      assert.ok(['blend', 'bands', 'candy'].includes(stripe.style), stripeStyle);
+      assert.ok(stripe.colors.length > 0 && stripe.colors.every((color) => /^#[0-9a-f]{6}$/.test(color)), stripeStyle);
+      assert.equal(stripe.height, stripeThickness === 'Thick' ? 8 : 3);
+    });
+  });
+});
+
+test('a flag stripe and a thick stripe turn back into the settings they came from', () => {
+  const settings = { ...settingsWithDefaults({}), stripeStyle: 'Progress Pride', stripeThickness: 'Thick', font: 'Bebas Neue' };
+  assert.deepEqual(settingsFromConfig(configFromSettings(settings)), settings);
+  assert.match(settingProblem(fieldFor('stripeThickness'), 'Huge'), /not one of Thin, Thick/);
+  assert.equal(settingProblem(fieldFor('font'), 'Space Grotesk'), null);
+});
+
+test('every font name is safe to put in a Google Fonts address', () => {
+  FONTS.forEach((font) => assert.match(font, /^[A-Za-z0-9 ]{1,40}$/));
 });
