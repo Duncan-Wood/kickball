@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { gameIdProblem, nextGameId, scheduleGames } from '../../site/edits.js';
+import { copiedLineup, nextGameDefaults, nextGameId, scheduleGames, scheduleIds } from '../../site/edits.js';
 import { orderedLineups } from '../src/lineup.js';
 
 test('a playoff row on the schedule finds its tab by the text in the Game # cell', () => {
@@ -10,16 +10,44 @@ test('a playoff row on the schedule finds its tab by the text in the Game # cell
 });
 
 test('the next game number ignores playoff ids and passes both the schedule and the lineups', () => {
-  const games = [{ id: '6' }, { id: 'P1' }, { id: '7' }];
-  assert.equal(nextGameId(games, [{ gameNumber: 6 }]), '8');
+  assert.equal(nextGameId(['6', 'P1', '7'], [{ gameNumber: 6 }]), '8');
   assert.equal(nextGameId([], []), '1');
 });
 
-test('a new game id must be filled in, plain, and not already on the schedule', () => {
-  assert.match(gameIdProblem('', []), /Enter a game number/);
-  assert.match(gameIdProblem('P/1', []), /letters, numbers/);
-  assert.match(gameIdProblem('p2', ['P2']), /already on the schedule/);
-  assert.equal(gameIdProblem('P3', ['P2']), null);
+test('the next game number also passes schedule rows that are hidden from the list', () => {
+  const rows = [['Game #', 'Date'], ['6', '10/29/26'], ['7'], [''], ['P1']];
+  assert.deepEqual(scheduleGames(rows, []).map((game) => game.id), ['6']);
+  assert.deepEqual(scheduleIds(rows), ['6', '7', 'P1']);
+  assert.equal(nextGameId(scheduleIds(rows), []), '8');
+});
+
+test('a game with only a label or a result still shows on the schedule', () => {
+  const rows = [['Game #', 'Date', 'Time', 'Location', 'Opponent', 'Label', 'Result'], ['8', '', '', '', '', 'Semifinal'], ['9', '', '', '', '', '', 'Rained out']];
+  assert.deepEqual(scheduleGames(rows, []).map((game) => game.id), ['8', '9']);
+});
+
+test('a new game defaults to a week after the latest dated game, at its time and place', () => {
+  const games = [
+    { date: '11/20/26', time: '7:00 PM', location: 'Stead Park' },
+    { date: '12/4/26', time: '6:30 PM', location: 'Turtle Park' },
+    { date: '11/27/26', time: '6:00 PM', location: 'Elsewhere' },
+    { date: '', time: '', location: '' },
+  ];
+  assert.deepEqual(nextGameDefaults(games), { date: '2026-12-11', time: '18:30', location: 'Turtle Park' });
+  assert.deepEqual(nextGameDefaults([{ date: '', time: '', location: 'Field' }]), { date: '', time: '', location: '' });
+});
+
+test('copying a lineup brings over positions and kicking order for players in both games', () => {
+  const player = (name, sheetRow, positions, attending = true) => ({ name, sheetRow, attending, rsvp: attending ? 'yes' : 'no', positions });
+  const source = [player('Sam', 9, ['C', 'P']), player('Alex', 10, ['P', 'C']), player('Gone', 11, ['1B', '1B']), player('Out', 12, ['SS', 'SS'], false)];
+  const target = [player('alex', 9, ['', '']), player('New', 10, ['', '']), player('No Show', 11, ['', ''], false), player('Sam', 12, ['', '']), player('Out', 13, ['', ''])];
+  assert.deepEqual(copiedLineup(target, source, 2).map((each) => [each.sheetRow, each.name, each.positions.join('/')]), [
+    [9, 'Sam', 'C/P'],
+    [10, 'alex', 'P/C'],
+    [11, 'No Show', '/'],
+    [12, 'New', '/'],
+    [13, 'Out', '/'],
+  ]);
 });
 
 test('two tabs with the same playoff id hide the later one with a named problem', () => {

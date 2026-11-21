@@ -1,7 +1,7 @@
-import { candidatesForSpot, copyInningChanges, fieldingChanges, kickingStyleFor, lineupPlayer, occupantsOf } from '../edits.js';
+import { candidatesForSpot, copiedLineup, copyInningChanges, fieldingChanges, kickingStyleFor, lineupPlayer, occupantsOf } from '../edits.js';
 import { POSITION_CODES, POSITION_NAMES } from '../template.js';
 import { button, node } from './dom.js';
-import { saveFielding } from './lineupEdits.js';
+import { saveFielding, saveLineupRows } from './lineupEdits.js';
 import { chooseArea } from './navigation.js';
 import { moveKicker } from './people.js';
 import { captain, element } from './state.js';
@@ -348,7 +348,24 @@ export function fieldingPanel(lineup, inField) {
   if (!inField) return [node('p', 'captain-hint', HINTS.elsewhere)];
   if (!lineup.players.some((player) => player.attending)) return [node('p', 'captain-hint', HINTS.empty), button('Go to RSVPs', 'panel-action primary', () => chooseArea('rsvps'))];
   const parts = captain.undoStack.length === 0 ? [node('p', 'captain-hint', HINTS.fielding)] : [];
-  return parts;
+  return [...parts, ...copyLineupButton(lineup)];
+}
+
+function lastLineupWithPositions(lineup) {
+  const lineups = window.fieldView.allLineups();
+  const earlier = lineups.slice(0, lineups.findIndex((candidate) => candidate.tabName === lineup.tabName));
+  return earlier.reverse().find((candidate) => candidate.players.some((player) => player.attending && player.positions.some((position) => position !== '')));
+}
+
+function copyLineupButton(lineup) {
+  const isEmpty = lineup.players.every((player) => player.positions.every((position) => position === ''));
+  const source = isEmpty ? lastLineupWithPositions(lineup) : undefined;
+  if (source === undefined) return [];
+  const sourceName = source.date === '' || source.label.includes(source.date) ? source.label : `${source.label} (${source.date})`;
+  return [button(`Copy lineup from ${sourceName}`, 'panel-action', () => saveEdit(
+    () => saveLineupRows(lineup, copiedLineup(lineup.players, source.players, lineup.innings.length)),
+    `Copied the lineup from ${source.label}`,
+  ))];
 }
 
 export function resetEditingState(lineup) {
