@@ -1,3 +1,6 @@
+import { shareLineup } from './lineupImage.js';
+import { shortNames } from './names.js';
+
 const FIELD_SPOTS = {
   LF: [48, 152], LC: [118, 92], CF: [200, 64], RC: [282, 92], RF: [352, 152],
   SS: [140, 168], '2B': [260, 168], '3B': [88, 224], '1B': [312, 224],
@@ -195,8 +198,9 @@ function isMaybe(player) {
   return player.rsvp === 'maybe';
 }
 
-function nameWithMaybe(player) {
-  return isMaybe(player) ? player.name + MAYBE_MARK : player.name;
+function chipName(player, shortNameOf) {
+  const short = shortNameOf.get(player.name.trim());
+  return isMaybe(player) ? short + MAYBE_MARK : short;
 }
 
 function chipClass(isProblem, players) {
@@ -205,10 +209,10 @@ function chipClass(isProblem, players) {
   return players.some(isMaybe) ? 'chip maybe' : 'chip';
 }
 
-function drawChip(position, players, openIsProblem) {
+function drawChip(position, players, openIsProblem, shortNameOf) {
   const [x, y] = FIELD_SPOTS[position];
   const isProblem = showsLineupProblems() && (players.length > 1 || (players.length === 0 && openIsProblem));
-  const name = players.length === 0 ? 'open' : players.map(nameWithMaybe).join(' + ');
+  const name = players.length === 0 ? 'open' : players.map((player) => chipName(player, shortNameOf)).join(' + ');
   const spokenNames = players.length === 0 ? 'open' : players.map((player) => (isMaybe(player) ? player.name + ', maybe' : player.name)).join(' and ');
   const chip = svgElement('g', {
     class: chipClass(isProblem, players),
@@ -270,7 +274,8 @@ function renderInning() {
   renderGameDetails();
 
   const chips = document.getElementById('chips');
-  chips.replaceChildren(...Object.keys(FIELD_SPOTS).map((position) => drawChip(position, inning.playersByPosition[position] || [], inning.openIsProblem)));
+  const shortNameOf = shortNames(selectedLineup.players.map((player) => player.name));
+  chips.replaceChildren(...Object.keys(FIELD_SPOTS).map((position) => drawChip(position, inning.playersByPosition[position] || [], inning.openIsProblem, shortNameOf)));
   document.getElementById('problems').textContent = showsLineupProblems() ? inning.problems.join(' · ') : '';
 
   const kickers = selectedLineup.players.filter((player) => player.attending);
@@ -413,8 +418,31 @@ function renderSeason() {
   document.getElementById('kicking-order').replaceChildren();
 }
 
+const SHARE_FEEDBACK_MILLISECONDS = 2500;
+
+async function shareCurrentLineup(shareButton) {
+  const label = shareButton.textContent;
+  shareButton.disabled = true;
+  shareButton.textContent = 'Making the image…';
+  try {
+    const outcome = await shareLineup(selectedLineup, config);
+    shareButton.textContent = outcome === 'downloaded' ? 'Image saved' : label;
+  } catch (error) {
+    shareButton.textContent = label;
+    showFailure('Could not share the lineup', error);
+  } finally {
+    shareButton.disabled = false;
+    setTimeout(() => { shareButton.textContent = label; }, SHARE_FEEDBACK_MILLISECONDS);
+  }
+}
+
+function canShareLineup() {
+  return selectedLineup !== null && selectedLineup.players.some((player) => player.attending);
+}
+
 function render() {
   const nobodyIn = mode !== 'season' && !selectedLineup.players.some((player) => player.attending);
+  document.getElementById('share-lineup').hidden = !canShareLineup() || mode === 'season' || showsLineupProblems();
   document.getElementById('lineup-note').hidden = !nobodyIn || showsLineupProblems();
   document.getElementById('field').style.display = mode === 'inning' && !nobodyIn ? '' : 'none';
   document.getElementById('summary').hidden = mode === 'inning' || nobodyIn;
@@ -482,6 +510,7 @@ function start(data) {
     mode = 'season';
     render();
   });
+  document.getElementById('share-lineup').addEventListener('click', (event) => shareCurrentLineup(event.currentTarget));
   document.getElementById('comment-toggle').addEventListener('click', () => setCommentFormOpen(true));
   document.getElementById('comment-cancel').addEventListener('click', () => setCommentFormOpen(false));
   document.getElementById('comment-form').addEventListener('submit', submitCommentForm);
@@ -510,6 +539,7 @@ function showSeason(tabName) {
 
 function showEmptySeason() {
   selectedLineup = null;
+  document.getElementById('share-lineup').hidden = true;
   document.getElementById('view').classList.add('empty-season');
   document.getElementById('empty-season-note').hidden = false;
   window.captainTools?.afterRender();
@@ -742,6 +772,8 @@ window.fieldView = {
   reloadLineups,
   showLineup,
   selectInning,
+  canShareLineup,
+  shareLineup: shareCurrentLineup,
   currentInningIndex: () => selectedInningIndex,
   inFieldMode: () => mode === 'inning',
   rerender: () => (selectedLineup === null ? window.captainTools?.afterRender() : render()),

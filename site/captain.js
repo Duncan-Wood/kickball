@@ -96,6 +96,7 @@ function afterRender() {
   renderAreaButtons(lineup);
   element('captain-context').replaceChildren(...(isFielding && lineup !== null ? copyInningButton(lineup, inField) : []));
   updateUndoButton();
+  element('captain-share').hidden = !window.fieldView.canShareLineup();
   renderPanel(lineup, inField);
   if (isFielding && inField) bindFieldEditing();
   renderDock(lineup, inField);
@@ -106,6 +107,7 @@ element('captain-toggle').addEventListener('pointerdown', () => loadScript(SIGN_
 element('captain-toggle').addEventListener('click', toggleCaptainView);
 element('captain-undo').addEventListener('click', undoLatest);
 element('captain-redo').addEventListener('click', redoLatest);
+element('captain-share').addEventListener('click', () => window.fieldView.shareLineup(element('captain-share')));
 AREAS.forEach((area) => element(`area-${area}`).addEventListener('click', () => chooseArea(area)));
 installFieldingEvents();
 document.addEventListener('pointerdown', () => { pendingRefocusKey = null; });
