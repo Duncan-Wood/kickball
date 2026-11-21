@@ -4,7 +4,7 @@ const FIELD_SPOTS = {
   P: [200, 266], C: [200, 382],
 };
 const INFIELD_POSITIONS = ['P', 'C', '1B', '2B', '3B', 'SS'];
-const MINIMUM_API_VERSION = 7;
+const MINIMUM_API_VERSION = 8;
 const REFRESH_SECONDS = 10;
 const TEAM_CODE_PATTERN = /^[a-z0-9]{12}$/;
 const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
@@ -80,8 +80,8 @@ async function apiGet(query) {
   return readApiResponse(await fetchFromScript(address, { cache: 'no-store' }));
 }
 
-async function apiPost(body) {
-  return readApiResponse(await fetchFromScript(scriptAddress() + '/comment', {
+async function apiPost(path, body) {
+  return readApiResponse(await fetchFromScript(scriptAddress() + path, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify(body),
@@ -499,8 +499,8 @@ function showEmptySeason() {
   window.captainTools?.afterRender();
 }
 
-async function reloadLineups(tabNameToSelect) {
-  const data = await apiGet();
+async function reloadLineups(tabNameToSelect, captainAccessToken) {
+  const data = captainAccessToken === undefined ? await apiGet() : await apiPost('/fresh', { accessToken: captainAccessToken });
   lineups = data.lineups;
   showUpdated(Date.parse(data.readAt));
   showProblems(data.problems ?? []);
@@ -610,7 +610,7 @@ async function submitCommentForm(event) {
   submitButton.disabled = true;
   commentStatus.textContent = 'Sending…';
   try {
-    await apiPost({ action: 'comment', tab: selectedLineup.tabName, text: commentText.value });
+    await apiPost('/comment', { action: 'comment', tab: selectedLineup.tabName, text: commentText.value });
   } catch (error) {
     submitButton.disabled = false;
     commentStatus.textContent = 'Could not send: ' + error.message;
