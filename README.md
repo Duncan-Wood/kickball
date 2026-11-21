@@ -24,6 +24,8 @@ Screenshots use made-up players.
 - Shows load and update errors in a red box at the top, retries a failed first load on its own, and keeps the last good lineup on the device
 - Captain tools: move players, reorder the kicking order, record RSVPs, add and remove players, edit the roster, enter results, set up the whole season and change the team's look, all from the team page
 
+The site's [Help page](site/help.html) explains everything below in plain language for players and captains, and is linked from the team page, the Team tab and the setup page.
+
 ## Set up a team
 
 1. Open the setup page (`start.html` on the site) and choose **Sign in with Google**.
