@@ -102,7 +102,7 @@ test('applying added players puts them in sheet order with blank innings and use
   const lineup = { players: lineupPlayers(), spareRows: [12, 14] };
   const updated = applyAddedPlayers(lineup, [{ name: 'Pat', sheetRow: 12 }], 2);
   assert.deepEqual(updated.players.map((each) => each.name), ['Alex', 'Sam', 'Jordan', 'Pat', 'Riley']);
-  assert.deepEqual(updated.players[3], { name: 'Pat', sheetRow: 12, attending: true, rsvp: '', positions: ['', ''] });
+  assert.deepEqual(updated.players[3], { name: 'Pat', sheetRow: 12, attending: true, rsvp: 'yes', positions: ['', ''] });
   assert.deepEqual(updated.spareRows, [14]);
 });
 

@@ -96,7 +96,7 @@ export function playersToAdd(spareRows, names, players) {
 
 export function applyAddedPlayers(lineup, additions, inningCount) {
   const addedRows = new Set(additions.map(({ sheetRow }) => sheetRow));
-  const added = additions.map(({ name, sheetRow }) => ({ name, sheetRow, attending: true, rsvp: '', positions: Array.from({ length: inningCount }, () => '') }));
+  const added = additions.map(({ name, sheetRow }) => ({ name, sheetRow, attending: true, rsvp: 'yes', positions: Array.from({ length: inningCount }, () => '') }));
   return {
     players: [...lineup.players, ...added].sort((first, second) => first.sheetRow - second.sheetRow),
     spareRows: lineup.spareRows.filter((sheetRow) => !addedRows.has(sheetRow)),
