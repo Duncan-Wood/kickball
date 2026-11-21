@@ -25,6 +25,14 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - name: Give scripts and styles a new address on each deploy
+        run: |
+          version="${GITHUB_SHA::8}"
+          find site -name '*.js' -o -name '*.html' | xargs perl -pi -e "
+            s#(from '\.{1,2}/[^']+\.js)'#\1?v=${version}'#g;
+            s#(<script[^>]* src=\"[^\":]+\.js)\"#\1?v=${version}\"#g;
+            s#(<link rel=\"stylesheet\" href=\"[^\":]+\.css)\"#\1?v=${version}\"#g;
+          "
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
