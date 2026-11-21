@@ -77,6 +77,7 @@ function afterRender() {
   element('captain-bar').hidden = !captain.active;
   document.body.classList.toggle('captain-active', captain.active && inField && isFielding);
   document.body.classList.toggle('captain-list', captain.active && !isFielding);
+  document.documentElement.classList.toggle('captain-mode', captain.active);
   element('captain-toggle').hidden = captain.active || !captainToolsOffered();
   if (!captain.active) {
     renderDock(null, false);

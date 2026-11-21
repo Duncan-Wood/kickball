@@ -1,6 +1,6 @@
 import { namesFromLines, positionsIn, positionsText } from '../edits.js';
 import { KICKING_STYLES, POSITION_CODES } from '../template.js';
-import { button, formField, node, selectField } from './dom.js';
+import { button, confirmAction, formField, node, selectField } from './dom.js';
 import { addRosterPlayers, removeRosterPlayer, saveRosterPlayer } from './roster.js';
 import { ADD_FOCUS_KEY, captain } from './state.js';
 import { saveEdit, setStatus } from './status.js';
@@ -14,13 +14,16 @@ function closeEditor() {
   window.fieldView.rerender();
 }
 
-function positionChips(label, text) {
+function positionChips(label, text, onToggle) {
   const group = node('div', 'position-group');
   group.append(node('span', 'position-group-label', label));
   const chips = node('div', 'position-chips');
   const chosen = positionsIn(text);
   chips.append(...POSITION_CODES.map((code) => {
-    const chip = button(code, 'inning-toggle', () => chip.setAttribute('aria-pressed', String(chip.getAttribute('aria-pressed') !== 'true')));
+    const chip = button(code, 'inning-toggle', () => {
+      chip.setAttribute('aria-pressed', String(chip.getAttribute('aria-pressed') !== 'true'));
+      onToggle();
+    });
     chip.dataset.code = code;
     chip.setAttribute('aria-pressed', String(chosen.includes(code)));
     return chip;
@@ -33,21 +36,37 @@ function chosenCodes(group) {
   return [...group.querySelectorAll('[aria-pressed="true"]')].map((chip) => chip.dataset.code);
 }
 
+function blockCodesChosenElsewhere(group, otherGroup) {
+  const chosenElsewhere = chosenCodes(otherGroup);
+  group.querySelectorAll('.inning-toggle').forEach((chip) => {
+    chip.disabled = chip.getAttribute('aria-pressed') !== 'true' && chosenElsewhere.includes(chip.dataset.code);
+  });
+}
+
 function rosterEditor(player) {
   const initial = player ?? { name: '', prefers: '', avoids: '', notes: '', pronouns: '', kicking: '' };
   const form = node('form', 'game-editor');
   const nameField = formField('Name', 'text', 'name', initial.name);
   if (player !== null) nameField.append(node('span', 'field-note', 'Changing the name also changes it in every game.'));
-  const prefers = positionChips('Prefers', initial.prefers);
-  const avoids = positionChips("Won't play", initial.avoids);
-  const kicking = selectField('Kicking', 'kicking', [['', 'Not set'], ...KICKING_STYLES.map((style) => [style, style])], initial.kicking);
+  const blockConflicts = () => {
+    blockCodesChosenElsewhere(prefers, avoids);
+    blockCodesChosenElsewhere(avoids, prefers);
+  };
+  const prefers = positionChips('Prefers', initial.prefers, blockConflicts);
+  const avoids = positionChips("Won't play", initial.avoids, blockConflicts);
+  avoids.append(node('span', 'field-note', "A position can be in Prefers or Won't play, not both."));
+  blockConflicts();
+  const kicking = selectField('Kicking style', 'kicking', [['', 'Not set'], ...KICKING_STYLES.map((style) => [style, style])], initial.kicking);
   form.append(nameField, prefers, avoids, kicking, formField('Pronouns', 'text', 'pronouns', initial.pronouns), formField('Notes', 'text', 'notes', initial.notes));
   const actions = node('div', 'game-actions');
   const save = node('button', 'panel-action primary', 'Save');
   save.type = 'submit';
   actions.append(save);
   if (player !== null) {
-    actions.append(button('Remove from roster', 'panel-action', () => saveEdit(() => removeRosterPlayer(player), `Removed ${player.name} from the roster`).then((saved) => saved && closeEditor())));
+    actions.append(button('Remove from roster', 'panel-action', async () => {
+      const confirmed = await confirmAction(`Remove ${player.name} from the roster?`, 'They stay in games already set up. Undo brings them back.', 'Remove');
+      if (confirmed) saveEdit(() => removeRosterPlayer(player), `Removed ${player.name} from the roster`).then((saved) => saved && closeEditor());
+    }));
   }
   actions.append(button('Cancel', 'panel-action', closeEditor));
   form.append(actions);
@@ -76,10 +95,11 @@ function closeSeveral() {
 
 function addSeveralForm() {
   const form = node('form', 'game-editor');
-  const label = node('label', undefined, 'One name per line');
+  const label = node('label', 'stacked', 'One name per line');
   const names = node('textarea');
   names.name = 'names';
   names.rows = 8;
+  names.placeholder = 'Alex Rivera\nSam Chen\nJordan Lee';
   label.append(names);
   const actions = node('div', 'game-actions');
   const save = node('button', 'panel-action primary', 'Add');
