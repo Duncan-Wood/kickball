@@ -1,7 +1,7 @@
 import { headcount, kickingMove, lineupPlayer, rosterNamesToAdd } from '../edits.js';
 import { ROSTER_TAB_NAME } from '../template.js';
 import { button, node } from './dom.js';
-import { saveAddedPlayers, saveKickingMove, saveRemovedPlayers, saveRsvp } from './lineupEdits.js';
+import { saveAddedPlayers, saveKickingMove, saveRemovedPlayers, saveRsvps } from './lineupEdits.js';
 import { captain, RSVP_ANSWERS } from './state.js';
 import { saveEdit } from './status.js';
 
@@ -22,7 +22,8 @@ export function moveKicker(sourceRow, targetRow) {
 
 function headcountLine(lineup) {
   const count = headcount(lineup.players);
-  const isShort = count.playing < MINIMUM_PLAYERS;
+  const anyReplies = count.yes + count.maybe + count.out > 0;
+  const isShort = anyReplies && count.playing < MINIMUM_PLAYERS;
   const line = node('p', isShort ? 'headcount short' : 'headcount');
   const breakdown = [[count.yes, 'yes'], [count.maybe, 'maybe'], [count.waiting, 'no reply'], [count.out, 'out']]
     .filter(([amount]) => amount > 0)
@@ -52,7 +53,7 @@ function playerRow(lineup, player) {
   const answers = node('div', 'rsvp');
   answers.append(...RSVP_ANSWERS.map((answer) => {
     const isChosen = player.rsvp === answer.toLowerCase();
-    const choice = button(answer, answer.toLowerCase() === 'yes' ? '' : answer.toLowerCase(), () => saveEdit(() => saveRsvp(lineup, player.sheetRow, isChosen ? '' : answer), `${player.name}: ${isChosen ? 'no reply' : answer}`));
+    const choice = button(answer, answer.toLowerCase() === 'yes' ? '' : answer.toLowerCase(), () => saveEdit(() => saveRsvps(lineup, [{ sheetRow: player.sheetRow, answer: isChosen ? '' : answer }]), `${player.name}: ${isChosen ? 'no reply' : answer}`));
     choice.setAttribute('aria-pressed', String(isChosen));
     return choice;
   }));
@@ -64,8 +65,18 @@ function playerRow(lineup, player) {
   return row;
 }
 
+function markRestYes(lineup) {
+  const waiting = lineup.players.filter((player) => player.rsvp === '');
+  if (waiting.length === 0) return [];
+  const noun = waiting.length === 1 ? 'player' : 'players';
+  return [button(`Mark ${waiting.length} ${noun} with no reply as Yes`, 'panel-action', () => saveEdit(
+    () => saveRsvps(lineup, waiting.map(({ sheetRow }) => ({ sheetRow, answer: 'Yes' }))),
+    `${waiting.length} ${noun} marked Yes`,
+  ))];
+}
+
 export function playersPanel(lineup) {
-  const parts = [node('p', 'captain-hint', HINT), headcountLine(lineup)];
+  const parts = [node('p', 'captain-hint', HINT), headcountLine(lineup), ...markRestYes(lineup)];
   if (lineup.players.length > 0) {
     const list = node('div', 'player-list');
     list.append(...lineup.players.map((player) => playerRow(lineup, player)));

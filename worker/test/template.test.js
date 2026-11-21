@@ -24,6 +24,20 @@ test('every Prefers and Won\'t play lookup reads the name on its own row', () =>
   });
 });
 
+test('the sheet counts only Yes and Maybe players when it lists open spots and flags doubled positions', () => {
+  const gameSheet = templateSheet('New game (copy me)');
+  const openSpotsRow = gameSheet.rowData.find(({ values }) => values[0]?.userEnteredValue?.stringValue === 'Open spots');
+  const openSpotsFormula = openSpotsRow.values[2].userEnteredValue.formulaValue;
+  const doubledFormula = formattingRequests()
+    .map((request) => request.addConditionalFormatRule?.rule.booleanRule.condition.values[0].userEnteredValue ?? '')
+    .find((formula) => formula.includes('COUNTIFS'));
+  [openSpotsFormula, doubledFormula].forEach((formula) => {
+    assert.match(formula, /"Yes"/);
+    assert.match(formula, /"Maybe"/);
+    assert.doesNotMatch(formula, /<>No/);
+  });
+});
+
 function templateSheet(title) {
   return teamSheetDefinition('Test Team', 'Fall 2026').sheets.find(({ properties }) => properties.title === title);
 }

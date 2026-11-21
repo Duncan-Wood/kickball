@@ -92,7 +92,7 @@ function rsvpRows(playerRows, { gameNumber = '2' } = {}) {
   ];
 }
 
-test('an RSVP column marks Maybe and blank as attending and No as absent', () => {
+test('an RSVP column marks Yes and Maybe as attending, and blank and No as not attending', () => {
   const rows = rsvpRows([
     rowOf('Chad S', 'Yes', 'SS', 'P', 'SS, 2B', ''),
     rowOf('Emma E', 'Maybe', 'P', 'SS', '', ''),
@@ -100,7 +100,7 @@ test('an RSVP column marks Maybe and blank as attending and No as absent', () =>
     rowOf('Mac B', 'No', '', '', '', ''),
   ]);
   const lineup = readLineup('Game 2 Lineup', rows);
-  assert.deepEqual(lineup.players.map((player) => [player.name, player.attending]), [['Chad S', true], ['Emma E', true], ['Amy B', true], ['Mac B', false]]);
+  assert.deepEqual(lineup.players.map((player) => [player.name, player.attending]), [['Chad S', true], ['Emma E', true], ['Amy B', false], ['Mac B', false]]);
   assert.deepEqual(lineup.innings, ['1', '2']);
   assert.deepEqual(lineup.players[0].positions, ['SS', 'P']);
   assert.deepEqual(lineup.players.map((player) => player.rsvp), ['yes', 'maybe', '', 'no']);

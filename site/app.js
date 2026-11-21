@@ -398,8 +398,10 @@ function renderSeason() {
 }
 
 function render() {
-  document.getElementById('field').style.display = mode === 'inning' ? '' : 'none';
-  document.getElementById('summary').hidden = mode === 'inning';
+  const nobodyIn = mode !== 'season' && !selectedLineup.players.some((player) => player.attending);
+  document.getElementById('lineup-note').hidden = !nobodyIn || showsLineupProblems();
+  document.getElementById('field').style.display = mode === 'inning' && !nobodyIn ? '' : 'none';
+  document.getElementById('summary').hidden = mode === 'inning' || nobodyIn;
   if (mode === 'inning') renderInning();
   if (mode === 'game') renderWholeGame();
   if (mode === 'season') renderSeason();

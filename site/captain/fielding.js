@@ -2,6 +2,7 @@ import { candidatesForSpot, copyInningChanges, fieldingChanges, kickingStyleFor,
 import { POSITION_CODES, POSITION_NAMES } from '../template.js';
 import { button, node } from './dom.js';
 import { saveFielding } from './lineupEdits.js';
+import { chooseArea } from './navigation.js';
 import { moveKicker } from './people.js';
 import { captain, element } from './state.js';
 import { saveEdit, setStatus } from './status.js';
@@ -14,7 +15,7 @@ const LIFT_VIBRATION_MILLISECONDS = 10;
 const HINTS = {
   fielding: 'Tap a position, then pick a player. Tap a kicker, then the spot they should take.',
   elsewhere: 'Pick an inning above to edit the field.',
-  empty: 'Nobody is in this game yet. Add players on the Players tab first.',
+  empty: 'Nobody has said yes yet. Mark who is coming on RSVPs, then set the lineup here.',
 };
 
 let suppressClicksUntil = 0;
@@ -345,7 +346,7 @@ export function copyInningButton(lineup, inField) {
 
 export function fieldingPanel(lineup, inField) {
   if (!inField) return [node('p', 'captain-hint', HINTS.elsewhere)];
-  if (!lineup.players.some((player) => player.attending)) return [node('p', 'captain-hint', HINTS.empty)];
+  if (!lineup.players.some((player) => player.attending)) return [node('p', 'captain-hint', HINTS.empty), button('Go to RSVPs', 'panel-action primary', () => chooseArea('rsvps'))];
   const parts = captain.undoStack.length === 0 ? [node('p', 'captain-hint', HINTS.fielding)] : [];
   return parts;
 }

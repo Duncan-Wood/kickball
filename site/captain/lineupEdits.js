@@ -56,15 +56,21 @@ export async function saveKickingMove(lineupWhenEditing, move, sourceRow, target
   return () => saveKickingMove(lineup, inverseKickingMove(move), move.finalRow, move.fromRow);
 }
 
-export async function saveRsvp(lineupWhenEditing, sheetRow, answer) {
+export async function saveRsvps(lineupWhenEditing, answers) {
   const lineup = currentVersionOf(lineupWhenEditing);
-  const player = lineupPlayer(lineup, sheetRow);
-  const previousAnswer = RSVP_ANSWERS.find((candidate) => candidate.toLowerCase() === player.rsvp) ?? '';
-  const address = cellAddress(lineup.tabName, RSVP_COLUMN_INDEX, sheetRow);
-  await confirmSheetStillMatches([...nameExpectations(lineup, [sheetRow]), { address, expected: player.rsvp }]);
-  await writeValues([{ range: address, values: [[answer]] }]);
-  lineup.players = lineup.players.map((candidate) => (candidate.sheetRow === sheetRow ? applyRsvp(candidate, answer.toLowerCase()) : candidate));
-  return () => saveRsvp(lineup, sheetRow, previousAnswer);
+  const previousAnswers = answers.map(({ sheetRow }) => {
+    const { rsvp } = lineupPlayer(lineup, sheetRow);
+    return { sheetRow, answer: RSVP_ANSWERS.find((candidate) => candidate.toLowerCase() === rsvp) ?? '' };
+  });
+  const address = (sheetRow) => cellAddress(lineup.tabName, RSVP_COLUMN_INDEX, sheetRow);
+  await confirmSheetStillMatches([
+    ...nameExpectations(lineup, answers.map(({ sheetRow }) => sheetRow)),
+    ...answers.map(({ sheetRow }) => ({ address: address(sheetRow), expected: lineupPlayer(lineup, sheetRow).rsvp })),
+  ]);
+  await writeValues(answers.map(({ sheetRow, answer }) => ({ range: address(sheetRow), values: [[answer]] })));
+  const answerByRow = new Map(answers.map(({ sheetRow, answer }) => [sheetRow, answer.toLowerCase()]));
+  lineup.players = lineup.players.map((candidate) => (answerByRow.has(candidate.sheetRow) ? applyRsvp(candidate, answerByRow.get(candidate.sheetRow)) : candidate));
+  return () => saveRsvps(lineup, previousAnswers);
 }
 
 export async function saveRemovedPlayers(lineupWhenEditing, sheetRows) {
