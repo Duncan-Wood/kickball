@@ -1,7 +1,7 @@
+import { COMMENTS_TAB_NAME } from '../../site/template.js';
 import { isCurrentLineupTab } from './lineup.js';
 
 const SHEETS_ADDRESS = 'https://sheets.googleapis.com/v4/spreadsheets';
-export const COMMENTS_TAB_NAME = 'Comments';
 export const COMMENTS_PER_HOUR = 60;
 const COMMENT_MAXIMUM_LENGTH = 1000;
 

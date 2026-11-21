@@ -56,6 +56,17 @@ export async function saveEdit(work, label) {
   }
 }
 
+let autosaveQueue = Promise.resolve();
+
+export function autosave(work, label) {
+  autosaveQueue = autosaveQueue.then(() => saveEdit(async () => {
+    const undo = await work();
+    captain.panelStale = false;
+    return undo;
+  }, label));
+  return autosaveQueue;
+}
+
 async function stepThroughHistory(fromKey, toKey, startText, doneText) {
   const entry = captain[fromKey][captain[fromKey].length - 1];
   if (entry === undefined || captain.saving) return;
