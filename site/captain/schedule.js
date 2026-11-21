@@ -125,7 +125,14 @@ async function addScheduleRows(rowValues) {
   const writeRows = (valuesFor) => writeValues(rows.map((row, index) => ({ range: `${cellAddress(SCHEDULE_TAB_NAME, 0, row)}:${SEASON_COLUMN_LETTER}${row}`, values: [valuesFor(index)] })));
   const add = async () => {
     await writeRows((index) => rowValues[index]);
-    const removeTabs = await createGameTabs(ids);
+    let removeTabs;
+    try {
+      removeTabs = await createGameTabs(ids);
+    } catch (error) {
+      await writeRows(() => ['', '', '', '']);
+      await loadSchedule();
+      throw error;
+    }
     await loadSchedule();
     return async () => {
       await removeTabs();

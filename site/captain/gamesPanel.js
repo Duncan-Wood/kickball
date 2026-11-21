@@ -1,7 +1,7 @@
 import { headcount, isoDateFromDisplayed, isoTimeFromDisplayed } from '../edits.js';
 import { describeResult, resultFromText } from '../result.js';
 import { button, formField, node } from './dom.js';
-import { addGame, addSeasonGames, allScheduledGames, archiveGame, newGamePreview, saveGameField, scheduledGames, unarchiveGame } from './schedule.js';
+import { addGame, addSeasonGames, allScheduledGames, archiveGame, createGameTabs, newGamePreview, saveGameField, scheduledGames, unarchiveGame } from './schedule.js';
 import { ADD_FOCUS_KEY, captain } from './state.js';
 import { autosave, saveEdit } from './status.js';
 
@@ -27,7 +27,8 @@ function replySummary(game) {
 
 function summaryParts(game) {
   const result = resultFromText(game.result);
-  const status = game.result === '' ? replySummary(game) : (result === null ? game.result : describeResult(result));
+  let status = game.result === '' ? replySummary(game) : (result === null ? game.result : describeResult(result));
+  if (status === '' && game.tabName === null) status = 'No lineup yet';
   const details = [game.date, game.time, game.location].filter((detail) => detail !== '').join(' · ');
   const text = node('span', 'game-text');
   text.append(node('strong', undefined, gameTitle(game)), node('span', 'game-meta', details === '' ? 'No date yet' : details));
@@ -65,6 +66,13 @@ function gameEditor(game) {
   form.addEventListener('submit', (event) => event.preventDefault());
   form.append(...FIELDS.map((field) => autosavedField(game, field)));
   const actions = node('div', 'game-actions');
+  if (game.tabName === null) {
+    actions.append(button('Set up lineup', 'panel-action primary', () => saveEdit(async () => {
+      const undo = await createGameTabs([game.id]);
+      captain.panelStale = true;
+      return undo;
+    }, `Set up the lineup for ${gameTitle(game)}`)));
+  }
   actions.append(button('Archive', 'panel-action', () => saveEdit(() => archiveGame(game), `Archived ${gameTitle(game)}`)));
   form.append(actions);
   return form;
