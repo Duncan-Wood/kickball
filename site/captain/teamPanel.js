@@ -107,13 +107,10 @@ function shareLinkRows() {
   const links = node('div', 'share-links');
   const coCaptainSteps = node('p', 'captain-hint', 'To add a co-captain, open the sheet, choose Share and add them as an Editor. Then send them the co-captain link. ');
   coCaptainSteps.append(externalLink('Open the sheet ↗', sheetAddress()));
-  const help = node('p', 'captain-hint', 'How everything works, and how to find older changes in the sheet\'s version history: ');
-  help.append(externalLink('Help ↗', 'help.html'));
   links.append(
     linkRow('Link for players', link),
     linkRow('Link for co-captains', `${link}#captain`),
     coCaptainSteps,
-    help,
   );
   return [links];
 }

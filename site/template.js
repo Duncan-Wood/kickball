@@ -5,7 +5,8 @@ export const KICKING_STYLES = ['Bunt', 'Power', 'Mixed'];
 export const POSITION_NAMES = ['Pitcher', 'Catcher', 'First Baseperson', 'Second Baseperson', 'Third Baseperson', 'Shortstop', 'Left Fielder', 'Left Center Fielder', 'Center Fielder', 'Right Center Fielder', 'Right Fielder'];
 const INNING_COUNT = 5;
 const LINEUP_ROW_COUNT = 22;
-const SHARE_LINK_LABEL = 'Share link';
+const TEAM_LINK_LABEL = 'Team link';
+const CAPTAIN_LINK_LABEL = 'Captain link';
 export const ROSTER_TAB_NAME = 'Roster';
 export const SCHEDULE_TAB_NAME = 'Schedule';
 export const NEW_GAME_TAB_NAME = 'New game (copy me)';
@@ -13,12 +14,8 @@ export const COMMENTS_TAB_NAME = 'Comments';
 const CONFIG_SHEET_ID = 0;
 const ROSTER_SHEET_ID = 1;
 const SCHEDULE_SHEET_ID = 2;
-const POSITIONS_SHEET_ID = 4;
-const START_SHEET_ID = 5;
 const NEW_GAME_SHEET_ID = 6;
 const SCHEDULE_FORMATTED_ROW_COUNT = 48;
-const START_TEAM_LINK_ROW = 3;
-const START_CAPTAIN_LINK_ROW = 4;
 const SCHEDULE_FIRST_ROW_INDEX = 1;
 const ROSTER_LAST_ROW = 60;
 const GAME_HEADER_ROW_INDEX = 7;
@@ -81,16 +78,12 @@ function configRows(teamName, seasonLabel) {
         : textCell(label === 'Team name' ? teamName : label === 'Season label' ? seasonLabel : value);
     return [textCell(label, boldFormat), valueCell, textCell(note)];
   });
-  return [header, ...settingRows, [], [textCell(SHARE_LINK_LABEL, boldFormat), textCell(''), textCell('Send this link to your team. It opens the field view and cannot edit anything')]];
-}
-
-function startRows() {
-  const wrapped = { wrapStrategy: 'WRAP', verticalAlignment: 'TOP' };
   return [
-    [textCell('Start here', headerFormat), textCell('Open the Captain link to set up your season.', headerFormat)],
+    header,
+    ...settingRows,
     [],
-    [textCell('Team link', { ...boldFormat, ...wrapped }), textCell('', wrapped)],
-    [textCell('Captain link', { ...boldFormat, ...wrapped }), textCell('', wrapped)],
+    [textCell(TEAM_LINK_LABEL, boldFormat), textCell(''), textCell('Send this to your players. It shows the lineup and cannot edit anything')],
+    [textCell(CAPTAIN_LINK_LABEL, boldFormat), textCell(''), textCell('Opens Captain tools, for you and any co-captain')],
   ];
 }
 
@@ -132,8 +125,9 @@ function openSpotsFormula(columnIndex) {
   const firstRow = GAME_FIRST_PLAYER_ROW_INDEX + 1;
   const lastRow = GAME_LAST_PLAYER_ROW_INDEX + 1;
   const rsvp = columnLetter(GAME_RSVP_COLUMN_INDEX);
-  const attendingCount = (answer) => `COUNTIFS(${column}$${firstRow}:${column}$${lastRow},Positions!$B$2:$B$12,$${rsvp}$${firstRow}:$${rsvp}$${lastRow},"${answer}")`;
-  return `=IFERROR(TEXTJOIN(", ",TRUE,FILTER(Positions!$B$2:$B$12,${attendingCount('Yes')}+${attendingCount('Maybe')}=0)),"")`;
+  const positions = `{${POSITION_CODES.map((code) => `"${code}"`).join(';')}}`;
+  const attendingCount = (answer) => `COUNTIFS(${column}$${firstRow}:${column}$${lastRow},${positions},$${rsvp}$${firstRow}:$${rsvp}$${lastRow},"${answer}")`;
+  return `=IFERROR(TEXTJOIN(", ",TRUE,FILTER(${positions},${attendingCount('Yes')}+${attendingCount('Maybe')}=0)),"")`;
 }
 
 function gameRows() {
@@ -163,10 +157,6 @@ function gameRows() {
     ...Array.from({ length: INNING_COUNT }, (unused, index) => formulaCell(openSpotsFormula(GAME_FIRST_INNING_COLUMN_INDEX + index), { textFormat: { bold: true, foregroundColor: AVOIDS_TEXT }, horizontalAlignment: 'CENTER', wrapStrategy: 'WRAP' })),
   ];
   return [...details, header, ...players, openSpots];
-}
-
-function positionsRows() {
-  return [[textCell('Field Positions', headerFormat), textCell('Code', headerFormat)], ...POSITION_NAMES.map((name, index) => [textCell(name), textCell(POSITION_CODES[index])])];
 }
 
 function listValidation(sheetId, startRow, endRow, startColumn, endColumn, values) {
@@ -289,8 +279,6 @@ export function formattingRequests() {
     columnFormat(SCHEDULE_SHEET_ID, SCHEDULE_FIRST_ROW_INDEX, scheduleEndRow, 2, { numberFormat: TIME_FORMAT, horizontalAlignment: 'LEFT' }, NUMBER_AND_ALIGNMENT_FIELDS),
     columnWidth(ROSTER_SHEET_ID, 0, 160), columnWidth(ROSTER_SHEET_ID, 1, 160), columnWidth(ROSTER_SHEET_ID, 2, 160), columnWidth(ROSTER_SHEET_ID, 3, 380), columnWidth(ROSTER_SHEET_ID, 4, 140), columnWidth(ROSTER_SHEET_ID, 5, 100), columnWidth(ROSTER_SHEET_ID, 6, 70),
     columnWidth(SCHEDULE_SHEET_ID, 1, 90), columnWidth(SCHEDULE_SHEET_ID, 3, 220), columnWidth(SCHEDULE_SHEET_ID, 4, 200), columnWidth(SCHEDULE_SHEET_ID, 5, 160), columnWidth(SCHEDULE_SHEET_ID, 6, 260), columnWidth(SCHEDULE_SHEET_ID, 7, 90),
-    columnWidth(POSITIONS_SHEET_ID, 0, 200),
-    columnWidth(START_SHEET_ID, 0, 150), columnWidth(START_SHEET_ID, 1, 620),
     ...gameTabRequests(NEW_GAME_SHEET_ID),
   ];
 }
@@ -299,12 +287,10 @@ export function teamSheetDefinition(teamName, seasonLabel) {
   return {
     properties: { title: `${teamName} Kickball Lineup` },
     sheets: [
-      sheet(START_SHEET_ID, 'Start here', startRows(), { frozenRowCount: 1 }),
+      sheet(CONFIG_SHEET_ID, CONFIG_TAB_NAME, configRows(teamName, seasonLabel), { frozenRowCount: 1 }),
       sheet(ROSTER_SHEET_ID, ROSTER_TAB_NAME, rosterRows(), { frozenRowCount: 1 }),
       sheet(SCHEDULE_SHEET_ID, SCHEDULE_TAB_NAME, scheduleRows(), { frozenRowCount: 1 }),
       sheet(NEW_GAME_SHEET_ID, NEW_GAME_TAB_NAME, gameRows(), { frozenColumnCount: 1, hidden: true }),
-      sheet(POSITIONS_SHEET_ID, 'Positions', positionsRows(), { frozenRowCount: 1, hidden: true }),
-      sheet(CONFIG_SHEET_ID, 'Team Config', configRows(teamName, seasonLabel), { frozenRowCount: 1, hidden: true }),
     ],
   };
 }
@@ -336,12 +322,12 @@ const CONFIG_LABEL_RANGE = `'${CONFIG_TAB_NAME}'!A1:A40`;
 
 export async function saveTeamLinks(accessToken, spreadsheetId, teamLink) {
   const { values: labels = [] } = await sheetsRequest(accessToken, `/${spreadsheetId}/values/${encodeURIComponent(CONFIG_LABEL_RANGE)}`, 'GET');
-  const shareRow = labels.findIndex((row) => (row[0] ?? '').trim() === SHARE_LINK_LABEL) + 1;
+  const rowOf = (label) => labels.findIndex((row) => (row[0] ?? '').trim() === label) + 1;
+  const links = [[TEAM_LINK_LABEL, teamLink], [CAPTAIN_LINK_LABEL, teamLink === '' ? '' : `${teamLink}#captain`]];
+  const missing = links.find(([label]) => rowOf(label) === 0);
+  if (missing !== undefined) throw new Error(`The ${CONFIG_TAB_NAME} tab has no "${missing[0]}" row`);
   await sheetsRequest(accessToken, `/${spreadsheetId}/values:batchUpdate`, 'POST', {
     valueInputOption: 'RAW',
-    data: [
-      ...(shareRow === 0 ? [] : [{ range: `'${CONFIG_TAB_NAME}'!B${shareRow}`, values: [[teamLink]] }]),
-      { range: `'Start here'!B${START_TEAM_LINK_ROW}:B${START_CAPTAIN_LINK_ROW}`, values: [[teamLink], [teamLink === '' ? '' : `${teamLink}#captain`]] },
-    ],
+    data: links.map(([label, link]) => ({ range: `'${CONFIG_TAB_NAME}'!B${rowOf(label)}`, values: [[link]] })),
   });
 }

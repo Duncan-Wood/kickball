@@ -24,8 +24,6 @@ Screenshots use made-up players.
 - Shows load and update errors in a red box at the top, retries a failed first load on its own, and keeps the last good lineup on the device
 - Captain tools: move players, reorder the kicking order, record RSVPs, add and remove players, edit the roster, enter results, set up the whole season and change the team's look, all from the team page
 
-The site's [Help page](site/help.html) explains everything below in plain language for players and captains, and is linked from the team page, the Team tab and the setup page.
-
 ## Set up a team
 
 1. Open the setup page (`start.html` on the site) and choose **Sign in with Google**.
@@ -60,16 +58,16 @@ On the team page, **Edit** lets anyone who can edit the sheet change the lineup 
 
 None of this is required. Captain tools does all of it, and the sheet is there if you prefer it.
 
-The `Team Config` tab has eight settings, which a captain can also change from **Team** in Captain tools: team name, season label, icon, main color, second color, stripe (Blend, Solid, Split, Candy, or Pride, Progress Pride, Trans, Bi, Lesbian and Nonbinary flag bands), font (Fredoka, Nunito, Poppins, Oswald or Bungee, loaded only when picked) and the suggestion box. The color cells take their fill color: click the box, then the paint bucket in the toolbar. White is a valid value. Everything else (page background, text, borders, highlights) is worked out from the two colors. The `Roster` and `Schedule` tabs feed the game tabs and are never sent to players.
+The `Team Config` tab is the first tab. It has eight settings, which a captain can also change from **Team** in Captain tools: team name, season label, icon, main color, second color, stripe (Blend, Solid, Split, Candy, or Pride, Progress Pride, Trans, Bi, Lesbian and Nonbinary flag bands), font (Fredoka, Nunito, Poppins, Oswald or Bungee, loaded only when picked) and the suggestion box. Under them are the team link for players and the Captain link for you and any co-captain, as plain text to copy. The color cells take their fill color: click the box, then the paint bucket in the toolbar. White is a valid value. Everything else (page background, text, borders, highlights) is worked out from the two colors. The `Roster` and `Schedule` tabs feed the game tabs and are never sent to players.
 
 - `Schedule` holds each game's date, time, location, opponent, label and result once. A game tab looks its details up by the number in its `Game #:` cell. A playoff or makeup game can use text like `P1` in place of a number.
-- `Start here` is the first tab. It holds the team link for players and the Captain link for you and any co-captain, as plain text to copy. A new sheet starts empty and hides the tabs the page manages (`Positions`, `Team Config` and `New game (copy me)`). View, then Hidden sheets, brings them back.
+- A new sheet starts empty and hides `New game (copy me)`, the blank tab new games are copied from. View, then Hidden sheets, brings it back.
 - To add games, use **Games** in Captain tools, or duplicate the `New game (copy me)` tab, rename the copy so it ends with `Lineup`, and type its number in the `Game #:` cell. A copy keeps the old number until you change it, and the page hides a tab whose number another tab already uses. The blank tab is ignored until it is renamed.
 - The lookup cells in a game tab show a red corner flag if someone types over their formula. The warning is a validation rule, so it carries over when a tab is duplicated.
 - `Roster` can be edited from **Roster** in Captain tools, and holds each player's name, the positions they prefer and the positions they would rather not play, private notes, a pronouns column, a Kicking column (Bunt, Power or Mixed) and a Sub column. `Yes` in Sub marks a sub: new games leave them out, and they join a game when a captain adds them. The Lineup tab in Captain tools shows each kicker's style beside their name.
 - In a game tab, the `RSVP` column takes Yes, Maybe or No as replies come in. A blank cell next to a name is gray, meaning no reply yet. Only Yes and Maybe players are planned for: a player with no reply stays off the field and out of the kicking order until they answer, and a No turns the row gray.
 - The `Prefers` and `Rather not` columns after the innings fill in from the roster. A preferred position turns green in the grid and a rather-not position turns red. These columns are never sent to players.
-- The `Open spots` row under the grid lists the positions nobody is covering in each inning, and a position given to two players turns orange.
+- The `Open spots` row under the grid lists the positions nobody is covering in each inning, and a position given to two players turns orange. The 11 position codes are written into the formula, so there is no positions tab to edit.
 
 ## How it works
 

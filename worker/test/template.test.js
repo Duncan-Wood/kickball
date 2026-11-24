@@ -51,10 +51,17 @@ function templateSheet(title) {
   return teamSheetDefinition('Test Team', 'Fall 2026').sheets.find(({ properties }) => properties.title === title);
 }
 
-test('Start here comes first and no helper tab is mistaken for a game', () => {
+test('Team Config comes first and no helper tab is mistaken for a game', () => {
   const titles = teamSheetDefinition('Test Team', 'Fall 2026').sheets.map(({ properties }) => properties.title);
-  assert.equal(titles[0], 'Start here');
+  assert.deepEqual(titles, ['Team Config', 'Roster', 'Schedule', 'New game (copy me)']);
   assert.deepEqual(titles.filter(isCurrentLineupTab), []);
+});
+
+test('open spots list the positions inside the formula, with no Positions tab to edit', () => {
+  const openSpotsRow = templateSheet('New game (copy me)').rowData.find(({ values }) => values[0]?.userEnteredValue?.stringValue === 'Open spots');
+  const formula = openSpotsRow.values[2].userEnteredValue.formulaValue;
+  assert.ok(formula.includes(`{${POSITIONS.map((code) => `"${code}"`).join(';')}}`));
+  assert.doesNotMatch(formula, /Positions!/);
 });
 
 test('the New game tab has no players, RSVPs or game number, and reads as an empty lineup once renamed', () => {
@@ -81,8 +88,8 @@ test('the game tab freezes the name column and warns when a formula cell is type
 
 test('the tabs the page manages are hidden and the tabs a captain uses are not', () => {
   const hiddenByTitle = Object.fromEntries(teamSheetDefinition('Test Team', 'Fall 2026').sheets.map(({ properties }) => [properties.title, properties.hidden]));
-  assert.deepEqual(Object.keys(hiddenByTitle).filter((title) => hiddenByTitle[title]).sort(), ['New game (copy me)', 'Positions', 'Team Config']);
-  assert.equal(hiddenByTitle['Start here'], false);
+  assert.deepEqual(Object.keys(hiddenByTitle).filter((title) => hiddenByTitle[title]), ['New game (copy me)']);
+  assert.equal(hiddenByTitle['Team Config'], false);
   assert.equal(hiddenByTitle.Roster, false);
 });
 
@@ -96,21 +103,17 @@ test('a new sheet has no example players or games, only headers', () => {
   assert.deepEqual(cellTexts('New game (copy me)').slice(0, 8).map((row) => row[0]), ['Game #:', 'Date:', 'Time:', 'Location:', 'Opponent:', 'Label:', 'Result:', 'Name']);
 });
 
-test('Start here holds only the two links, with room to write them', () => {
-  const rows = cellTexts('Start here');
-  assert.equal(rows.length, 4);
-  assert.equal(rows[2][0], 'Team link');
-  assert.equal(rows[3][0], 'Captain link');
-  assert.equal(rows[2][1], '');
-  assert.equal(rows[3][1], '');
+test('Team Config ends with the team link and the Captain link, ready to be written', () => {
+  const rows = cellTexts('Team Config');
+  assert.deepEqual(rows.slice(-2).map((row) => row.slice(0, 2)), [['Team link', ''], ['Captain link', '']]);
 });
 
 test('saving the team links writes the team link and the Captain link, and clearing blanks both', async () => {
   const sent = [];
   const originalFetch = globalThis.fetch;
-  const olderLayoutLabels = [['Setting'], ['Team name'], ['Season label'], ['Icon'], ['Main color'], ['Second color'], ['Stripe'], ['Font'], ['Suggestion box'], [], ['Share link']];
+  const labels = [['Setting'], ['Team name'], ['Season label'], ['Icon'], ['Main color'], ['Second color'], ['Stripe'], ['Font'], ['Suggestion box'], [], ['Team link'], ['Captain link']];
   globalThis.fetch = async (address, options) => {
-    if (options.method === 'GET') return Response.json({ values: olderLayoutLabels });
+    if (options.method === 'GET') return Response.json({ values: labels });
     sent.push({ address: String(address), body: JSON.parse(options.body) });
     return Response.json({});
   };
@@ -121,8 +124,8 @@ test('saving the team links writes the team link and the Captain link, and clear
     globalThis.fetch = originalFetch;
   }
   const [saved, cleared] = sent.map(({ body }) => body.data);
-  assert.deepEqual(saved.map(({ values }) => values), [[['https://example.test/?team=abc']], [['https://example.test/?team=abc'], ['https://example.test/?team=abc#captain']]]);
+  assert.deepEqual(saved.map(({ values }) => values), [[['https://example.test/?team=abc']], [['https://example.test/?team=abc#captain']]]);
   assert.match(saved[0].range, /Team Config.!B11$/);
-  assert.match(saved[1].range, /Start here.!B3:B4/);
-  assert.deepEqual(cleared.map(({ values }) => values), [[['']], [[''], ['']]]);
+  assert.match(saved[1].range, /Team Config.!B12$/);
+  assert.deepEqual(cleared.map(({ values }) => values), [[['']], [['']]]);
 });
