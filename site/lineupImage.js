@@ -112,26 +112,42 @@ function imageTitles(lineup, config) {
   return { title: `${config.teamName} · ${game}`, subtitle: [lineup.date, lineup.time, lineup.location].filter((detail) => detail !== '').join(' · ') };
 }
 
-export async function shareLineup(lineup, config) {
+export function canShareImages() {
+  return navigator.canShare?.({ files: [new File([''], 'lineup.png', { type: 'image/png' })] }) === true;
+}
+
+export async function lineupImageFile(lineup, config) {
   await document.fonts.load(`700 16px '${config.font}'`);
   const { title, subtitle } = imageTitles(lineup, config);
   const canvas = drawLineupImage(lineupGrid(lineup), { title, subtitle, theme: config.theme, font: config.font });
   const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
   const fileName = `${config.teamName} ${lineup.label}.png`.replace(/[\\/:*?"<>|]/g, '-');
-  const file = new File([blob], fileName, { type: 'image/png' });
-  if (navigator.canShare?.({ files: [file] })) {
-    try {
-      await navigator.share({ files: [file], title });
-      return 'shared';
-    } catch (error) {
-      if (error.name === 'AbortError') return 'cancelled';
-      throw error;
-    }
-  }
+  return { file: new File([blob], fileName, { type: 'image/png' }), title };
+}
+
+export function saveImage(file) {
   const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = fileName;
+  link.href = URL.createObjectURL(file);
+  link.download = file.name;
   link.click();
   setTimeout(() => URL.revokeObjectURL(link.href), 0);
-  return 'downloaded';
+}
+
+export async function shareLineup(lineup, config) {
+  const { file, title } = await lineupImageFile(lineup, config);
+  if (!canShareImages()) {
+    saveImage(file);
+    return 'downloaded';
+  }
+  try {
+    await navigator.share({ files: [file], title });
+    return 'shared';
+  } catch (error) {
+    if (error.name === 'AbortError') return 'cancelled';
+    throw error;
+  }
+}
+
+export async function saveLineup(lineup, config) {
+  saveImage((await lineupImageFile(lineup, config)).file);
 }
