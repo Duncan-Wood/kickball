@@ -6,7 +6,6 @@ export function chooseArea(area) {
   if (captain.area === 'team') window.fieldView.previewConfig(window.fieldView.currentConfig());
   captain.area = area;
   captain.panelStale = true;
-  captain.selectedRow = null;
   captain.focus = null;
   if (['lineup', 'rsvps', 'roster'].includes(area) && captain.canEditRoster) loadRoster();
   if (area === 'games') loadSchedule();

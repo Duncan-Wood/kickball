@@ -277,7 +277,16 @@ export function namesFromLines(text) {
   return names.filter((name, index) => names.findIndex((other) => other.toLowerCase() === name.toLowerCase()) === index);
 }
 
+function rosterEntryFor(rosterPlayers, name) {
+  return (rosterPlayers ?? []).find((player) => player.name.toLowerCase() === name.trim().toLowerCase());
+}
+
 export function kickingStyleFor(rosterPlayers, name) {
-  const match = (rosterPlayers ?? []).find((player) => player.name.toLowerCase() === name.toLowerCase());
+  const match = rosterEntryFor(rosterPlayers, name);
   return match !== undefined && KICKING_STYLES.includes(match.kicking) ? match.kicking : '';
+}
+
+export function wouldRatherNotPlay(rosterPlayers, name, position) {
+  const match = rosterEntryFor(rosterPlayers, name);
+  return match !== undefined && positionsIn(match.avoids).includes(position);
 }

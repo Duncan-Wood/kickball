@@ -42,7 +42,6 @@ export async function saveEdit(work, label) {
   try {
     await runWhileSaving('Saving…', async () => {
       const undo = await work();
-      captain.selectedRow = null;
       if (typeof undo === 'function') captain.undoStack = [...captain.undoStack, { label, run: undo }].slice(-UNDO_LIMIT);
       captain.redoStack = [];
       window.fieldView.changed();
