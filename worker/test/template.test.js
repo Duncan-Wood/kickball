@@ -43,9 +43,8 @@ test('each Team Config dropdown sits on the row of its own setting', () => {
   const labelAtRow = (rowIndex) => configSheet.rowData[rowIndex].values[0].userEnteredValue.stringValue;
   const dropdowns = formattingRequests().filter((request) => request.setDataValidation?.range.sheetId === configSheet.properties.sheetId);
   const choicesByLabel = Object.fromEntries(dropdowns.map(({ setDataValidation }) => [labelAtRow(setDataValidation.range.startRowIndex), setDataValidation.rule.condition.values.map(({ userEnteredValue }) => userEnteredValue)]));
-  assert.deepEqual(Object.keys(choicesByLabel), ['Stripe', 'Stripe thickness', 'Font', 'Suggestion box']);
+  assert.deepEqual(Object.keys(choicesByLabel), ['Stripe', 'Font', 'Suggestion box']);
   assert.ok(choicesByLabel.Stripe.includes('Pride'));
-  assert.deepEqual(choicesByLabel['Stripe thickness'], ['Thin', 'Thick']);
 });
 
 function templateSheet(title) {

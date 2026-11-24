@@ -115,28 +115,28 @@ export async function saveGameField(game, field, value, previousValue) {
   return putBack;
 }
 
-const SEASON_COLUMN_LETTER = 'D';
-
 async function addScheduleRows(rowValues) {
   const firstRow = (await columnValues(`${SCHEDULE_TAB_NAME}!A:A`)).length + 1;
   const rows = rowValues.map((unused, index) => firstRow + index);
   await confirmSheetStillMatches(rows.map((row) => ({ address: cellAddress(SCHEDULE_TAB_NAME, 0, row), expected: '' })));
   const ids = rowValues.map(([id]) => id);
-  const writeRows = (valuesFor) => writeValues(rows.map((row, index) => ({ range: `${cellAddress(SCHEDULE_TAB_NAME, 0, row)}:${SEASON_COLUMN_LETTER}${row}`, values: [valuesFor(index)] })));
+  const lastColumn = cellAddress(SCHEDULE_TAB_NAME, rowValues[0].length - 1, 1).split('!')[1].replace(/\d+$/, '');
+  const blankRow = rowValues[0].map(() => '');
+  const writeRows = (valuesFor) => writeValues(rows.map((row, index) => ({ range: `${cellAddress(SCHEDULE_TAB_NAME, 0, row)}:${lastColumn}${row}`, values: [valuesFor(index)] })));
   const add = async () => {
     await writeRows((index) => rowValues[index]);
     let removeTabs;
     try {
       removeTabs = await createGameTabs(ids);
     } catch (error) {
-      await writeRows(() => ['', '', '', '']);
+      await writeRows(() => blankRow);
       await loadSchedule();
       throw error;
     }
     await loadSchedule();
     return async () => {
       await removeTabs();
-      await writeRows(() => ['', '', '', '']);
+      await writeRows(() => blankRow);
       await loadSchedule();
       return add;
     };
@@ -152,11 +152,9 @@ export function newGamePreview() {
   return { id: nextId(), ...nextGameDefaults(allScheduledGames()) };
 }
 
-export async function addGame() {
-  const { id, date, time, location } = newGamePreview();
-  const undo = await addScheduleRows([[id, date, time, location]]);
-  captain.openGameId = id;
-  return undo;
+export async function addGame({ date, time, location, opponent, label }) {
+  const { id } = newGamePreview();
+  return addScheduleRows([[id, date, time, location, opponent, label]]);
 }
 
 export async function addSeasonGames({ firstDate, count, time, location }) {

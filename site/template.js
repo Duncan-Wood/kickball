@@ -1,4 +1,4 @@
-import { CONFIG_FIELDS, CONFIG_TAB_NAME, FONTS, STRIPE_STYLES, STRIPE_THICKNESSES } from './teamSettings.js';
+import { CONFIG_FIELDS, CONFIG_TAB_NAME, FONTS, STRIPE_STYLES } from './teamSettings.js';
 const SHEETS_ADDRESS = 'https://sheets.googleapis.com/v4/spreadsheets';
 export const POSITION_CODES = ['P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'LC', 'CF', 'RC', 'RF'];
 export const KICKING_STYLES = ['Bunt', 'Power', 'Mixed'];
@@ -237,7 +237,6 @@ function configFormattingRequests(sheetId) {
   const settingList = (key, values) => listValidation(sheetId, settingRowIndex(key), settingRowIndex(key) + 1, 1, 2, values);
   return [
     settingList('stripeStyle', STRIPE_STYLES),
-    settingList('stripeThickness', STRIPE_THICKNESSES),
     settingList('font', FONTS),
     settingList('suggestionBox', ['On', 'Off']),
     columnWidth(sheetId, 0, 160), columnWidth(sheetId, 1, 160), columnWidth(sheetId, 2, 460),

@@ -155,7 +155,7 @@ function applyStripe(stripe) {
   }
   if (!STRIPE_DRAWINGS.includes(stripe.style)) throw new Error('The sheet sent an unknown stripe style');
   if (!Number.isInteger(stripe.height) || stripe.height < STRIPE_HEIGHT_RANGE[0] || stripe.height > STRIPE_HEIGHT_RANGE[1]) {
-    throw new Error('The sheet sent an invalid stripe thickness');
+    throw new Error('The sheet sent an invalid stripe height');
   }
   const accentStripe = document.querySelector('.accent-stripe');
   accentStripe.style.background = stripeBackground(stripe);

@@ -1,6 +1,5 @@
 const PRIDE_COLORS = ['#e40303', '#ff8c00', '#ffed00', '#008026', '#24408e', '#732982'];
 const FLAG_STRIPES = {
-  Rainbow: ['#ff9aa2', '#ffc48c', '#ffe98a', '#a8e0a0', '#9cc4f0', '#c9a8e8'],
   Pride: PRIDE_COLORS,
   'Progress Pride': ['#000000', '#613915', '#74d7ee', '#ffafc8', '#ffffff', ...PRIDE_COLORS],
   Trans: ['#5bcefa', '#f5a9b8', '#ffffff', '#f5a9b8', '#5bcefa'],
@@ -8,10 +7,10 @@ const FLAG_STRIPES = {
   Lesbian: ['#d52d00', '#ef7627', '#ff9a56', '#ffffff', '#d162a4', '#b55690', '#a30262'],
   Nonbinary: ['#fcf434', '#ffffff', '#9c59d1', '#2c2c2c'],
 };
-const STRIPE_HEIGHTS = { Thin: 3, Thick: 8 };
+const STRIPE_HEIGHT = 3;
 
-function stripeFor(name, thickness, mainColor, secondColor) {
-  const drawing = (style, colors) => ({ name, thickness, height: STRIPE_HEIGHTS[thickness], style, colors });
+function stripeFor(name, mainColor, secondColor) {
+  const drawing = (style, colors) => ({ name, height: STRIPE_HEIGHT, style, colors });
   if (name in FLAG_STRIPES) return drawing('bands', FLAG_STRIPES[name]);
   if (name === 'Solid') return drawing('bands', [mainColor]);
   if (name === 'Split') return drawing('bands', [mainColor, secondColor]);
@@ -29,7 +28,7 @@ export function blendedColor(colorShares, baseColor = '#ffffff') {
   return `#${channels.join('')}`;
 }
 
-export function themeFromColors(mainColor, secondColor, stripeStyle, stripeThickness) {
+export function themeFromColors(mainColor, secondColor, stripeStyle) {
   const mutedColor = blendedColor([[mainColor, 0.28]], '#6b6b6b');
   return {
     primary: mainColor,
@@ -43,6 +42,6 @@ export function themeFromColors(mainColor, secondColor, stripeStyle, stripeThick
     faint: blendedColor([[mutedColor, 0.45]]),
     tagBackground: blendedColor([[secondColor, 0.3]]),
     tagText: blendedColor([[secondColor, 0.55]], '#000000'),
-    stripe: stripeFor(stripeStyle, stripeThickness, mainColor, secondColor),
+    stripe: stripeFor(stripeStyle, mainColor, secondColor),
   };
 }

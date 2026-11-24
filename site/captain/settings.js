@@ -1,4 +1,4 @@
-import { CONFIG_FIELDS, CONFIG_TAB_NAME, FONTS, STRIPE_STYLES, STRIPE_THICKNESSES, configFromSettings, settingProblem, settingsWithDefaults, sheetColorFromHex } from '../teamSettings.js';
+import { CONFIG_FIELDS, CONFIG_TAB_NAME, FONTS, STRIPE_STYLES, configFromSettings, settingProblem, settingsWithDefaults, sheetColorFromHex } from '../teamSettings.js';
 import { cellAddress } from '../edits.js';
 import { columnValues, sheetIdFor, sheetsRequest, writeValues } from './sheetApi.js';
 import { captain } from './state.js';
@@ -6,7 +6,7 @@ import { captain } from './state.js';
 const SETTING_LABEL_COLUMN_INDEX = 0;
 const SETTING_VALUE_COLUMN_INDEX = 1;
 const SETTING_LABEL_ROWS = 40;
-const LIST_CHOICES = { stripe: STRIPE_STYLES, thickness: STRIPE_THICKNESSES, font: FONTS, toggle: ['On', 'Off'] };
+const LIST_CHOICES = { stripe: STRIPE_STYLES, font: FONTS, toggle: ['On', 'Off'] };
 
 const SETTING_NOTE_COLUMN_INDEX = 2;
 
