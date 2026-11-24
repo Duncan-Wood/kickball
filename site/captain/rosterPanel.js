@@ -1,13 +1,12 @@
 import { namesFromLines, positionsIn, positionsText } from '../edits.js';
 import { KICKING_STYLES, POSITION_CODES } from '../template.js';
 import { button, confirmAction, formField, node, selectField } from './dom.js';
-import { addRosterPlayers, removeRosterPlayer, saveRosterPlayer } from './roster.js';
+import { BLANK_PLAYER, addRosterPlayers, removeRosterPlayer, saveRosterPlayer } from './roster.js';
 import { ADD_FOCUS_KEY, captain } from './state.js';
 import { autosave, saveEdit, setStatus } from './status.js';
 
-const HINT = 'Tap a name to change it. Changes save as you go.';
 const NEW_PLAYER_KEY = 'new';
-const BLANK_PLAYER = { name: '', prefers: '', avoids: '', notes: '', pronouns: '', kicking: '' };
+const PLAYS_AS_CHOICES = [['regular', 'Regular'], ['sub', 'Sub']];
 
 function redrawPanel() {
   captain.panelStale = true;
@@ -54,20 +53,19 @@ function saveTextWhenLeft(input, save) {
 }
 
 function rosterEditor(player) {
-  let saved = { name: player.name, prefers: player.prefers, avoids: player.avoids, notes: player.notes, pronouns: player.pronouns, kicking: player.kicking };
+  let saved = { name: player.name, prefers: player.prefers, avoids: player.avoids, notes: player.notes, pronouns: player.pronouns, kicking: player.kicking, sub: player.sub };
   const persist = (changes, what) => {
     const previous = { ...saved, sheetRow: player.sheetRow };
     const next = { ...saved, ...changes };
     saved = next;
     autosave(() => saveRosterPlayer(next, previous), `${next.name}: ${what}`).then((ok) => {
-      if (ok) refreshSummary(player.sheetRow);
+      if (ok && changes.sub === undefined) refreshSummary(player.sheetRow);
       else redrawPanel();
     });
   };
   const form = node('form', 'game-editor');
   form.addEventListener('submit', (event) => event.preventDefault());
   const nameField = formField('Name', 'text', 'name', saved.name);
-  nameField.append(node('span', 'field-note', 'Changing the name also changes it in every game.'));
   const textField = (label, key) => {
     const field = key === 'name' ? nameField : formField(label, 'text', key, saved[key]);
     const input = field.querySelector('input');
@@ -92,10 +90,12 @@ function rosterEditor(player) {
   blockConflicts();
   const kicking = selectField('Kicking style', 'kicking', [['', 'Not set'], ...KICKING_STYLES.map((style) => [style, style])], saved.kicking);
   kicking.querySelector('select').addEventListener('change', (event) => persist({ kicking: event.target.value }, 'kicking style'));
-  form.append(textField('Name', 'name'), prefers, avoids, kicking, textField('Pronouns', 'pronouns'), textField('Notes', 'notes'));
+  const playsAs = selectField('Plays as', 'playsAs', PLAYS_AS_CHOICES, saved.sub ? 'sub' : 'regular');
+  playsAs.querySelector('select').addEventListener('change', (event) => persist({ sub: event.target.value === 'sub' }, event.target.value === 'sub' ? 'sub' : 'regular'));
+  form.append(textField('Name', 'name'), playsAs, prefers, avoids, kicking, textField('Pronouns', 'pronouns'), textField('Notes', 'notes'));
   const actions = node('div', 'game-actions');
   actions.append(button('Remove from roster', 'panel-action', async () => {
-    const confirmed = await confirmAction(`Remove ${saved.name} from the roster?`, 'They stay in games already set up. Undo brings them back.', 'Remove');
+    const confirmed = await confirmAction(`Remove ${saved.name} from the roster?`, 'They stay in games already played.', 'Remove');
     if (confirmed) saveEdit(() => removeRosterPlayer({ ...player, ...saved }), `Removed ${saved.name} from the roster`).then((removed) => removed && closeEditor());
   }));
   form.append(actions);
@@ -106,7 +106,6 @@ function newPlayerEditor() {
   const form = node('form', 'game-editor');
   form.addEventListener('submit', (event) => event.preventDefault());
   const nameField = formField('Name', 'text', 'name', '');
-  nameField.append(node('span', 'field-note', 'Type a name, then fill in the rest. Everything saves as you go.'));
   const input = nameField.querySelector('input');
   saveTextWhenLeft(input, () => {
     const name = input.value.trim();
@@ -189,9 +188,15 @@ export function rosterPanel() {
   if (captain.rosterError !== null) return [node('p', 'captain-hint', captain.rosterError)];
   if (captain.rosterPlayers === null) return [node('p', 'captain-hint', 'Loading the roster…')];
   const list = node('div', 'game-list');
-  list.append(...captain.rosterPlayers.map(playerCard));
+  list.append(...captain.rosterPlayers.filter((player) => !player.sub).map(playerCard));
+  const subs = captain.rosterPlayers.filter((player) => player.sub);
   const adding = captain.openRosterRow === NEW_PLAYER_KEY;
-  const parts = [node('p', 'captain-hint', HINT), list];
+  const parts = [list];
+  if (subs.length > 0) {
+    const subList = node('div', 'game-list');
+    subList.append(...subs.map(playerCard));
+    parts.push(node('p', 'captain-subheading', 'Subs'), subList);
+  }
   if (captain.addingSeveral) {
     parts.push(addSeveralForm());
   } else if (adding) {

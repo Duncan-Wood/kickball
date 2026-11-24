@@ -94,9 +94,9 @@ export function playersToAdd(spareRows, names, players) {
   return names.map((name, index) => ({ name, sheetRow: rowsInFillOrder[index] }));
 }
 
-export function applyAddedPlayers(lineup, additions, inningCount) {
+export function applyAddedPlayers(lineup, additions, inningCount, answer = 'yes') {
   const addedRows = new Set(additions.map(({ sheetRow }) => sheetRow));
-  const added = additions.map(({ name, sheetRow }) => ({ name, sheetRow, attending: true, rsvp: 'yes', positions: Array.from({ length: inningCount }, () => '') }));
+  const added = additions.map(({ name, sheetRow }) => ({ name, sheetRow, attending: isAttending(answer), rsvp: answer, positions: Array.from({ length: inningCount }, () => '') }));
   return {
     players: [...lineup.players, ...added].sort((first, second) => first.sheetRow - second.sheetRow),
     spareRows: lineup.spareRows.filter((sheetRow) => !addedRows.has(sheetRow)),
@@ -231,7 +231,24 @@ export function blankPlayerRows(columnA) {
 
 export function rosterPlayerFromRow(cells, sheetRow) {
   const text = (columnIndex) => (cells[columnIndex] ?? '').trim();
-  return { sheetRow, name: text(0), prefers: text(1), avoids: text(2), notes: text(3), pronouns: text(4), kicking: text(5) };
+  return { sheetRow, name: text(0), prefers: text(1), avoids: text(2), notes: text(3), pronouns: text(4), kicking: text(5), sub: text(6).toLowerCase() === 'yes' };
+}
+
+export function localIsoDate(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+export function isCompletedGame(lineup, today) {
+  return lineup.resultText !== '' || (lineup.isoDate !== '' && lineup.isoDate < today);
+}
+
+export function upcomingLineups(lineups, today) {
+  return lineups.filter((lineup) => !isCompletedGame(lineup, today));
+}
+
+export function isRegularPlayer(rosterPlayers, name) {
+  const match = rosterEntryFor(rosterPlayers, name);
+  return match !== undefined && !match.sub;
 }
 
 export function positionsIn(text) {

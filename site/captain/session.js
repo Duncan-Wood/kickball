@@ -55,7 +55,6 @@ export async function startCaptainMode() {
     captain.canEditTeam = captain.tabs.has(CONFIG_TAB_NAME);
     captain.canEditRoster = captain.tabs.has(ROSTER_TAB_NAME);
     Object.assign(captain, {
-      rosterNames: null,
       rosterPlayers: null,
       openRosterRow: null,
       rosterError: null,
@@ -64,6 +63,8 @@ export async function startCaptainMode() {
       openGameId: null,
       seasonFormOpen: false,
       addingSeveral: false,
+      addingSub: false,
+      subDraft: '',
       undoStack: [],
       redoStack: [],
       previewing: false,

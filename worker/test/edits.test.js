@@ -225,8 +225,9 @@ test('blank player rows are the empty rows between the header and the end label'
 });
 
 test('a roster row reads its columns and tolerates short rows', () => {
-  assert.deepEqual(rosterPlayerFromRow(['Amy B', 'SS, 2B', '', 'Subs only', 'she/her'], 4), { sheetRow: 4, name: 'Amy B', prefers: 'SS, 2B', avoids: '', notes: 'Subs only', pronouns: 'she/her', kicking: '' });
-  assert.deepEqual(rosterPlayerFromRow(['Amy B'], 5), { sheetRow: 5, name: 'Amy B', prefers: '', avoids: '', notes: '', pronouns: '', kicking: '' });
+  assert.deepEqual(rosterPlayerFromRow(['Amy B', 'SS, 2B', '', 'Subs only', 'she/her'], 4), { sheetRow: 4, name: 'Amy B', prefers: 'SS, 2B', avoids: '', notes: 'Subs only', pronouns: 'she/her', kicking: '', sub: false });
+  assert.deepEqual(rosterPlayerFromRow(['Amy B'], 5), { sheetRow: 5, name: 'Amy B', prefers: '', avoids: '', notes: '', pronouns: '', kicking: '', sub: false });
+  assert.equal(rosterPlayerFromRow(['Sam S', '', '', '', '', '', 'yes'], 6).sub, true);
 });
 
 test('position lists keep field order and keep entries they do not recognize', () => {
@@ -285,6 +286,24 @@ test('a roster row carries its kicking style, and only Bunt, Power or Mixed are 
   assert.equal(kickingStyleFor(null, 'Chad S'), '');
 });
 
+test('a game is completed once it has a result or its date has passed', async () => {
+  const { isCompletedGame, upcomingLineups } = await import('../../site/edits.js');
+  const game = (isoDate, resultText = '') => ({ isoDate, resultText });
+  assert.equal(isCompletedGame(game('2026-11-20'), '2026-11-23'), true);
+  assert.equal(isCompletedGame(game('2026-11-23'), '2026-11-23'), false);
+  assert.equal(isCompletedGame(game('2026-11-30', 'Won 9-5'), '2026-11-23'), true);
+  assert.equal(isCompletedGame(game(''), '2026-11-23'), false);
+  assert.deepEqual(upcomingLineups([game('2026-11-20'), game('2026-11-30')], '2026-11-23'), [game('2026-11-30')]);
+});
+
+test('subs and names missing from the roster are not regular players', async () => {
+  const { isRegularPlayer, rosterPlayerFromRow } = await import('../../site/edits.js');
+  const roster = [rosterPlayerFromRow(['Amy B'], 2), rosterPlayerFromRow(['Sam S', '', '', '', '', '', 'Yes'], 3)];
+  assert.equal(isRegularPlayer(roster, ' amy b'), true);
+  assert.equal(isRegularPlayer(roster, 'Sam S'), false);
+  assert.equal(isRegularPlayer(roster, 'Walk On'), false);
+});
+
 test('a player who would rather not play a position is flagged only there', async () => {
   const { rosterPlayerFromRow, wouldRatherNotPlay } = await import('../../site/edits.js');
   const roster = [rosterPlayerFromRow(['Amy B', '', 'C, p'], 2)];
@@ -292,4 +311,10 @@ test('a player who would rather not play a position is flagged only there', asyn
   assert.equal(wouldRatherNotPlay(roster, 'Amy B', 'P'), true);
   assert.equal(wouldRatherNotPlay(roster, 'Amy B', 'SS'), false);
   assert.equal(wouldRatherNotPlay(roster, 'Zed', 'C'), false);
+});
+
+test('added players can start without a reply', async () => {
+  const { applyAddedPlayers } = await import('../../site/edits.js');
+  const { players } = applyAddedPlayers({ players: [], spareRows: [9] }, [{ name: 'Amy B', sheetRow: 9 }], 2, '');
+  assert.deepEqual(players, [{ name: 'Amy B', sheetRow: 9, attending: false, rsvp: '', positions: ['', ''] }]);
 });
