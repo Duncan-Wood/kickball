@@ -62,6 +62,7 @@ export async function startCaptainMode() {
       scheduleError: null,
       openGameId: null,
       seasonFormOpen: false,
+      newGameFormOpen: false,
       addingSeveral: false,
       addingSub: false,
       subDraft: '',

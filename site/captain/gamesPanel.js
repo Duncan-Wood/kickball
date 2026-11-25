@@ -5,7 +5,6 @@ import { addGame, addSeasonGames, allScheduledGames, archiveGame, createGameTabs
 import { ADD_FOCUS_KEY, captain } from './state.js';
 import { autosave, saveEdit } from './status.js';
 
-const HINT = 'Tap a game to change it. Changes save when you leave a field.';
 const FIELDS = [['date', 'Date', 'date'], ['time', 'Time', 'time'], ['location', 'Location', 'text'], ['opponent', 'Opponent', 'text'], ['label', 'Label', 'text'], ['result', 'Result', 'text']];
 
 function rerenderPanel() {
@@ -138,27 +137,65 @@ function seasonForm() {
   return form;
 }
 
-function addGameLabel() {
-  const { date } = newGamePreview();
-  if (date === '') return 'Add a game';
-  const [, month, day] = date.split('-').map(Number);
-  return `Add a game (${month}/${day})`;
+function closeNewGameForm() {
+  captain.newGameFormOpen = false;
+  rerenderPanel();
+}
+
+function newGameForm() {
+  const { date, time, location } = newGamePreview();
+  const form = node('form', 'game-editor');
+  form.append(
+    formField('Date', 'date', 'date', date),
+    formField('Time', 'time', 'time', time),
+    formField('Location', 'text', 'location', location),
+    formField('Opponent', 'text', 'opponent', ''),
+    formField('Label', 'text', 'label', ''),
+  );
+  const actions = node('div', 'game-actions');
+  const save = node('button', 'panel-action primary', 'Add game');
+  save.type = 'submit';
+  actions.append(save, button('Cancel', 'panel-action', closeNewGameForm));
+  form.append(actions);
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    if (captain.saving) return;
+    const fields = new FormData(form);
+    const values = Object.fromEntries(['date', 'time', 'location', 'opponent', 'label'].map((key) => [key, fields.get(key).trim()]));
+    saveEdit(() => addGame(values), 'Added a game').then((saved) => saved && closeNewGameForm());
+  });
+  const card = node('div', 'game-card open');
+  card.append(form);
+  return card;
+}
+
+function startsAt(game) {
+  const date = isoDateFromDisplayed(game.date);
+  return date === '' ? '9999-99-99' : `${date}T${isoTimeFromDisplayed(game.time) || '99:99'}`;
+}
+
+function byDateAndTime(first, second) {
+  return startsAt(first).localeCompare(startsAt(second)) || Number(first.id) - Number(second.id) || first.id.localeCompare(second.id);
 }
 
 export function gamesPanel() {
   if (captain.scheduleError !== null) return [node('p', 'captain-hint', captain.scheduleError)];
   if (captain.scheduleRows === null) return [node('p', 'captain-hint', 'Loading the schedule…')];
-  const games = scheduledGames();
-  const archived = allScheduledGames().filter((game) => game.archived);
+  const games = scheduledGames().sort(byDateAndTime);
+  const archived = allScheduledGames().filter((game) => game.archived).sort(byDateAndTime);
   const list = node('div', 'game-list');
   list.append(...games.map(gameCard));
-  const parts = games.length === 0 ? [] : [node('p', 'captain-hint', HINT), list];
+  const parts = games.length === 0 ? [] : [list];
   if (captain.seasonFormOpen) return [...parts, seasonForm()];
-  const add = button(addGameLabel(), 'panel-action', () => saveEdit(addGame, 'Added a game'));
+  if (captain.newGameFormOpen) return [...parts, newGameForm()];
+  const add = button('Add a game', 'panel-action', () => {
+    captain.newGameFormOpen = true;
+    captain.openGameId = null;
+    rerenderPanel();
+  });
   add.dataset.focusKey = ADD_FOCUS_KEY;
   parts.push(add);
   if (games.length === 0 && archived.length === 0) {
-    parts.unshift(node('p', 'captain-hint', 'Add every game at once with a first date and a number of weekly games, or one at a time.'));
     parts.push(button('Add a season', 'panel-action primary', () => {
       captain.seasonFormOpen = true;
       rerenderPanel();

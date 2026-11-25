@@ -1,14 +1,12 @@
-import { CONFIG_FIELDS, FONTS, STRIPE_STYLES, STRIPE_THICKNESSES, configFromSettings, settingProblem, settingsFromConfig, settingsWithDefaults } from '../teamSettings.js';
+import { CONFIG_FIELDS, FONTS, STRIPE_STYLES, configFromSettings, settingProblem, settingsFromConfig, settingsWithDefaults } from '../teamSettings.js';
 import { COMMENTS_TAB_NAME } from '../template.js';
 import { button, formField, node, selectField } from './dom.js';
 import { saveTeamSettings } from './settings.js';
 import { captain } from './state.js';
 import { autosave, setStatus } from './status.js';
 
-const HINT = 'Changes save as you make them. Undo takes them back.';
 const CHOICES = {
   stripe: STRIPE_STYLES.map((style) => [style, style]),
-  thickness: STRIPE_THICKNESSES.map((thickness) => [thickness, thickness]),
   font: FONTS.map((font) => [font, font]),
   toggle: [['On', 'On'], ['Off', 'Off']],
 };
@@ -58,20 +56,12 @@ function externalLink(text, address) {
   return link;
 }
 
-function suggestionNote() {
-  const note = node('span', 'field-note', 'Players can send you anonymous notes. They land in the Comments tab of your sheet.');
+function suggestionsLink() {
   const commentsTab = captain.tabs.get(COMMENTS_TAB_NAME);
-  if (commentsTab !== undefined) note.append(' ', externalLink('Open it ↗', sheetAddress(commentsTab.sheetId)));
-  return note;
-}
-
-function fontSample(select) {
-  const sample = node('span', 'font-sample', `${window.fieldView.currentConfig().teamName} · Won 7-5`);
-  const showFont = () => { sample.style.fontFamily = `'${select.value}', sans-serif`; };
-  select.addEventListener('input', showFont);
-  select.addEventListener('change', showFont);
-  showFont();
-  return sample;
+  if (commentsTab === undefined) return [];
+  const note = node('span', 'field-note');
+  note.append(externalLink('Read suggestions ↗', sheetAddress(commentsTab.sheetId)));
+  return [note];
 }
 
 function fieldFor(field, value, commit) {
@@ -82,14 +72,13 @@ function fieldFor(field, value, commit) {
     control = selectField(field.label, field.key, CHOICES[field.kind], value);
     const select = control.querySelector('select');
     select.addEventListener('change', commit);
-    if (field.kind === 'font') control.append(fontSample(select));
   } else {
     control = formField(field.label, INPUT_TYPES[field.kind], field.key, value);
     const input = control.querySelector('input');
     input.addEventListener('blur', commit);
     input.addEventListener('keydown', (event) => { if (event.key === 'Enter') input.blur(); });
   }
-  control.append(field.key === 'suggestionBox' ? suggestionNote() : node('span', 'field-note', field.note));
+  if (field.key === 'suggestionBox') control.append(...suggestionsLink());
   return control;
 }
 
@@ -163,6 +152,6 @@ export function teamPanel() {
   };
   form.append(...CONFIG_FIELDS.map((field) => fieldFor(field, savedValues[field.key], commitFor(field))));
   form.addEventListener('input', () => previewIfValid(valuesFrom(form)));
-  return [node('p', 'captain-hint', HINT), form, ...shareLinkRows()];
+  return [form, ...shareLinkRows()];
 }
 
