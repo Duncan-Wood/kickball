@@ -13,10 +13,10 @@ Screenshots use made-up players.
 ## Features
 
 - Pick a game and an inning to see who plays each of the 11 positions. The field shows a first name and last initial, like "Carl C.", adding letters when two players would match. A player who answered Maybe has a "?" after their name
-- **Share lineup image** makes a picture of the whole game in team colors, like a screenshot of a lineup sheet: positions down the side, innings across, who sits each inning and the kicking order. On a phone it opens the share sheet, and elsewhere it downloads the image
+- **Share lineup image** makes a picture of the whole game in team colors, like a screenshot of a lineup sheet: positions down the side, innings across, who sits each inning and the kicking order. It opens the share sheet where the device has one. **Save lineup image** downloads it instead
 - Players see an unfilled position as a plain "open" chip. Lineup problems show only in Captain tools: a position given to two players is flagged in red, and so is an open position while someone is sitting
 - Game date, time, location, opponent and final score
-- Kicking order and the players sitting each inning
+- Kicking order and the players sitting each inning, with the same short names as the field
 - Whole-game table with innings played per player
 - Season totals: innings played, sat, infield and outfield, across games already played
 - Can be added to a phone's home screen. A team's page installs under the team's name with its main color, and opens straight to that team. Sharing the site's address shows a preview card

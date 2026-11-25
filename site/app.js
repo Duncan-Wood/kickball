@@ -1,4 +1,4 @@
-import { shareLineup } from './lineupImage.js';
+import { canShareImages, saveLineup, shareLineup } from './lineupImage.js';
 import { shortNames } from './names.js';
 
 const FIELD_SPOTS = {
@@ -279,11 +279,11 @@ function renderInning() {
   document.getElementById('problems').textContent = showsLineupProblems() ? inning.problems.join(' · ') : '';
 
   const kickers = selectedLineup.players.filter((player) => player.attending);
-  renderNameList('kicking-order', 'Kicking order', kickers, true);
-  renderNameList('bench', 'Sitting (' + inning.bench.length + ')', inning.bench, false);
+  renderNameList('kicking-order', 'Kicking order', kickers, true, shortNameOf);
+  renderNameList('bench', 'Sitting (' + inning.bench.length + ')', inning.bench, false, shortNameOf);
 }
 
-function renderNameList(elementId, headingText, players, numbered) {
+function renderNameList(elementId, headingText, players, numbered, shortNameOf) {
   const element = document.getElementById(elementId);
   element.replaceChildren();
   if (players.length === 0) return;
@@ -300,7 +300,7 @@ function renderNameList(elementId, headingText, players, numbered) {
       order.textContent = index + 1;
       item.appendChild(order);
     }
-    item.append(player.name);
+    item.append(shortNameOf.get(player.name.trim()));
     if (isMaybe(player)) item.append(maybeMark());
     list.appendChild(item);
   });
@@ -420,20 +420,31 @@ function renderSeason() {
 
 const SHARE_FEEDBACK_MILLISECONDS = 2500;
 
-async function shareCurrentLineup(shareButton) {
-  const label = shareButton.textContent;
-  shareButton.disabled = true;
-  shareButton.textContent = 'Making the image…';
+async function makeLineupImage(imageButton, makeImage, failureTitle) {
+  const label = imageButton.textContent;
+  imageButton.disabled = true;
+  imageButton.textContent = 'Making the image…';
   try {
-    const outcome = await shareLineup(selectedLineup, config);
-    shareButton.textContent = outcome === 'downloaded' ? 'Image saved' : label;
+    const outcome = await makeImage();
+    imageButton.textContent = outcome === 'downloaded' ? 'Image saved' : label;
   } catch (error) {
-    shareButton.textContent = label;
-    showFailure('Could not share the lineup', error);
+    imageButton.textContent = label;
+    showFailure(failureTitle, error);
   } finally {
-    shareButton.disabled = false;
-    setTimeout(() => { shareButton.textContent = label; }, SHARE_FEEDBACK_MILLISECONDS);
+    imageButton.disabled = false;
+    setTimeout(() => { imageButton.textContent = label; }, SHARE_FEEDBACK_MILLISECONDS);
   }
+}
+
+function shareCurrentLineup(shareButton) {
+  return makeLineupImage(shareButton, () => shareLineup(selectedLineup, config), 'Could not share the lineup');
+}
+
+function saveCurrentLineup(saveButton) {
+  return makeLineupImage(saveButton, async () => {
+    await saveLineup(selectedLineup, config);
+    return 'downloaded';
+  }, 'Could not save the lineup image');
 }
 
 function canShareLineup() {
@@ -442,7 +453,7 @@ function canShareLineup() {
 
 function render() {
   const nobodyIn = mode !== 'season' && !selectedLineup.players.some((player) => player.attending);
-  document.getElementById('share-lineup').hidden = !canShareLineup() || mode === 'season' || showsLineupProblems();
+  document.getElementById('lineup-image').hidden = !canShareLineup() || mode === 'season' || showsLineupProblems();
   document.getElementById('lineup-note').hidden = !nobodyIn || showsLineupProblems();
   document.getElementById('field').style.display = mode === 'inning' && !nobodyIn ? '' : 'none';
   document.getElementById('summary').hidden = mode === 'inning' || nobodyIn;
@@ -510,7 +521,9 @@ function start(data) {
     mode = 'season';
     render();
   });
+  document.getElementById('share-lineup').hidden = !canShareImages();
   document.getElementById('share-lineup').addEventListener('click', (event) => shareCurrentLineup(event.currentTarget));
+  document.getElementById('save-lineup').addEventListener('click', (event) => saveCurrentLineup(event.currentTarget));
   document.getElementById('comment-toggle').addEventListener('click', () => setCommentFormOpen(true));
   document.getElementById('comment-cancel').addEventListener('click', () => setCommentFormOpen(false));
   document.getElementById('comment-form').addEventListener('submit', submitCommentForm);
@@ -539,7 +552,7 @@ function showSeason(tabName) {
 
 function showEmptySeason() {
   selectedLineup = null;
-  document.getElementById('share-lineup').hidden = true;
+  document.getElementById('lineup-image').hidden = true;
   document.getElementById('view').classList.add('empty-season');
   document.getElementById('empty-season-note').hidden = false;
   window.captainTools?.afterRender();
