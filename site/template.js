@@ -98,7 +98,7 @@ function rosterRows() {
   return [[
     textCell('Name', headerFormat),
     textCell('Prefers', headerFormat, 'Positions they like, like SS, 2B'),
-    textCell("Won't play", headerFormat, 'Positions they would rather not play'),
+    textCell('Rather not', headerFormat, 'Positions they would rather not play'),
     textCell('Notes', headerFormat),
     textCell('Pronouns', headerFormat),
     textCell('Kicking', headerFormat, 'Bunt, Power or Mixed'),
@@ -149,7 +149,7 @@ function gameRows() {
   ];
   const inningHeaders = Array.from({ length: INNING_COUNT }, (unused, index) => numberCell(index + 1, centeredHeaderFormat));
   const rsvpNote = 'Yes, Maybe or No. Gray means no reply yet';
-  const header = [textCell('Name', headerFormat), textCell('RSVP', centeredHeaderFormat, rsvpNote), ...inningHeaders, textCell('Prefers', headerFormat), textCell("Won't play", headerFormat)];
+  const header = [textCell('Name', headerFormat), textCell('RSVP', centeredHeaderFormat, rsvpNote), ...inningHeaders, textCell('Prefers', headerFormat), textCell('Rather not', headerFormat)];
   const players = Array.from({ length: LINEUP_ROW_COUNT }, (unused, rowIndex) => {
     const rowNumber = GAME_FIRST_PLAYER_ROW_INDEX + rowIndex + 1;
     const lookups = [formulaCell(playerLookup(rowNumber, 2)), formulaCell(playerLookup(rowNumber, 3))];

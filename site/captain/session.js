@@ -88,7 +88,7 @@ export function toggleCaptainView() {
     return;
   }
   if (!captain.previewing && captain.area === 'team') window.fieldView.previewConfig(window.fieldView.currentConfig());
-  Object.assign(captain, { previewing: !captain.previewing, panelStale: true, focus: null, selectedRow: null });
+  Object.assign(captain, { previewing: !captain.previewing, panelStale: true, focus: null });
   setStatus('');
   window.fieldView.rerender();
 }

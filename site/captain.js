@@ -91,8 +91,6 @@ function afterRender() {
   const lineup = window.fieldView.currentLineup();
   if (lineup === null && LINEUP_AREAS.includes(captain.area)) captain.area = firstAreaWithoutLineup();
   if (lineup !== null && captain.tabName !== lineup.tabName) resetEditingState(lineup);
-  const selectedRowIsGone = lineup === null || (captain.selectedRow !== null && !lineup.players.some((player) => player.sheetRow === captain.selectedRow));
-  if (selectedRowIsGone) captain.selectedRow = null;
   renderAreaButtons(lineup);
   element('captain-context').replaceChildren(...(isFielding && lineup !== null ? copyInningButton(lineup, inField) : []));
   updateUndoButton();

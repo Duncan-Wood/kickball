@@ -12,7 +12,6 @@ export function moveKicker(sourceRow, targetRow) {
   const lineup = window.fieldView.currentLineup();
   const move = kickingMove(lineup.players, sourceRow, targetRow);
   if (move === null) {
-    captain.selectedRow = null;
     window.fieldView.rerender();
     return;
   }

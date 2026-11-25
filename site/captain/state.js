@@ -9,7 +9,6 @@ export const captain = {
   active: false,
   previewing: false,
   area: 'lineup',
-  selectedRow: null,
   focus: null,
   tabName: null,
   saving: false,

@@ -1,4 +1,4 @@
-import { candidatesForSpot, copiedLineup, copyInningChanges, fieldingChanges, kickingStyleFor, lineupPlayer, occupantsOf } from '../edits.js';
+import { candidatesForSpot, copiedLineup, copyInningChanges, fieldingChanges, kickingStyleFor, lineupPlayer, occupantsOf, wouldRatherNotPlay } from '../edits.js';
 import { POSITION_CODES, POSITION_NAMES } from '../template.js';
 import { button, node } from './dom.js';
 import { saveFielding, saveLineupRows } from './lineupEdits.js';
@@ -7,20 +7,12 @@ import { moveKicker } from './people.js';
 import { captain, element } from './state.js';
 import { saveEdit, setStatus } from './status.js';
 
-const DRAG_START_PIXELS = 8;
-const CLICK_SUPPRESSION_MILLISECONDS = 50;
-const LONG_PRESS_MILLISECONDS = 250;
 const DOCK_CLEARANCE_PIXELS = 16;
-const LIFT_VIBRATION_MILLISECONDS = 10;
 const HINTS = {
-  fielding: 'Tap a position, then pick a player. Tap a kicker, then the spot they should take.',
   elsewhere: 'Pick an inning above to edit the field.',
   empty: 'Nobody has said yes yet. Mark who is coming on RSVPs, then set the lineup here.',
 };
 
-let suppressClicksUntil = 0;
-let dragState = null;
-let longPress = null;
 let keyboardNavigating = false;
 let lastEditableKey = null;
 
@@ -75,7 +67,6 @@ function applyFielding(sourceRow, target, { advancesToNextOpenSpot = false } = {
     return;
   }
   if (changes.length === 0) {
-    captain.selectedRow = null;
     clearFocus();
     return;
   }
@@ -96,15 +87,8 @@ function describeTarget(targetElement) {
   return { kind: editKind === 'kicker' ? 'kicker' : 'player', sheetRow: Number(row) };
 }
 
-function sourceRowFor(target, lineup, inningIndex) {
-  if (target.kind === 'player' || target.kind === 'kicker') return target.sheetRow;
-  if (target.kind !== 'spot') return null;
-  const occupants = occupantsOf(lineup.players, inningIndex, target.position);
-  return occupants.length === 0 ? null : occupants[occupants.length - 1].sheetRow;
-}
-
 function handleTap(targetElement) {
-  if (captain.saving || Date.now() < suppressClicksUntil) return;
+  if (captain.saving) return;
   const target = describeTarget(targetElement);
   if (target === null) return;
   if (captain.focus !== null && captain.focus.kind === 'player' && target.kind === 'spot') {
@@ -125,129 +109,25 @@ function editableElements() {
   return [...document.querySelectorAll(EDITABLE_SELECTOR)];
 }
 
-const isKickingTarget = (target) => target !== null && target.kind === 'kicker';
-
-function startDrag(event, sourceElement) {
-  if (event.pointerType === 'touch' || event.button !== 0 || captain.saving) return;
-  dragState = { sourceElement, startX: event.clientX, startY: event.clientY, dragging: false, ghost: null };
-}
-
-function lift(sourceElement) {
-  window.getSelection()?.removeAllRanges();
-  sourceElement.classList.add('lifted');
-  navigator.vibrate?.(LIFT_VIBRATION_MILLISECONDS);
-}
-
-function drop(sourceElement) {
-  sourceElement.classList.remove('lifted');
-}
-
-function moveDrag(event) {
-  if (dragState === null) return;
-  if (!dragState.dragging) {
-    if (Math.hypot(event.clientX - dragState.startX, event.clientY - dragState.startY) < DRAG_START_PIXELS) return;
-    const target = describeTarget(dragState.sourceElement);
-    const sourceRow = target === null ? null : sourceRowFor(target, window.fieldView.currentLineup(), window.fieldView.currentInningIndex());
-    if (sourceRow === null) {
-      dragState = null;
-      return;
-    }
-    captain.selectedRow = sourceRow;
-    dragState.isKicking = isKickingTarget(target);
-    dragState.dragging = true;
-    lift(dragState.sourceElement);
-    dragState.ghost = node('div', 'drag-ghost', lineupPlayer(window.fieldView.currentLineup(), sourceRow).name);
-    document.body.append(dragState.ghost);
-    decorate();
-  }
-  dragState.ghost.style.left = `${event.clientX + 12}px`;
-  dragState.ghost.style.top = `${event.clientY + 12}px`;
-}
-
-function endDrag(event) {
-  if (dragState === null) return;
-  const { dragging, ghost, sourceElement, isKicking } = dragState;
-  dragState = null;
-  drop(sourceElement);
-  if (!dragging) return;
-  ghost.remove();
-  suppressClicksUntil = Date.now() + CLICK_SUPPRESSION_MILLISECONDS;
-  const target = describeTarget(document.elementFromPoint(event.clientX, event.clientY) ?? sourceElement);
-  const sourceRow = captain.selectedRow;
-  if (target === null || sourceRow === null || isKickingTarget(target) !== isKicking) {
-    captain.selectedRow = null;
-    decorate();
-    return;
-  }
-  if (isKicking) applyKicking(sourceRow, target.sheetRow);
-  else applyFielding(sourceRow, target);
-}
-
-function startTouchDrag(event, sourceElement) {
-  if (captain.saving || event.touches.length !== 1) return;
-  const { clientX, clientY } = event.touches[0];
-  longPress = { startX: clientX, startY: clientY, armed: false };
-  longPress.timer = setTimeout(() => {
-    longPress.armed = true;
-    dragState = { sourceElement, startX: clientX, startY: clientY, dragging: false, ghost: null };
-    lift(sourceElement);
-  }, LONG_PRESS_MILLISECONDS);
-}
-
-function moveTouchDrag(event) {
-  if (longPress === null) return;
-  const { clientX, clientY } = event.touches[0];
-  if (longPress.armed) {
-    event.preventDefault();
-    moveDrag({ clientX, clientY });
-    return;
-  }
-  if (Math.hypot(clientX - longPress.startX, clientY - longPress.startY) < DRAG_START_PIXELS) return;
-  clearTimeout(longPress.timer);
-  longPress = null;
-}
-
-function endTouchDrag(event) {
-  if (longPress === null) return;
-  clearTimeout(longPress.timer);
-  const { armed } = longPress;
-  longPress = null;
-  if (!armed) return;
-  if (event.type === 'touchcancel') {
-    dragState?.ghost?.remove();
-    if (dragState !== null) drop(dragState.sourceElement);
-    dragState = null;
-    captain.selectedRow = null;
-    decorate();
-    return;
-  }
-  if (dragState?.dragging) event.preventDefault();
-  const { clientX, clientY } = event.changedTouches[0];
-  endDrag({ clientX, clientY });
-}
-
 function decorate() {
   const lineup = window.fieldView.currentLineup();
-  const inningIndex = window.fieldView.currentInningIndex();
   document.querySelectorAll('.edit-selected').forEach((marked) => marked.classList.remove('edit-selected'));
   if (!captain.active || lineup === null || captain.area !== 'lineup') return;
-  const draggingKicker = dragState !== null && dragState.isKicking === true;
   editableElements().forEach((editable) => {
     const target = describeTarget(editable);
     if (target === null) return;
-    const inDraggedGroup = isKickingTarget(target) === draggingKicker;
-    const isDragged = captain.selectedRow !== null && inDraggedGroup && target.kind !== 'bench' && sourceRowFor(target, lineup, inningIndex) === captain.selectedRow;
-    const isSelected = targetIsFocused(target) || isDragged;
+    const isSelected = targetIsFocused(target);
     editable.classList.toggle('edit-selected', isSelected);
     editable.setAttribute('aria-pressed', String(isSelected));
   });
 }
 
-function pickChip(player, inningIndex, onPick) {
+function pickChip(player, inningIndex, position, onPick) {
   const current = player.positions[inningIndex];
   const chip = button('', 'pick-chip', onPick);
   chip.append(node('span', 'pick-name', player.name));
   if (current !== '') chip.append(node('span', 'pick-badge', current));
+  if (wouldRatherNotPlay(captain.rosterPlayers, player.name, position)) chip.append(node('span', 'rather-not-badge', 'Rather not'));
   return chip;
 }
 
@@ -273,7 +153,7 @@ function spotDockContent(lineup, inningIndex, close) {
   occupants.forEach((occupant) => header.append(button(occupants.length === 1 ? 'Sit out' : `Sit ${occupant.name}`, 'dock-action', () => applyFielding(occupant.sheetRow, { kind: 'bench' }))));
   header.append(close);
   const candidates = candidatesForSpot(lineup.players, inningIndex, position);
-  const pick = (candidate) => pickChip(candidate, inningIndex, () => applyFielding(candidate.sheetRow, { kind: 'spot', position }, { advancesToNextOpenSpot: true }));
+  const pick = (candidate) => pickChip(candidate, inningIndex, position, () => applyFielding(candidate.sheetRow, { kind: 'spot', position }, { advancesToNextOpenSpot: true }));
   const body = node('div', 'dock-body');
   [['Sitting', candidates.filter((candidate) => candidate.positions[inningIndex] === '')], ['Playing', candidates.filter((candidate) => candidate.positions[inningIndex] !== '')]]
     .filter(([, group]) => group.length > 0)
@@ -347,8 +227,7 @@ export function copyInningButton(lineup, inField) {
 export function fieldingPanel(lineup, inField) {
   if (!inField) return [node('p', 'captain-hint', HINTS.elsewhere)];
   if (!lineup.players.some((player) => player.attending)) return [node('p', 'captain-hint', HINTS.empty), button('Go to RSVPs', 'panel-action primary', () => chooseArea('rsvps'))];
-  const parts = captain.undoStack.length === 0 ? [node('p', 'captain-hint', HINTS.fielding)] : [];
-  return [...parts, ...copyLineupButton(lineup)];
+  return copyLineupButton(lineup);
 }
 
 function lastLineupWithPositions(lineup) {
@@ -371,7 +250,6 @@ function copyLineupButton(lineup) {
 export function resetEditingState(lineup) {
   captain.tabName = lineup.tabName;
   captain.focus = null;
-  captain.selectedRow = null;
 }
 
 function editableKey(editable) {
@@ -386,6 +264,27 @@ function editableForKey(key) {
   return document.querySelector(`[data-edit-kind="${kind}"][data-row="${row}"]`);
 }
 
+const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
+const CHIP_HALF_WIDTH = 39;
+
+function markRatherNotChips(lineup) {
+  const inningIndex = window.fieldView.currentInningIndex();
+  document.querySelectorAll('#chips .chip').forEach((chip) => {
+    const { position } = chip.dataset;
+    const reluctant = occupantsOf(lineup.players, inningIndex, position).filter((player) => wouldRatherNotPlay(captain.rosterPlayers, player.name, position));
+    if (reluctant.length === 0) return;
+    chip.classList.add('rather-not');
+    chip.setAttribute('aria-label', `${chip.getAttribute('aria-label')}, ${reluctant.map((player) => player.name).join(' and ')} would rather not play ${position}`);
+    const box = chip.querySelector('.chip-box');
+    const mark = document.createElementNS(SVG_NAMESPACE, 'text');
+    mark.setAttribute('class', 'rather-not-mark');
+    mark.setAttribute('x', String(Number(box.getAttribute('x')) + CHIP_HALF_WIDTH * 2 - 2));
+    mark.setAttribute('y', String(Number(box.getAttribute('y')) + 1));
+    mark.textContent = '!';
+    chip.append(mark);
+  });
+}
+
 function addKickingStyles(lineup) {
   document.querySelectorAll('#kicking-order li').forEach((item) => {
     const style = kickingStyleFor(captain.rosterPlayers, lineupPlayer(lineup, Number(item.dataset.row)).name);
@@ -395,11 +294,9 @@ function addKickingStyles(lineup) {
 
 export function bindFieldEditing() {
   addKickingStyles(window.fieldView.currentLineup());
+  markRatherNotChips(window.fieldView.currentLineup());
   editableElements().forEach((editable) => {
     editable.addEventListener('click', () => handleTap(editable));
-    editable.addEventListener('pointerdown', (event) => startDrag(event, editable));
-    editable.addEventListener('touchstart', (event) => startTouchDrag(event, editable), { passive: true });
-    editable.addEventListener('contextmenu', (event) => event.preventDefault());
     editable.addEventListener('keydown', (event) => {
       if (event.key !== 'Enter' && event.key !== ' ') return;
       event.preventDefault();
@@ -436,9 +333,4 @@ export function installFieldingEvents() {
     const editable = event.target.closest?.(EDITABLE_SELECTOR);
     if (editable) lastEditableKey = editableKey(editable);
   });
-  document.addEventListener('pointermove', (event) => { if (event.pointerType !== 'touch') moveDrag(event); });
-  document.addEventListener('pointerup', (event) => { if (event.pointerType !== 'touch') endDrag(event); });
-  document.addEventListener('touchmove', moveTouchDrag, { passive: false });
-  document.addEventListener('touchend', endTouchDrag);
-  document.addEventListener('touchcancel', endTouchDrag);
 }

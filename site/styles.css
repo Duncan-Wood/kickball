@@ -217,8 +217,6 @@ html:not(.has-team) body { background: #f6f1ea; color: #1c2a3a; }
 #team-page, .dock { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 #team-page input, #team-page textarea { -webkit-user-select: text; user-select: text; }
 html.captain-mode, html.captain-mode body { overscroll-behavior-y: contain; }
-.chip.lifted .chip-box { stroke: var(--accent); stroke-width: 3.5; stroke-dasharray: none; filter: drop-shadow(0 3px 4px rgba(28, 42, 58, 0.35)); }
-.bench li.lifted { outline: 3px solid var(--accent); box-shadow: 0 4px 10px rgba(28, 42, 58, 0.3); transform: scale(1.06); }
 .captain-active .chip .chip-box { stroke: var(--primary); stroke-width: 1.8; }
 .captain-active .chip.problem .chip-box { stroke: #b3261e; }
 .captain-active #bench li, .captain-active #kicking-order li { outline: 1.5px solid var(--primary); cursor: pointer; }
@@ -239,13 +237,15 @@ html.captain-mode, html.captain-mode body { overscroll-behavior-y: contain; }
 .dock-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .pick-chip { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border: 1px solid var(--border); border-radius: 999px; background: #fff; color: var(--ink); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
 .pick-chip:active { background: var(--tint); }
+.rather-not-badge { padding: 2px 7px; border-radius: 6px; background: #fdebc8; color: #7a4b00; font-size: 11px; font-weight: 700; }
+.captain-active .chip.rather-not:not(.problem) .chip-box { fill: #fff4dc; stroke: #b7791f; }
+.rather-not-mark { font-size: 12px; font-weight: 800; fill: #b7791f; text-anchor: middle; paint-order: stroke; stroke: #fff; stroke-width: 3px; }
 .pick-badge { padding: 2px 7px; border-radius: 6px; background: var(--ink); color: #fff; font-size: 11px; font-weight: 700; }
 a:focus-visible, button:focus-visible, select:focus-visible, textarea:focus-visible, input:focus-visible, .bench li:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .chip:focus-visible { outline: none; }
 .chip:focus-visible .chip-box { stroke: var(--accent); stroke-width: 3.5; stroke-dasharray: none; }
 @media (prefers-reduced-motion: no-preference) { .dock { animation: dock-up 0.14s ease-out; } }
 @keyframes dock-up { from { transform: translateY(20px); opacity: 0; } }
-.drag-ghost { position: fixed; z-index: 10; padding: 4px 10px; border-radius: 999px; background: var(--primary); color: #fff; font-size: 14px; pointer-events: none; }
 
 .updated { margin: 12px 0 0; color: var(--muted); font-size: 12px; text-align: center; }
 .updated:empty { display: none; }

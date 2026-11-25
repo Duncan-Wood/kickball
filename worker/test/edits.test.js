@@ -284,3 +284,12 @@ test('a roster row carries its kicking style, and only Bunt, Power or Mixed are 
   assert.equal(kickingStyleFor(roster, 'Nobody'), '');
   assert.equal(kickingStyleFor(null, 'Chad S'), '');
 });
+
+test('a player who would rather not play a position is flagged only there', async () => {
+  const { rosterPlayerFromRow, wouldRatherNotPlay } = await import('../../site/edits.js');
+  const roster = [rosterPlayerFromRow(['Amy B', '', 'C, p'], 2)];
+  assert.equal(wouldRatherNotPlay(roster, 'Amy B', 'C'), true);
+  assert.equal(wouldRatherNotPlay(roster, 'Amy B', 'P'), true);
+  assert.equal(wouldRatherNotPlay(roster, 'Amy B', 'SS'), false);
+  assert.equal(wouldRatherNotPlay(roster, 'Zed', 'C'), false);
+});

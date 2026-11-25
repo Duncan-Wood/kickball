@@ -85,11 +85,10 @@ function rosterEditor(player) {
     blockConflicts();
     persist({ prefers: positionsText(chosenCodes(prefers), saved.prefers) }, 'prefers');
   });
-  const avoids = positionChips("Won't play", saved.avoids, () => {
+  const avoids = positionChips('Rather not', saved.avoids, () => {
     blockConflicts();
-    persist({ avoids: positionsText(chosenCodes(avoids), saved.avoids) }, "won't play");
+    persist({ avoids: positionsText(chosenCodes(avoids), saved.avoids) }, 'rather not');
   });
-  avoids.append(node('span', 'field-note', "A position can be in Prefers or Won't play, not both."));
   blockConflicts();
   const kicking = selectField('Kicking style', 'kicking', [['', 'Not set'], ...KICKING_STYLES.map((style) => [style, style])], saved.kicking);
   kicking.querySelector('select').addEventListener('change', (event) => persist({ kicking: event.target.value }, 'kicking style'));
@@ -159,7 +158,7 @@ function addSeveralForm() {
 }
 
 function summaryText(player) {
-  const details = [player.kicking, player.prefers === '' ? '' : `Prefers ${player.prefers}`, player.avoids === '' ? '' : `Won't play ${player.avoids}`].filter((detail) => detail !== '').join(' · ');
+  const details = [player.kicking, player.prefers === '' ? '' : `Prefers ${player.prefers}`, player.avoids === '' ? '' : `Rather not ${player.avoids}`].filter((detail) => detail !== '').join(' · ');
   const text = node('span', 'game-text');
   text.append(node('strong', undefined, player.name), ...(player.pronouns === '' ? [] : [node('span', 'game-meta', `(${player.pronouns})`)]), ...(details === '' ? [] : [node('span', 'game-meta', details)]));
   return text;
