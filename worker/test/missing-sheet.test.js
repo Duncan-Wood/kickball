@@ -29,7 +29,7 @@ async function environmentWithTeam() {
 async function withGoogleAnswering(sheetsStatus, work) {
   const originalFetch = globalThis.fetch;
   const originalCaches = globalThis.caches;
-  globalThis.caches = { default: { match: async () => undefined, put: async () => {} } };
+  globalThis.caches = { default: { match: async () => undefined, put: async () => {}, delete: async () => false } };
   globalThis.fetch = async (address) => (String(address).includes('oauth2') ? Response.json({ access_token: 'access' }) : new Response('{}', { status: sheetsStatus }));
   try {
     return await work();
@@ -82,7 +82,7 @@ test('a sheet moved to the trash counts as deleted, even though Google still rea
   const environment = await environmentWithTeam();
   const originalFetch = globalThis.fetch;
   const originalCaches = globalThis.caches;
-  globalThis.caches = { default: { match: async () => undefined, put: async () => {} } };
+  globalThis.caches = { default: { match: async () => undefined, put: async () => {}, delete: async () => false } };
   globalThis.fetch = async (address) => {
     if (String(address).includes('oauth2')) return Response.json({ access_token: 'access' });
     if (String(address).includes('googleapis.com/drive')) return Response.json({ trashed: true });
@@ -103,7 +103,7 @@ test('a sheet that is not in the trash still reads normally', async () => {
   const environment = await environmentWithTeam();
   const originalFetch = globalThis.fetch;
   const originalCaches = globalThis.caches;
-  globalThis.caches = { default: { match: async () => undefined, put: async () => {} } };
+  globalThis.caches = { default: { match: async () => undefined, put: async () => {}, delete: async () => false } };
   globalThis.fetch = async (address) => {
     if (String(address).includes('oauth2')) return Response.json({ access_token: 'access' });
     if (String(address).includes('googleapis.com/drive')) return Response.json({ trashed: false });

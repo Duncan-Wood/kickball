@@ -30,9 +30,12 @@ function disconnectRequest() {
   return new Request('https://worker.test/api/disconnect', { method: 'POST', body: JSON.stringify({ pendingId: PENDING_ID, slug: SLUG }) });
 }
 
-test('disconnect deletes the team record once the sheet can be read', async () => {
+test('disconnect deletes the team record and its cached lineups once the sheet can be read', async () => {
   const environment = await environmentWithTeam();
   const originalFetch = globalThis.fetch;
+  const originalCaches = globalThis.caches;
+  const cached = new Set(['team', 'stale', 'cooldown'].map((kind) => `https://cache.invalid/${kind}/${SLUG}`));
+  globalThis.caches = { default: { delete: async (request) => cached.delete(request.url) } };
   globalThis.fetch = async (address) => (String(address).includes('oauth2')
     ? Response.json({ access_token: 'access' })
     : Response.json({ properties: { timeZone: 'America/New_York' }, sheets: [] }));
@@ -41,8 +44,10 @@ test('disconnect deletes the team record once the sheet can be read', async () =
     assert.equal(body.ok, true);
     assert.equal(environment.TEAMS.data.has(`team:${SLUG}`), false);
     assert.equal(environment.TEAMS.data.has(`pending:${PENDING_ID}`), false);
+    assert.equal(cached.size, 0);
   } finally {
     globalThis.fetch = originalFetch;
+    globalThis.caches = originalCaches;
   }
 });
 

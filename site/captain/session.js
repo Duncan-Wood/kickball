@@ -48,8 +48,9 @@ export async function startCaptainMode() {
   const toggle = element('captain-toggle');
   toggle.disabled = true;
   try {
-    const lineup = window.fieldView.currentLineup();
     captain.spreadsheetId = await confirmEditorAccess();
+    await window.fieldView.reloadLineups(window.fieldView.currentLineup()?.tabName, await currentAccessToken());
+    const lineup = window.fieldView.currentLineup();
     await refreshTabs();
     captain.canManageGames = captain.tabs.has(NEW_GAME_TAB_NAME) && captain.tabs.has(SCHEDULE_TAB_NAME);
     captain.canEditTeam = captain.tabs.has(CONFIG_TAB_NAME);

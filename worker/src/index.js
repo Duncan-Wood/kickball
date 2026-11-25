@@ -1,4 +1,5 @@
 import { accessTokenFromRefreshToken, ConnectionExpiredError, exchangeAuthorizationCode } from './google.js';
+import { shortNames } from '../../site/names.js';
 import { appendComment, COMMENTS_PER_HOUR, validatedComment } from './comments.js';
 import { RateLimitedError, readTeamSheet, SheetGoneError } from './sheetsReader.js';
 import { decryptToken, encryptToken, newTeamSlug } from './tokens.js';
@@ -11,6 +12,8 @@ const TEAM_ROUTE = /^\/api\/team\/([a-z0-9]{12})(\/comment)?$/;
 const CAPTAIN_ROUTE = /^\/api\/team\/([a-z0-9]{12})\/captain$/;
 const FRESH_ROUTE = /^\/api\/team\/([a-z0-9]{12})\/fresh$/;
 const DRIVE_FILES_ADDRESS = 'https://www.googleapis.com/drive/v3/files';
+
+const UNKNOWN_TEAM_MESSAGE = 'This team link is not recognized. Ask your captain for a new one';
 
 class UnknownTeamError extends Error {}
 
@@ -33,7 +36,7 @@ function jsonResponse(body, status, request, environment) {
 
 async function loadTeam(slug, environment) {
   const stored = await environment.TEAMS.get(`team:${slug}`, 'json');
-  if (stored === null) throw new UnknownTeamError('This team link is not recognized. Ask your captain for a new one');
+  if (stored === null) throw new UnknownTeamError(UNKNOWN_TEAM_MESSAGE);
   const refreshToken = await decryptToken(stored.refreshToken, environment.TOKEN_ENCRYPTION_KEY);
   return { spreadsheetId: stored.spreadsheetId, accessToken: await accessTokenFromRefreshToken(refreshToken, environment) };
 }
@@ -59,6 +62,7 @@ function cacheJson(context, key, value, seconds) {
 async function readFromGoogle(slug, environment, context) {
   const lastGood = await cachedJson(cacheKey('stale', slug));
   if (await cachedJson(cacheKey('cooldown', slug)) !== undefined) {
+    if (await environment.TEAMS.get(`team:${slug}`) === null) throw new UnknownTeamError(UNKNOWN_TEAM_MESSAGE);
     if (lastGood === undefined) throw new RateLimitedError();
     return lastGood;
   }
@@ -80,6 +84,12 @@ async function teamPayload(slug, environment, context) {
   const fresh = await cachedJson(cacheKey('team', slug));
   if (fresh !== undefined) return fresh;
   return readFromGoogle(slug, environment, context);
+}
+
+function withShortNames(payload) {
+  const shortNameOf = shortNames(payload.lineups.flatMap((lineup) => lineup.players.map((player) => player.name)));
+  const shortenedLineup = (lineup) => ({ ...lineup, players: lineup.players.map((player) => ({ ...player, name: shortNameOf.get(player.name.trim()) })) });
+  return { ...payload, lineups: payload.lineups.map(shortenedLineup) };
 }
 
 async function allowComment(slug) {
@@ -144,6 +154,7 @@ async function disconnect(request, environment) {
   const { pendingId, slug, config } = await verifiedCaptain(request, environment);
   await environment.TEAMS.delete(`team:${slug}`);
   await environment.TEAMS.delete(`pending:${pendingId}`);
+  await Promise.all(['team', 'stale', 'cooldown'].map((kind) => caches.default.delete(cacheKey(kind, slug))));
   return { sheetGone: config === null };
 }
 
@@ -153,16 +164,16 @@ async function captainAccess(request, slug, environment) {
 }
 
 async function freshTeamPayload(request, slug, environment, context) {
-  const { accessToken } = await request.json();
+  const { accessToken, fromCache } = await request.json();
   const { access } = await editorAccess(accessToken, slug, environment);
   if (access !== 'editor') throw new Error('Open Captain tools again and pick the team sheet');
-  return readFromGoogle(slug, environment, context);
+  return fromCache === true ? teamPayload(slug, environment, context) : readFromGoogle(slug, environment, context);
 }
 
 async function editorAccess(accessToken, slug, environment) {
   if (typeof accessToken !== 'string' || accessToken === '') throw new Error('Missing sign-in');
   const stored = await environment.TEAMS.get(`team:${slug}`, 'json');
-  if (stored === null) throw new Error('This team link is not recognized. Ask your captain for a new one');
+  if (stored === null) throw new Error(UNKNOWN_TEAM_MESSAGE);
   const response = await fetch(`${DRIVE_FILES_ADDRESS}/${stored.spreadsheetId}?fields=capabilities(canEdit)&supportsAllDrives=true`, { headers: { Authorization: `Bearer ${accessToken}` } });
   if (response.status === 404) return { access: 'needs-pick' };
   if (!response.ok) throw new Error(`Google could not check your access to the sheet (${response.status})`);
@@ -174,7 +185,7 @@ async function editorAccess(accessToken, slug, environment) {
 async function handleTeam(request, slug, isComment, environment, context) {
   if (!isComment) {
     if (request.method !== 'GET') throw new Error('This address only answers reads. Suggestions go to its /comment address');
-    const payload = await teamPayload(slug, environment, context);
+    const payload = withShortNames(await teamPayload(slug, environment, context));
     const requestedTab = new URL(request.url).searchParams.get('tab');
     if (requestedTab === null) return payload;
     const lineup = payload.lineups.find((candidate) => candidate.tabName === requestedTab);
@@ -198,6 +209,7 @@ export default {
       return new Response(null, { status: 204, headers: corsHeaders(request, environment) });
     }
     const { pathname } = new URL(request.url);
+    if (pathname === '/robots.txt') return new Response('User-agent: *\nDisallow: /\n', { headers: { 'Content-Type': 'text/plain' } });
     try {
       if (request.method === 'POST' && pathname === '/api/signin') return jsonResponse({ ok: true, ...(await signIn(request, environment)) }, 200, request, environment);
       if (request.method === 'POST' && pathname === '/api/connect') return jsonResponse({ ok: true, ...(await connect(request, environment)) }, 200, request, environment);

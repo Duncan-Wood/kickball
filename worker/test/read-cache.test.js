@@ -117,3 +117,19 @@ test('other Google failures are not hidden behind the cached lineup', async () =
     assert.match(body.error, /500/);
   });
 });
+
+test('once a team stops sharing, its last good lineup is not served even while Google limits reads', async () => {
+  const environment = await environmentWithTeam();
+  const readStored = environment.TEAMS.get;
+  await withGoogle((callNumber) => (callNumber <= 2 ? Response.json(sheetAnswer([])) : new Response('{}', { status: 429 })), async ({ edgeCache }) => {
+    await read(environment);
+    edgeCache.forget('team');
+    await read(environment);
+    environment.TEAMS.get = async () => null;
+    edgeCache.forget('team');
+    const body = await read(environment);
+    assert.equal(body.ok, false);
+    assert.equal(body.unknown, true);
+  });
+  environment.TEAMS.get = readStored;
+});
