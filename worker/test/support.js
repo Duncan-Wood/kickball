@@ -33,6 +33,7 @@ function fakeEdgeCache() {
     default: {
       match: async (request) => (entries.has(request.url) ? new Response(entries.get(request.url)) : undefined),
       put: async (request, response) => { entries.set(request.url, await response.text()); },
+      delete: async (request) => entries.delete(request.url),
     },
   };
 }

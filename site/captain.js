@@ -5,7 +5,7 @@ import { teamPanel } from './captain/teamPanel.js';
 import { chooseArea } from './captain/navigation.js';
 import { playersPanel } from './captain/people.js';
 import { rosterPanel } from './captain/rosterPanel.js';
-import { SIGN_IN_SCRIPT, loadScript } from './captain/sheetApi.js';
+import { SIGN_IN_SCRIPT, loadScript, unexpiredAccessToken } from './captain/sheetApi.js';
 import { captainToolsOffered, firstAreaWithoutLineup, toggleCaptainView } from './captain/session.js';
 import { ADD_FOCUS_KEY, AREAS, LINEUP_AREAS, captain, element } from './captain/state.js';
 import { redoLatest, undoLatest, updateUndoButton } from './captain/status.js';
@@ -113,5 +113,5 @@ element('captain-panel').addEventListener('keydown', (event) => {
   if (event.key === 'Enter' && event.target.tagName === 'SELECT') event.preventDefault();
 });
 window.addEventListener('hashchange', () => window.fieldView.rerender());
-window.captainTools = { afterRender, isActive: isEditing };
+window.captainTools = { afterRender, isActive: isEditing, signedIn: () => captain.active, unexpiredAccessToken };
 window.fieldView.rerender();

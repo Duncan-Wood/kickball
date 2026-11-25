@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import worker from '../src/index.js';
 import { decryptToken } from '../src/tokens.js';
-import { ALLOWED_ORIGIN, ENCRYPTION_KEY, SLUG, SPREADSHEET_ID, environmentWithTeam, googleWithLineups, noContext, withGoogle } from './support.js';
+import { ALLOWED_ORIGIN, ENCRYPTION_KEY, SLUG, SPREADSHEET_ID, environmentWithTeam, googleWithLineups, noContext, sheetWithLineups, withGoogle } from './support.js';
 
 const post = (path, body, origin = ALLOWED_ORIGIN) => new Request(`https://worker.test${path}`, { method: 'POST', headers: { Origin: origin }, body: JSON.stringify(body) });
 const answer = async (request, environment) => (await worker.fetch(request, environment, noContext)).json();
@@ -120,4 +120,31 @@ test('only lineup tabs and the config are requested from the sheet', async () =>
     assert.match(detail, /ranges='Game\+1\+Lineup'/);
     assert.doesNotMatch(detail, /ranges='Roster'|ranges='Comments'/);
   });
+});
+
+test('anyone with the link gets short names, and only a captain who can edit the sheet gets full names', async () => {
+  const environment = await environmentWithTeam();
+  const sheet = sheetWithLineups(['Game 1 Lineup', 'Game 2 Lineup']);
+  sheet.sheets.forEach((tab, index) => {
+    tab.data[0].rowData[0].values[1].formattedValue = String(index + 1);
+    tab.data[0].rowData[2].values[0].formattedValue = 'Chad Smithson';
+  });
+  const google = (call) => {
+    if (call.address.includes('oauth2')) return Response.json({ access_token: 'access' });
+    if (call.address.includes('drive/v3/files')) return Response.json({ capabilities: { canEdit: true } });
+    return Response.json(sheet);
+  };
+  await withGoogle(google, async () => {
+    const team = await answer(new Request(`https://worker.test/api/team/${SLUG}`), environment);
+    assert.deepEqual(team.lineups.map((lineup) => lineup.players[0].name), ['Chad S.', 'Chad S.']);
+    const oneTab = await answer(new Request(`https://worker.test/api/team/${SLUG}?tab=${encodeURIComponent('Game 2 Lineup')}`), environment);
+    assert.equal(oneTab.lineup.players[0].name, 'Chad S.');
+    const captain = await answer(post(`/api/team/${SLUG}/fresh`, { accessToken: 'captain-token' }), environment);
+    assert.deepEqual(captain.lineups.map((lineup) => lineup.players[0].name), ['Chad Smithson', 'Chad Smithson']);
+  });
+});
+
+test('robots.txt keeps search engines from reading team data', async () => {
+  const response = await worker.fetch(new Request('https://worker.test/robots.txt'), await environmentWithTeam(), noContext);
+  assert.equal(await response.text(), 'User-agent: *\nDisallow: /\n');
 });

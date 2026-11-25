@@ -44,6 +44,10 @@ export async function requestAccessToken(prompt) {
   });
 }
 
+export function unexpiredAccessToken() {
+  return captain.accessToken !== null && Date.now() < captain.accessTokenExpiresAt - TOKEN_EXPIRY_MILLISECONDS_MARGIN ? captain.accessToken : null;
+}
+
 export async function currentAccessToken() {
   if (captain.accessToken !== null && Date.now() < captain.accessTokenExpiresAt - TOKEN_EXPIRY_MILLISECONDS_MARGIN) return captain.accessToken;
   return requestAccessToken('');

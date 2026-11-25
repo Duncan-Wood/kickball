@@ -624,13 +624,24 @@ function scheduleRefresh() {
   refreshTimer = setTimeout(refresh, REFRESH_SECONDS * 1000 * backoff);
 }
 
+async function readForRefresh(watchingWholeTeam) {
+  if (window.captainTools?.signedIn() !== true) return apiGet(watchingWholeTeam ? undefined : { tab: selectedLineup.tabName });
+  const accessToken = window.captainTools.unexpiredAccessToken();
+  if (accessToken === null) return null;
+  const team = await apiPost('/fresh', { accessToken, fromCache: true });
+  if (watchingWholeTeam) return team;
+  const lineup = team.lineups.find((candidate) => candidate.tabName === selectedLineup.tabName);
+  if (lineup === undefined) throw new Error(`Tab "${selectedLineup.tabName}" is no longer a current lineup tab`);
+  return { lineup, readAt: team.readAt };
+}
+
 async function refresh() {
   refreshInFlight = true;
   const startedAt = Date.now();
   const watchingWholeTeam = selectedLineup === null;
   let fresh;
   try {
-    fresh = await apiGet(watchingWholeTeam ? undefined : { tab: selectedLineup.tabName });
+    fresh = await readForRefresh(watchingWholeTeam);
   } catch (error) {
     refreshInFlight = false;
     failedRefreshes += 1;
@@ -639,6 +650,10 @@ async function refresh() {
     return;
   }
   refreshInFlight = false;
+  if (fresh === null) {
+    scheduleRefresh();
+    return;
+  }
   failedRefreshes = 0;
   if (startedAt < lastWriteAt + WRITE_SETTLE_MILLISECONDS) {
     scheduleRefresh();
