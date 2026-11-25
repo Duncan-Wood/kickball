@@ -3,7 +3,6 @@ import { confirmSheetStillMatches, sheetIdFor, sheetsRequest, writeValues } from
 import { RSVP_ANSWERS } from './state.js';
 
 const RSVP_COLUMN_INDEX = 1;
-const ADDED_PLAYER_ANSWER = 'Yes';
 
 function currentVersionOf(lineup) {
   return window.fieldView.allLineups().find((candidate) => candidate.tabName === lineup.tabName) ?? lineup;
@@ -101,11 +100,19 @@ async function saveRestoredPlayers(lineupWhenEditing, restoredPlayers) {
   return () => saveRemovedPlayers(lineup, restoredPlayers.map(({ sheetRow }) => sheetRow));
 }
 
-export async function saveAddedPlayers(lineupWhenEditing, names) {
+export async function saveAddedPlayers(lineupWhenEditing, names, answer = 'Yes') {
   const lineup = currentVersionOf(lineupWhenEditing);
   const additions = playersToAdd(lineup.spareRows, names, lineup.players);
   await confirmSheetStillMatches(additions.map(({ sheetRow }) => ({ address: cellAddress(lineup.tabName, 0, sheetRow), expected: '' })));
-  await writeValues(additions.map(({ name, sheetRow }) => ({ range: `${cellAddress(lineup.tabName, 0, sheetRow)}:${cellAddress(lineup.tabName, RSVP_COLUMN_INDEX, sheetRow).split('!')[1]}`, values: [[name, ADDED_PLAYER_ANSWER]] })), 'RAW');
-  Object.assign(lineup, applyAddedPlayers(lineup, additions, lineup.innings.length));
+  await writeValues(additions.map(({ name, sheetRow }) => ({ range: `${cellAddress(lineup.tabName, 0, sheetRow)}:${cellAddress(lineup.tabName, RSVP_COLUMN_INDEX, sheetRow).split('!')[1]}`, values: [[name, answer]] })), 'RAW');
+  Object.assign(lineup, applyAddedPlayers(lineup, additions, lineup.innings.length, answer.toLowerCase()));
   return () => saveRemovedPlayers(lineup, additions.map(({ sheetRow }) => sheetRow));
+}
+
+export function inOrder(actions) {
+  return async () => {
+    const reversals = [];
+    for (const action of actions) reversals.push(await action());
+    return inOrder(reversals.reverse());
+  };
 }

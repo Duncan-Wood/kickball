@@ -102,6 +102,7 @@ function rosterRows() {
     textCell('Notes', headerFormat),
     textCell('Pronouns', headerFormat),
     textCell('Kicking', headerFormat, 'Bunt, Power or Mixed'),
+    textCell('Sub', headerFormat, 'Yes for a sub. Subs join a game only when you add them'),
   ]];
 }
 
@@ -284,9 +285,10 @@ export function formattingRequests() {
   return [
     ...configFormattingRequests(CONFIG_SHEET_ID),
     listValidation(ROSTER_SHEET_ID, 1, ROSTER_LAST_ROW, 5, 6, KICKING_STYLES),
+    listValidation(ROSTER_SHEET_ID, 1, ROSTER_LAST_ROW, 6, 7, ['Yes']),
     columnFormat(SCHEDULE_SHEET_ID, SCHEDULE_FIRST_ROW_INDEX, scheduleEndRow, 1, { numberFormat: DATE_FORMAT, horizontalAlignment: 'LEFT' }, NUMBER_AND_ALIGNMENT_FIELDS),
     columnFormat(SCHEDULE_SHEET_ID, SCHEDULE_FIRST_ROW_INDEX, scheduleEndRow, 2, { numberFormat: TIME_FORMAT, horizontalAlignment: 'LEFT' }, NUMBER_AND_ALIGNMENT_FIELDS),
-    columnWidth(ROSTER_SHEET_ID, 0, 160), columnWidth(ROSTER_SHEET_ID, 1, 160), columnWidth(ROSTER_SHEET_ID, 2, 160), columnWidth(ROSTER_SHEET_ID, 3, 380), columnWidth(ROSTER_SHEET_ID, 4, 140), columnWidth(ROSTER_SHEET_ID, 5, 100),
+    columnWidth(ROSTER_SHEET_ID, 0, 160), columnWidth(ROSTER_SHEET_ID, 1, 160), columnWidth(ROSTER_SHEET_ID, 2, 160), columnWidth(ROSTER_SHEET_ID, 3, 380), columnWidth(ROSTER_SHEET_ID, 4, 140), columnWidth(ROSTER_SHEET_ID, 5, 100), columnWidth(ROSTER_SHEET_ID, 6, 70),
     columnWidth(SCHEDULE_SHEET_ID, 1, 90), columnWidth(SCHEDULE_SHEET_ID, 3, 220), columnWidth(SCHEDULE_SHEET_ID, 4, 200), columnWidth(SCHEDULE_SHEET_ID, 5, 160), columnWidth(SCHEDULE_SHEET_ID, 6, 260), columnWidth(SCHEDULE_SHEET_ID, 7, 90),
     columnWidth(POSITIONS_SHEET_ID, 0, 200),
     columnWidth(START_SHEET_ID, 0, 150), columnWidth(START_SHEET_ID, 1, 620),

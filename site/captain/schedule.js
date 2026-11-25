@@ -1,6 +1,6 @@
 import { blankPlayerRows, cellAddress, nextGameDefaults, nextGameId, scheduleGames, scheduleIds, seasonDates, seasonProblem } from '../edits.js';
 import { NEW_GAME_TAB_NAME, ROSTER_TAB_NAME, SCHEDULE_TAB_NAME } from '../template.js';
-import { fetchRosterNames } from './roster.js';
+import { fetchRegularPlayerNames } from './roster.js';
 import { columnValues, confirmSheetStillMatches, currentAccessToken, refreshTabs, sheetRows, sheetsRequest, writeValues } from './sheetApi.js';
 import { captain } from './state.js';
 
@@ -72,7 +72,7 @@ export async function createGameTabs(gameIds) {
   const templateLabels = await columnValues(`'${NEW_GAME_TAB_NAME}'!A1:A${TEMPLATE_LABEL_ROWS}`);
   const gameNumberRow = templateLabels.indexOf(GAME_NUMBER_LABEL) + 1;
   if (gameNumberRow === 0) throw new Error(`The "${NEW_GAME_TAB_NAME}" tab has no "${GAME_NUMBER_LABEL}" label in column A, so the new tabs need their numbers typed in the sheet`);
-  const rosterNames = captain.tabs.has(ROSTER_TAB_NAME) ? await fetchRosterNames() : [];
+  const rosterNames = captain.tabs.has(ROSTER_TAB_NAME) ? await fetchRegularPlayerNames() : [];
   const playerRows = blankPlayerRows(templateLabels);
   if (rosterNames.length > playerRows.length) throw new Error(`The ${ROSTER_TAB_NAME} tab has ${rosterNames.length} players but a game tab has room for ${playerRows.length}. Add rows to the grid on the "${NEW_GAME_TAB_NAME}" tab first`);
   const { replies } = await sheetsRequest(':batchUpdate', {

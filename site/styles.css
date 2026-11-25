@@ -194,9 +194,13 @@ html:not(.has-team) body { background: #f6f1ea; color: #1c2a3a; }
 .roster-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .roster-chip { min-height: 40px; padding: 0 14px; border: 1px dashed var(--primary); border-radius: 999px; background: #fff; color: var(--primary); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
 .roster-chip::before { content: '+ '; }
+.sub-picker { margin-top: 10px; }
+.sub-picker .dock-group:first-child { margin-top: 12px; }
+.new-sub { display: flex; align-items: flex-end; gap: 8px; }
+.new-sub label { flex: 1; }
+.new-sub .dock-action { min-height: 42px; }
 .panel-action { display: block; width: 100%; margin-top: 10px; padding: 11px; border: 1px solid var(--primary); border-radius: 10px; background: #fff; color: var(--primary); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
 .panel-action.primary { background: var(--primary); color: #fff; }
-.headcount + .panel-action { margin: 0 0 12px; }
 .game-list { display: flex; flex-direction: column; gap: 8px; }
 .game-card { overflow: hidden; border: 1px solid var(--border); border-radius: 12px; background: #fff; }
 .game-card.open { border-color: var(--primary); }
