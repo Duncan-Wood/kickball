@@ -34,6 +34,8 @@ function headcountLine(lineup) {
 
 function playerRow(lineup, player) {
   const answers = node('div', 'rsvp');
+  answers.setAttribute('role', 'group');
+  answers.setAttribute('aria-label', `${player.name}'s reply`);
   answers.append(...RSVP_ANSWERS.map((answer) => {
     const isChosen = player.rsvp === answer.toLowerCase();
     const choice = button(answer, answer.toLowerCase() === 'yes' ? '' : answer.toLowerCase(), () => saveEdit(() => saveRsvps(lineup, [{ sheetRow: player.sheetRow, answer: isChosen ? '' : answer }]), `${player.name}: ${isChosen ? 'no reply' : answer}`));
@@ -41,7 +43,9 @@ function playerRow(lineup, player) {
     return choice;
   }));
   const row = node('div', 'player-row');
-  row.append(node('span', 'player-name', player.name), answers);
+  const name = node('span', 'player-name');
+  name.append(node('span', 'person-name', player.name));
+  row.append(name, answers);
   if (!isRegularPlayer(captain.rosterPlayers, player.name)) {
     const remove = button('×', 'player-remove', () => saveEdit(() => saveRemovedPlayers(lineup, [player.sheetRow]), `Removed ${player.name}`));
     remove.setAttribute('aria-label', `Take ${player.name} out of this game`);

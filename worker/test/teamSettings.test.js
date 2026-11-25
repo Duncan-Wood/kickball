@@ -52,3 +52,22 @@ test('a flag stripe turns back into the settings it came from', () => {
 test('every font name is safe to put in a Google Fonts address', () => {
   FONTS.forEach((font) => assert.match(font, /^[A-Za-z0-9 ]{1,40}$/));
 });
+
+test('text colors stay readable on every surface whatever two colors a team picks', async () => {
+  const { contrastRatio, readableColors } = await import('../../site/theme.js');
+  const picks = [['#ffffff', '#ffffff'], ['#f6e05e', '#f687b3'], ['#000000', '#000000'], ['#2b6cb0', '#ed8936'], ['#0f6875', '#2c276b'], ['#c6f432', '#ffffff']];
+  picks.forEach(([mainColor, secondColor]) => {
+    const { theme } = configFromSettings({ ...settingsWithDefaults({}), mainColor, secondColor });
+    const readable = readableColors(theme);
+    [theme.background, theme.tint, '#ffffff'].forEach((surface) => {
+      ['primary', 'accent', 'ink', 'muted'].forEach((key) => assert.ok(contrastRatio(readable[key], surface) >= 4.5, `${key} on ${surface} for ${mainColor}/${secondColor}`));
+    });
+    assert.ok(contrastRatio(readable.tagText, theme.tagBackground) >= 4.5);
+  });
+});
+
+test('a color that is already readable is left as the team picked it', async () => {
+  const { readableColors } = await import('../../site/theme.js');
+  const { theme } = configFromSettings({ ...settingsWithDefaults({}), mainColor: '#1a365d', secondColor: '#e2e8f0' });
+  assert.equal(readableColors(theme).primary, '#1a365d');
+});

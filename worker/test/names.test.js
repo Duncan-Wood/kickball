@@ -28,3 +28,13 @@ test('a long name is cut off with an ellipsis and keeps its initial', () => {
 test('extra spaces around a name do not make it a different player', () => {
   assert.deepEqual(shortFor(['  Alex Rivera ', 'Alex Rivera']), { 'Alex Rivera': 'Alex R.' });
 });
+
+test('names written without initials, like Japanese, Chinese and Korean, stay whole', () => {
+  assert.deepEqual(shortFor(['山田 太郎', '김민준', '李小龙']), { '山田 太郎': '山田 太郎', 김민준: '김민준', 李小龙: '李小龙' });
+});
+
+test('cutting a name never splits an accented letter or an emoji', () => {
+  const short = shortFor(['Zoë 👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱', 'Nguyễn Thị Minh Ánh']);
+  assert.equal(short['Zoë 👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱'], 'Zoë 👩🏽‍🦱.');
+  assert.equal(short['Nguyễn Thị Minh Ánh'], 'Nguyễn Á.');
+});

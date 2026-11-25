@@ -53,6 +53,7 @@ function externalLink(text, address) {
   link.href = address;
   link.target = '_blank';
   link.rel = 'noopener';
+  link.setAttribute('aria-label', `${text.replace(/\s*↗$/, '')} (opens in a new tab)`);
   return link;
 }
 
@@ -78,8 +79,10 @@ function fieldFor(field, value, commit) {
     input.addEventListener('blur', commit);
     input.addEventListener('keydown', (event) => { if (event.key === 'Enter') input.blur(); });
   }
-  if (field.key === 'suggestionBox') control.append(...suggestionsLink());
-  return control;
+  if (field.key !== 'suggestionBox') return control;
+  const group = node('div', 'field-group');
+  group.append(control, ...suggestionsLink());
+  return group;
 }
 
 function valuesFrom(form) {

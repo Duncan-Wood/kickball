@@ -1,5 +1,6 @@
 import { canShareImages, saveLineup, shareLineup } from './lineupImage.js';
 import { shortNames } from './names.js';
+import { readableColors } from './theme.js';
 
 const FIELD_SPOTS = {
   LF: [48, 152], LC: [118, 92], CF: [200, 64], RC: [282, 92], RF: [352, 152],
@@ -34,6 +35,14 @@ const LONGEST_REFRESH_BACKOFF_MULTIPLIER = 8;
 const ICON_EMOJI_MAXIMUM_CHARACTERS = 8;
 const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
 const CHIP_WIDTH = 78;
+const CHIP_TEXT_ROOM = CHIP_WIDTH - 8;
+const CHIP_HIT_HEIGHT = 56;
+const CHIP_NAME_SIZE = 12;
+const LONG_CHIP_NAME_SIZE = 9.5;
+const measuringContext = document.createElement('canvas').getContext('2d');
+const PAGE_LANGUAGE = document.documentElement.lang;
+const andList = new Intl.ListFormat(PAGE_LANGUAGE, { type: 'conjunction' });
+const relativeTime = new Intl.RelativeTimeFormat(PAGE_LANGUAGE, { numeric: 'always' });
 const COMMENT_TOGGLE_TEXT = 'Anonymous suggestion box';
 const COMMENT_CONFIRMATION_MILLISECONDS = 4000;
 const WRITE_SETTLE_MILLISECONDS = 16000;
@@ -95,10 +104,11 @@ async function apiPost(path, body) {
 }
 
 function applyConfig(settings) {
-  Object.entries(THEME_VARIABLES).forEach(([key, variable]) => {
+  Object.keys(THEME_VARIABLES).forEach((key) => {
     if (!HEX_COLOR_PATTERN.test(settings.theme[key])) throw new Error('The sheet sent an invalid color for ' + key);
-    document.documentElement.style.setProperty(variable, settings.theme[key]);
   });
+  const colors = { ...settings.theme, ...readableColors(settings.theme) };
+  Object.entries(THEME_VARIABLES).forEach(([key, variable]) => document.documentElement.style.setProperty(variable, colors[key]));
   applyStripe(settings.theme.stripe);
   if (!FONT_NAME_PATTERN.test(settings.font)) throw new Error('The sheet sent an unknown font');
   const fontAddress = 'https://fonts.googleapis.com/css2?family=' + settings.font.replace(/ /g, '+') + ':wght@400;500;600;700&display=swap';
@@ -209,11 +219,21 @@ function chipClass(isProblem, players) {
   return players.some(isMaybe) ? 'chip maybe' : 'chip';
 }
 
+function chipNameFit(name) {
+  const widthAt = (size) => {
+    measuringContext.font = `700 ${size}px '${config.font}', sans-serif`;
+    return measuringContext.measureText(name).width;
+  };
+  if (widthAt(CHIP_NAME_SIZE) <= CHIP_TEXT_ROOM) return { class: 'chip-name' };
+  if (widthAt(LONG_CHIP_NAME_SIZE) <= CHIP_TEXT_ROOM) return { class: 'chip-name long' };
+  return { class: 'chip-name long', textLength: CHIP_TEXT_ROOM, lengthAdjust: 'spacingAndGlyphs' };
+}
+
 function drawChip(position, players, openIsProblem, shortNameOf) {
   const [x, y] = FIELD_SPOTS[position];
   const isProblem = showsLineupProblems() && (players.length > 1 || (players.length === 0 && openIsProblem));
   const name = players.length === 0 ? 'open' : players.map((player) => chipName(player, shortNameOf)).join(' + ');
-  const spokenNames = players.length === 0 ? 'open' : players.map((player) => (isMaybe(player) ? player.name + ', maybe' : player.name)).join(' and ');
+  const spokenNames = players.length === 0 ? 'open' : andList.format(players.map((player) => (isMaybe(player) ? player.name + ', maybe' : player.name)));
   const chip = svgElement('g', {
     class: chipClass(isProblem, players),
     'data-edit-kind': 'spot',
@@ -221,10 +241,11 @@ function drawChip(position, players, openIsProblem, shortNameOf) {
     role: 'img',
     'aria-label': `${position}: ${spokenNames}${isProblem ? ', needs attention' : ''}`,
   });
+  chip.appendChild(svgElement('rect', { class: 'chip-hit', x: x - CHIP_WIDTH / 2, y: y - CHIP_HIT_HEIGHT / 2 - 1, width: CHIP_WIDTH, height: CHIP_HIT_HEIGHT }));
   chip.appendChild(svgElement('rect', { class: 'chip-box', x: x - CHIP_WIDTH / 2, y: y - 6, width: CHIP_WIDTH, height: 22, rx: 5 }));
   chip.appendChild(svgElement('rect', { class: 'chip-label-box', x: x - 15, y: y - 18, width: 30, height: 13, rx: 4 }));
   chip.appendChild(svgElement('text', { class: 'chip-label', x, y: y - 8.5 }, position));
-  chip.appendChild(svgElement('text', { class: name.length > 12 ? 'chip-name long' : 'chip-name', x, y: y + 9.5 }, name));
+  chip.appendChild(svgElement('text', { ...chipNameFit(name), x, y: y + 9.5 }, name));
   return chip;
 }
 
@@ -244,7 +265,7 @@ function summarizeInning(inningIndex) {
   Object.keys(FIELD_SPOTS).forEach((position) => {
     const players = playersByPosition[position] || [];
     if (players.length === 0 && bench.length > 0) openPositions.push(position);
-    if (players.length > 1) problems.push(position + ' has ' + players.map((player) => player.name).join(' and '));
+    if (players.length > 1) problems.push(position + ' has ' + andList.format(players.map((player) => player.name)));
   });
   Object.keys(playersByPosition).filter((position) => !FIELD_SPOTS[position]).forEach((position) => {
     problems.push('"' + position + '" is not a field position (' + playersByPosition[position].map((player) => player.name).join(', ') + ')');
@@ -300,7 +321,10 @@ function renderNameList(elementId, headingText, players, numbered, shortNameOf) 
       order.textContent = index + 1;
       item.appendChild(order);
     }
-    item.append(shortNameOf.get(player.name.trim()));
+    const name = document.createElement('span');
+    name.className = 'person-name';
+    name.textContent = shortNameOf.get(player.name.trim());
+    item.append(name);
     if (isMaybe(player)) item.append(maybeMark());
     list.appendChild(item);
   });
@@ -322,6 +346,15 @@ function tableCell(tag, text, className) {
   return cell;
 }
 
+function personCell(name) {
+  const cell = tableCell('td', '', 'name');
+  const text = document.createElement('span');
+  text.className = 'person-name';
+  text.textContent = name;
+  cell.append(text);
+  return cell;
+}
+
 function tableRow(cells) {
   const row = document.createElement('tr');
   row.append(...cells);
@@ -329,7 +362,7 @@ function tableRow(cells) {
 }
 
 function nameCell(player) {
-  const cell = tableCell('td', player.name, 'name');
+  const cell = personCell(player.name);
   if (isMaybe(player)) cell.append(maybeMark());
   return cell;
 }
@@ -363,7 +396,7 @@ function renderWholeGame() {
   });
   const problems = [...inningsByProblem].map(([problem, innings]) => {
     if (innings.length === selectedLineup.innings.length) return problem + ' every inning';
-    return problem + (innings.length === 1 ? ' in inning ' : ' in innings ') + innings.join(', ');
+    return problem + (innings.length === 1 ? ' in inning ' : ' in innings ') + andList.format(innings);
   });
   document.getElementById('problems').textContent = showsLineupProblems() ? problems.join(' · ') : '';
   document.getElementById('bench').replaceChildren();
@@ -404,7 +437,7 @@ function renderSeason() {
     ...['Games', 'Played', 'Sat', 'Infield', 'Outfield'].map((heading) => tableCell('th', heading)),
   ]);
   const playerRows = seasonTotals(playedLineups).map((totals) => tableRow([
-    tableCell('td', totals.name, 'name'),
+    personCell(totals.name),
     tableCell('td', totals.games, totals.games === 0 ? 'sat' : ''),
     tableCell('td', totals.played, totals.games === 0 ? 'sat' : ''),
     tableCell('td', totals.sat, totals.sat === 0 ? 'sat' : ''),
@@ -742,10 +775,10 @@ function savedLineups() {
 function describeAge(savedAt) {
   const minutes = Math.round((Date.now() - savedAt) / 60000);
   if (minutes < 1) return 'less than a minute ago';
-  if (minutes < 60) return minutes + (minutes === 1 ? ' minute ago' : ' minutes ago');
+  if (minutes < 60) return relativeTime.format(-minutes, 'minute');
   const hours = Math.round(minutes / 60);
-  if (hours < 48) return hours + (hours === 1 ? ' hour ago' : ' hours ago');
-  return Math.round(hours / 24) + ' days ago';
+  if (hours < 48) return relativeTime.format(-hours, 'hour');
+  return relativeTime.format(-Math.round(hours / 24), 'day');
 }
 
 async function loadLineups() {
