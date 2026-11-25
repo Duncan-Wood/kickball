@@ -28,6 +28,44 @@ export function blendedColor(colorShares, baseColor = '#ffffff') {
   return `#${channels.join('')}`;
 }
 
+const MINIMUM_TEXT_CONTRAST = 4.5;
+const DARKENING_STEP = 0.05;
+const WHITE = '#ffffff';
+const BLACK = '#000000';
+
+function relativeLuminance(color) {
+  const [red, green, blue] = [1, 3, 5].map((start) => {
+    const value = parseInt(color.slice(start, start + 2), 16) / 255;
+    return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+}
+
+export function contrastRatio(first, second) {
+  const [lighter, darker] = [relativeLuminance(first), relativeLuminance(second)].sort((a, b) => b - a);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+function darkenedUntilReadable(color, surfaces) {
+  const isReadable = (candidate) => surfaces.every((surface) => contrastRatio(candidate, surface) >= MINIMUM_TEXT_CONTRAST);
+  for (let share = 0; share < 1; share += DARKENING_STEP) {
+    const candidate = blendedColor([[BLACK, share]], color);
+    if (isReadable(candidate)) return candidate;
+  }
+  return BLACK;
+}
+
+export function readableColors(theme) {
+  const surfaces = [WHITE, theme.background, theme.tint];
+  return {
+    primary: darkenedUntilReadable(theme.primary, surfaces),
+    accent: darkenedUntilReadable(theme.accent, surfaces),
+    ink: darkenedUntilReadable(theme.ink, surfaces),
+    muted: darkenedUntilReadable(theme.muted, surfaces),
+    tagText: darkenedUntilReadable(theme.tagText, [theme.tagBackground]),
+  };
+}
+
 export function themeFromColors(mainColor, secondColor, stripeStyle) {
   const mutedColor = blendedColor([[mainColor, 0.28]], '#6b6b6b');
   return {

@@ -8,6 +8,7 @@ import { captain, element } from './state.js';
 import { saveEdit, setStatus } from './status.js';
 
 const DOCK_CLEARANCE_PIXELS = 16;
+const andList = new Intl.ListFormat(document.documentElement.lang, { type: 'conjunction' });
 const HINTS = {
   elsewhere: 'Pick an inning above to edit the field.',
   empty: 'Nobody has said yes yet. Mark who is coming on RSVPs, then set the lineup here.',
@@ -148,7 +149,7 @@ function spotDockContent(lineup, inningIndex, close) {
   const occupants = occupantsOf(lineup.players, inningIndex, position);
   const header = node('div', 'dock-header');
   const title = node('div', 'dock-title');
-  title.append(node('strong', undefined, POSITION_NAMES[POSITION_CODES.indexOf(position)]), node('span', 'dock-sub', occupants.length === 0 ? 'Open. Who plays here?' : `${occupants.map((occupant) => occupant.name).join(' and ')} ${occupants.length === 1 ? 'is' : 'are'} here. Pick a swap.`));
+  title.append(node('strong', undefined, POSITION_NAMES[POSITION_CODES.indexOf(position)]), node('span', 'dock-sub', occupants.length === 0 ? 'Open. Who plays here?' : `${andList.format(occupants.map((occupant) => occupant.name))} ${occupants.length === 1 ? 'is' : 'are'} here. Pick a swap.`));
   header.append(title);
   occupants.forEach((occupant) => header.append(button(occupants.length === 1 ? 'Sit out' : `Sit ${occupant.name}`, 'dock-action', () => applyFielding(occupant.sheetRow, { kind: 'bench' }))));
   header.append(close);
@@ -170,7 +171,9 @@ function kickerDockHeader(lineup, close) {
   const slot = kickers.findIndex((player) => player.sheetRow === captain.focus.sheetRow) + 1;
   const header = node('div', 'dock-header');
   const title = node('div', 'dock-title');
-  title.append(node('strong', undefined, `${lineupPlayer(lineup, captain.focus.sheetRow).name} kicks ${slot}${ordinalSuffix(slot)}`), node('span', 'dock-sub', 'Tap the kicker whose spot they should take.'));
+  const heading = node('strong');
+  heading.append(node('bdi', undefined, lineupPlayer(lineup, captain.focus.sheetRow).name), ` kicks ${slot}${ordinalSuffix(slot)}`);
+  title.append(heading, node('span', 'dock-sub', 'Tap the kicker whose spot they should take.'));
   header.append(title, close);
   return header;
 }
@@ -283,7 +286,7 @@ function markRatherNotChips(lineup) {
     const reluctant = occupantsOf(lineup.players, inningIndex, position).filter((player) => wouldRatherNotPlay(captain.rosterPlayers, player.name, position));
     if (reluctant.length === 0) return;
     chip.classList.add('rather-not');
-    chip.setAttribute('aria-label', `${chip.getAttribute('aria-label')}, ${reluctant.map((player) => player.name).join(' and ')} would rather not play ${position}`);
+    chip.setAttribute('aria-label', `${chip.getAttribute('aria-label')}, ${andList.format(reluctant.map((player) => player.name))} would rather not play ${position}`);
     const box = chip.querySelector('.chip-box');
     const mark = document.createElementNS(SVG_NAMESPACE, 'text');
     mark.setAttribute('class', 'rather-not-mark');

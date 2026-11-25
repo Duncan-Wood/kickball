@@ -1,5 +1,6 @@
-import { shortNames } from './names.js';
+import { graphemes, shortNames } from './names.js';
 import { POSITION_CODES } from './template.js';
+import { readableColors } from './theme.js';
 
 const POSITION_LABELS = { P: 'Pitcher', C: 'Catcher', '1B': '1st base', '2B': '2nd base', '3B': '3rd base', SS: 'Shortstop', LF: 'Left field', LC: 'Left center', CF: 'Center', RC: 'Right center', RF: 'Right field' };
 const OPEN = '—';
@@ -34,12 +35,13 @@ export function lineupGrid(lineup) {
 
 function fittedText(context, text, width) {
   if (context.measureText(text).width <= width) return text;
-  let cut = text;
-  while (cut.length > 1 && context.measureText(`${cut}…`).width > width) cut = cut.slice(0, -1);
-  return `${cut}…`;
+  const pieces = graphemes(text);
+  while (pieces.length > 1 && context.measureText(`${pieces.join('')}…`).width > width) pieces.pop();
+  return `${pieces.join('')}…`;
 }
 
-function drawLineupImage(grid, { title, subtitle, theme, font }) {
+function drawLineupImage(grid, { title, subtitle, theme: teamTheme, font }) {
+  const theme = { ...teamTheme, ...readableColors(teamTheme) };
   const tableWidth = LABEL_WIDTH + grid.innings.length * INNING_WIDTH;
   const sittingHeight = Math.max(1, ...grid.sitting.map((names) => names.length)) * LINE_HEIGHT + CELL_PADDING;
   const tableHeight = HEADER_HEIGHT + grid.rows.length * ROW_HEIGHT + sittingHeight;
