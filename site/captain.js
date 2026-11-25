@@ -1,5 +1,5 @@
 import { headcount } from './edits.js';
-import { bindFieldEditing, copyInningButton, fieldingPanel, installFieldingEvents, keyboardIsInUse, renderDock, resetEditingState, restoreKeyboardFocus } from './captain/fielding.js';
+import { bindFieldEditing, copyInningControls, fieldingPanel, installFieldingEvents, keyboardIsInUse, renderDock, resetEditingState, restoreKeyboardFocus } from './captain/fielding.js';
 import { gamesPanel } from './captain/gamesPanel.js';
 import { teamPanel } from './captain/teamPanel.js';
 import { chooseArea } from './captain/navigation.js';
@@ -92,7 +92,7 @@ function afterRender() {
   if (lineup === null && LINEUP_AREAS.includes(captain.area)) captain.area = firstAreaWithoutLineup();
   if (lineup !== null && captain.tabName !== lineup.tabName) resetEditingState(lineup);
   renderAreaButtons(lineup);
-  element('captain-context').replaceChildren(...(isFielding && lineup !== null ? copyInningButton(lineup, inField) : []));
+  element('captain-context').replaceChildren(...(isFielding && lineup !== null ? copyInningControls(lineup, inField) : []));
   updateUndoButton();
   element('captain-share').hidden = !window.fieldView.canShareLineup();
   renderPanel(lineup, inField);

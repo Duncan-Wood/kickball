@@ -211,17 +211,26 @@ export function renderDock(lineup, inField) {
   if (hiddenBy > 0) window.scrollBy({ top: hiddenBy });
 }
 
-export function copyInningButton(lineup, inField) {
-  const targetInningIndex = window.fieldView.currentInningIndex();
-  if (!inField || targetInningIndex === 0 || !lineup.players.some((player) => player.attending)) return [];
-  const sourceInningIndex = targetInningIndex - 1;
-  const changes = copyInningChanges(lineup.players, sourceInningIndex, targetInningIndex);
-  if (changes.length === 0) return [];
+export function copyInningControls(lineup, inField) {
+  const sourceInningIndex = window.fieldView.currentInningIndex();
+  if (!inField || lineup.innings.length < 2 || !lineup.players.some((player) => player.attending)) return [];
   const sourceLabel = lineup.innings[sourceInningIndex];
-  return [button(`Copy inning ${sourceLabel} here`, 'copy-inning', () => {
-    captain.focus = null;
-    saveEdit(() => saveFielding(lineup, changes), `inning ${sourceLabel} copied to inning ${lineup.innings[targetInningIndex]}`);
-  })];
+  const controls = node('div', 'copy-to');
+  controls.append(node('span', 'copy-to-label', 'Copy to'));
+  lineup.innings.forEach((targetLabel, targetInningIndex) => {
+    if (targetInningIndex === sourceInningIndex) return;
+    const changes = copyInningChanges(lineup.players, sourceInningIndex, targetInningIndex);
+    const target = button(targetLabel, 'inning-toggle', () => {
+      captain.focus = null;
+      saveEdit(() => saveFielding(lineup, changes), `inning ${sourceLabel} copied to inning ${targetLabel}`);
+    });
+    const matches = changes.length === 0;
+    target.disabled = matches;
+    target.setAttribute('aria-pressed', String(matches));
+    target.setAttribute('aria-label', matches ? `Inning ${targetLabel} already matches` : `Copy inning ${sourceLabel} to inning ${targetLabel}`);
+    controls.append(target);
+  });
+  return [controls];
 }
 
 export function fieldingPanel(lineup, inField) {
