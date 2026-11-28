@@ -34,7 +34,16 @@ test('names written without initials, like Japanese, Chinese and Korean, stay wh
 });
 
 test('cutting a name never splits an accented letter or an emoji', () => {
-  const short = shortFor(['Zoë 👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱', 'Nguyễn Thị Minh Ánh']);
-  assert.equal(short['Zoë 👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱'], 'Zoë 👩🏽‍🦱.');
+  const decomposedSurname = 'A\u030Alvarez';
+  const short = shortFor([`Zoë 👩🏽‍🦱 ${decomposedSurname}`, 'Nguyễn Thị Minh Ánh', '👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱']);
+  assert.equal(short[`Zoë 👩🏽‍🦱 ${decomposedSurname}`], 'Zoë A\u030A.');
   assert.equal(short['Nguyễn Thị Minh Ánh'], 'Nguyễn Á.');
+  assert.equal(short['👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱👩🏽‍🦱'], `${'👩🏽‍🦱'.repeat(11)}…`);
+});
+test('a note in brackets or a stray symbol is never used as the last initial', () => {
+  assert.deepEqual(shortFor(['Ana Ruiz (sub)', 'Jo Walsh - captain', '(sub)']), { 'Ana Ruiz (sub)': 'Ana R.', 'Jo Walsh - captain': 'Jo c.', '(sub)': '(sub)' });
+});
+
+test('a repeated first word is all first name', () => {
+  assert.deepEqual(shortFor(['Cey Cey', 'Cey Cey (sub)', 'Cey Cey Moore']), { 'Cey Cey': 'Cey Cey', 'Cey Cey (sub)': 'Cey Cey', 'Cey Cey Moore': 'Cey Cey M.' });
 });

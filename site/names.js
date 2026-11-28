@@ -1,6 +1,7 @@
 export const SHORT_NAME_LENGTH = 12;
 const ELLIPSIS = '…';
 const SCRIPTS_WITHOUT_INITIALS = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
+const STARTS_WITH_LETTER = /^\p{L}/u;
 const graphemeSegmenter = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
 
 export function graphemes(text) {
@@ -30,8 +31,12 @@ function fitted(person) {
 export function shortNames(fullNames) {
   const people = [...new Set(fullNames.map((name) => name.trim()))].map((name) => {
     if (SCRIPTS_WITHOUT_INITIALS.test(name)) return { name, first: name, last: '', letters: 1 };
-    const words = name.split(/\s+/);
-    return { name, first: words[0], last: words.length > 1 ? words[words.length - 1] : '', letters: 1 };
+    const words = name.split(/\s+/).filter((word) => STARTS_WITH_LETTER.test(word));
+    if (words.length === 0) return { name, first: name, last: '', letters: 1 };
+    const repeatsOfFirstWord = words.findIndex((word) => word.toLocaleLowerCase() !== words[0].toLocaleLowerCase());
+    const firstNameWordCount = repeatsOfFirstWord === -1 ? words.length : repeatsOfFirstWord;
+    const first = words.slice(0, firstNameWordCount).join(' ');
+    return { name, first, last: words.length > firstNameWordCount ? words[words.length - 1] : '', letters: 1 };
   });
   let lengthened = true;
   while (lengthened) {
